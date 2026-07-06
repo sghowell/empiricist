@@ -16,6 +16,7 @@ from pathlib import Path
 
 from empiricist.ledger.models import (
     Artifact,
+    Certification,
     EvidenceRow,
     Run,
     Status,
@@ -165,6 +166,28 @@ class Ledger:
             )
             for r in rows
         ]
+
+    # -- certification stamps (spec §7: the trust boundary) --------------------
+
+    def add_certification(self, cert: Certification) -> None:
+        with self._tx() as c:
+            c.execute(
+                "INSERT OR REPLACE INTO certifications (verifier, verifier_version,"
+                " binary_hash, golden_suite_hash, verdict, stamped_at, run_id)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (cert.verifier, cert.verifier_version, cert.binary_hash,
+                 cert.golden_suite_hash, cert.verdict.value, cert.stamped_at,
+                 cert.run_id),
+            )
+
+    def is_certified(self, verifier: str, version: str, binary_hash: str) -> bool:
+        """Registry rule: verify() may run only if a PASS stamp exists."""
+        row = self.conn.execute(
+            "SELECT verdict FROM certifications WHERE verifier = ?"
+            " AND verifier_version = ? AND binary_hash = ?",
+            (verifier, version, binary_hash),
+        ).fetchone()
+        return row is not None and row["verdict"] == Verdict.PASS.value
 
     # -- edges ---------------------------------------------------------------
 
