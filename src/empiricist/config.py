@@ -15,7 +15,7 @@ from importlib import metadata
 
 from blake3 import blake3
 
-_FINGERPRINT_PACKAGES = ("blake3", "pytest")
+_FINGERPRINT_PACKAGES = ("empiricist", "blake3", "pytest")
 
 
 @dataclass(frozen=True)
@@ -29,6 +29,12 @@ class RunConfig:
     transient_cap: int = 4          # minsearch transient component size = n0 + this
 
     def config_hash(self) -> str:
+        """Stable blake3 hash of this config's fields and values.
+
+        NOTE: the hash covers the whole config schema+values — adding a field
+        changes it. It identifies a config at a code version; do not read
+        cross-version hash equality as "same tuning".
+        """
         canonical = json.dumps(asdict(self), sort_keys=True)
         return blake3(canonical.encode()).hexdigest()
 

@@ -1,8 +1,10 @@
 """Tests for run provenance rows and resume reconciliation (spec §4.4)."""
 
+import sqlite3
+
 import pytest
 
-from empiricist.ledger.db import Ledger
+from empiricist.ledger.db import Ledger, RunAlreadyFinishedError
 from empiricist.ledger.models import Run
 
 
@@ -41,7 +43,6 @@ def test_reconcile_orphans_marks_unfinished_runs(ledger):
 
 
 def test_finish_run_is_exactly_once(ledger):
-    from empiricist.ledger.db import RunAlreadyFinishedError
     ledger.start_run(Run(run_id="r1", move="SEARCH"))
     ledger.finish_run("r1", exit_code=0, wall_s=1.0, tokens_out=500, cost_usd=0.25)
     with pytest.raises(RunAlreadyFinishedError):
@@ -66,7 +67,6 @@ def test_spent_is_zero_on_empty_ledger_and_ignores_inflight(ledger):
 
 
 def test_duplicate_run_id_raises_integrity_error(ledger):
-    import sqlite3
     ledger.start_run(Run(run_id="dup", move="SEARCH"))
     with pytest.raises(sqlite3.IntegrityError):
         ledger.start_run(Run(run_id="dup", move="SEARCH"))

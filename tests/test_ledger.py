@@ -129,7 +129,7 @@ def test_reopen_preserves_state(tmp_path, store):
     lg2.close()
 
 
-def test_record_evidence_rolls_back_atomically_on_midtx_failure(ledger, store, monkeypatch):
+def test_record_evidence_rolls_back_atomically_on_midtx_failure(ledger, store):
     """The F1 guarantee: a failure between the status UPDATE and the evidence
     INSERT must leave the artifact unchanged and record nothing."""
     art = make_artifact(store)

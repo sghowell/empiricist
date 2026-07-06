@@ -27,3 +27,4 @@ def test_env_fingerprint_contains_python_and_platform():
     fp = json.loads(env_fingerprint())
     assert "python" in fp and "platform" in fp and "packages" in fp
     assert "blake3" in fp["packages"]
+    assert "empiricist" in fp["packages"] and fp["packages"]["empiricist"] != "absent"
