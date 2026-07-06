@@ -44,3 +44,28 @@ def test_exists(store):
 def test_get_missing_raises_keyerror(store):
     with pytest.raises(KeyError):
         store.get("0" * 64)
+
+
+def test_path_for_rejects_non_digest_strings(store):
+    for bad in ("/etc/passwd", "../../../etc/passwd", "", "aa", "Z" * 64, "0" * 63):
+        with pytest.raises(ValueError):
+            store.path_for(bad)
+
+
+def test_get_and_exists_reject_traversal(store):
+    with pytest.raises(ValueError):
+        store.get("../../../etc/passwd")
+    with pytest.raises(ValueError):
+        store.exists("/etc/passwd")
+
+
+def test_empty_content_roundtrips(store):
+    digest = store.put(b"")
+    assert store.get(digest) == b""
+
+
+def test_verify_detects_tampering(store):
+    digest = store.put(b"honest content")
+    assert store.verify(digest)
+    store.path_for(digest).write_bytes(b"tampered")
+    assert not store.verify(digest)

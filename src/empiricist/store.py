@@ -2,16 +2,21 @@
 
 Layout: <root>/blake3/<hex[0:2]>/<hex[2:4]>/<hex64>. Writes are atomic
 (temp file + os.replace) and idempotent: identical content maps to the
-same path, so re-ingestion is free and the store is crash-safe.
+same path, so re-ingestion is free and the store is crash-safe against
+process death (kill -9); power-loss durability (fsync) is out of scope
+for v0.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from pathlib import Path
 
 from blake3 import blake3
+
+_DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class Store:
@@ -19,6 +24,8 @@ class Store:
         self.root = Path(root)
 
     def path_for(self, digest: str) -> Path:
+        if not _DIGEST_RE.fullmatch(digest):
+            raise ValueError(f"not a blake3 hex digest: {digest!r}")
         return self.root / "blake3" / digest[:2] / digest[2:4] / digest
 
     def put(self, content: bytes) -> str:
@@ -46,3 +53,7 @@ class Store:
 
     def exists(self, digest: str) -> bool:
         return self.path_for(digest).exists()
+
+    def verify(self, digest: str) -> bool:
+        """Re-hash stored content; False on mismatch (bit rot / tampering)."""
+        return blake3(self.get(digest)).hexdigest() == digest
