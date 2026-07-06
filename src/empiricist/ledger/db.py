@@ -47,6 +47,10 @@ class Ledger:
     @contextmanager
     def _tx(self):
         """One BEGIN IMMEDIATE ... COMMIT per state transition."""
+        if self.conn.in_transaction:
+            raise RuntimeError(
+                "nested _tx: Ledger methods must not call each other inside a transaction"
+            )
         self.conn.execute("BEGIN IMMEDIATE")
         try:
             yield self.conn
@@ -59,6 +63,10 @@ class Ledger:
     # -- artifacts ---------------------------------------------------------
 
     def add_artifact(self, art: Artifact) -> None:
+        """Register a new artifact row. Creation is not a transition: entry
+        status is the caller's claim (datasets legitimately enter at
+        VERIFIED_N, spec §4.1). Only the single-writer orchestrator calls
+        this; all subsequent status changes go through record_evidence()."""
         with self._tx() as c:
             c.execute(
                 "INSERT INTO artifacts (id, kind, problem, title, content_path, status,"
@@ -109,20 +117,30 @@ class Ledger:
                     raise TerminalStatusError(
                         f"artifact {ev.artifact_id} is REFUTED (terminal)"
                     )
-                c.execute(
-                    "UPDATE artifacts SET status = ?,"
-                    " status_n = COALESCE(?, status_n),"
-                    " coverage = COALESCE(?, coverage),"
-                    " substatus = COALESCE(?, substatus)"
-                    " WHERE id = ?",
-                    (new_status.value, status_n, coverage, substatus, ev.artifact_id),
-                )
+                if new_status is Status.VERIFIED_N:
+                    c.execute(
+                        "UPDATE artifacts SET status = ?,"
+                        " status_n = COALESCE(?, status_n),"
+                        " coverage = COALESCE(?, coverage),"
+                        " substatus = COALESCE(?, substatus)"
+                        " WHERE id = ?",
+                        (new_status.value, status_n, coverage, substatus, ev.artifact_id),
+                    )
+                else:
+                    # status_n/coverage are VERIFIED_N-specific: clear on any other status.
+                    c.execute(
+                        "UPDATE artifacts SET status = ?, status_n = NULL,"
+                        " coverage = NULL, substatus = COALESCE(?, substatus)"
+                        " WHERE id = ?",
+                        (new_status.value, substatus, ev.artifact_id),
+                    )
             c.execute(
                 "INSERT INTO evidence (artifact_id, verifier, verifier_version,"
                 " binary_hash, verdict, details_json, log_path, wall_s, created_at)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (ev.artifact_id, ev.verifier, ev.verifier_version, ev.binary_hash,
-                 ev.verdict.value, json.dumps(ev.details, sort_keys=True),
+                 ev.verdict.value,
+                 json.dumps(ev.details, sort_keys=True, separators=(",", ":")),
                  ev.log_path, ev.wall_s, ev.created_at),
             )
 

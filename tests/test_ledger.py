@@ -127,3 +127,38 @@ def test_reopen_preserves_state(tmp_path, store):
     lg2 = Ledger(tmp_path / "ledger.db")
     assert lg2.get_artifact(art.id) == art
     lg2.close()
+
+
+def test_record_evidence_rolls_back_atomically_on_midtx_failure(ledger, store, monkeypatch):
+    """The F1 guarantee: a failure between the status UPDATE and the evidence
+    INSERT must leave the artifact unchanged and record nothing."""
+    art = make_artifact(store)
+    ledger.add_artifact(art)
+    bad = make_evidence(art.id)
+    # Force the evidence INSERT to violate NOT NULL after the UPDATE ran.
+    object.__setattr__(bad, "verifier", None)
+    with pytest.raises(sqlite3.IntegrityError):
+        ledger.record_evidence(bad, new_status=Status.VERIFIED_N, status_n=9)
+    got = ledger.get_artifact(art.id)
+    assert got.status == Status.HEURISTIC and got.status_n is None
+    assert ledger.evidence_for(art.id) == []
+
+
+def test_nested_tx_raises_loudly(ledger):
+    with pytest.raises(RuntimeError, match="nested _tx"):
+        with ledger._tx():
+            with ledger._tx():
+                pass  # pragma: no cover
+
+
+def test_status_n_clears_when_leaving_verified_n(ledger, store):
+    art = make_artifact(store, kind="dataset")
+    ledger.add_artifact(art)
+    ledger.record_evidence(
+        make_evidence(art.id), new_status=Status.VERIFIED_N,
+        status_n=9, coverage="exhaustive",
+    )
+    ledger.record_evidence(make_evidence(art.id), new_status=Status.CERTIFIED)
+    got = ledger.get_artifact(art.id)
+    assert got.status == Status.CERTIFIED
+    assert got.status_n is None and got.coverage is None

@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS artifacts (
   problem TEXT NOT NULL,
   title TEXT NOT NULL,
   content_path TEXT NOT NULL,
-  status TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN
+    ('REFUTED','HEURISTIC','CONJECTURED','VERIFIED_N','CERTIFIED','FORMALIZED')),
   substatus TEXT,
   status_n INTEGER,
   coverage TEXT CHECK (coverage IN ('exhaustive', 'sampled') OR coverage IS NULL),
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS evidence (
   verifier TEXT NOT NULL,
   verifier_version TEXT NOT NULL,
   binary_hash TEXT NOT NULL,
-  verdict TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('PASS','FAIL','ERROR','TIMEOUT')),
   details_json TEXT NOT NULL DEFAULT '{}',
   log_path TEXT,
   wall_s REAL,
@@ -116,4 +117,12 @@ CREATE TABLE IF NOT EXISTS pareto_frontier (
   objective_vec TEXT NOT NULL,
   frontier_version INTEGER NOT NULL
 );
+
+-- rowid may not appear in index DDL; SQLite indexes on rowid tables already
+-- end with the implicit rowid tiebreaker, so (artifact_id, created_at)
+-- satisfies "ORDER BY created_at, rowid" within an artifact with no sort.
+CREATE INDEX IF NOT EXISTS idx_evidence_artifact
+  ON evidence(artifact_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_edges_src ON edges(src);
 """
