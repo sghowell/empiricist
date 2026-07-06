@@ -5,6 +5,7 @@ description = "A lightweight epistemic-ledger harness for the FT-FBQC open probl
 requires-python = ">=3.11"
 dependencies = [
     "blake3>=1.0",
+    "psutil>=6.0",
 ]
 
 [dependency-groups]
