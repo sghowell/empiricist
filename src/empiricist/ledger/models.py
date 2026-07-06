@@ -21,6 +21,23 @@ class Status(StrEnum):
     CERTIFIED = "CERTIFIED"
     FORMALIZED = "FORMALIZED"
 
+    @property
+    def rank(self) -> int:
+        """Epistemic strength for comparisons. NEVER order Status with < / max():
+        StrEnum compares by string value, which is not epistemic order."""
+        return _STATUS_RANK[self]
+
+
+# REFUTED is terminal, not "weakest": rank orders the live lattice only.
+_STATUS_RANK = {
+    Status.REFUTED: -1,
+    Status.HEURISTIC: 0,
+    Status.CONJECTURED: 1,
+    Status.VERIFIED_N: 2,
+    Status.CERTIFIED: 3,
+    Status.FORMALIZED: 4,
+}
+
 
 class Verdict(StrEnum):
     PASS = "PASS"
@@ -66,6 +83,9 @@ class EvidenceRow:
     log_path: str | None = None
     wall_s: float | None = None
     created_at: str = field(default_factory=now_iso)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "details", dict(self.details))
 
 
 @dataclass(frozen=True)

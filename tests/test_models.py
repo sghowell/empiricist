@@ -4,6 +4,7 @@ import pytest
 
 from empiricist.ledger.models import (
     Budget,
+    EvidenceRow,
     Status,
     Verdict,
     dominates,
@@ -31,6 +32,32 @@ def test_budget_is_frozen_with_optional_fields():
 def test_now_iso_is_utc_isoformat():
     ts = now_iso()
     assert ts.endswith("+00:00") and "T" in ts
+
+
+def test_status_rank_orders_epistemically():
+    assert Status.HEURISTIC.rank < Status.CONJECTURED.rank < Status.VERIFIED_N.rank
+    assert Status.VERIFIED_N.rank < Status.CERTIFIED.rank < Status.FORMALIZED.rank
+    assert Status.REFUTED.rank == -1
+    # The StrEnum trap this guards against: string order is NOT epistemic order.
+    assert Status.CONJECTURED < Status.HEURISTIC  # lexicographic!
+
+
+def test_evidence_details_is_defensively_copied():
+    src = {"n": 8}
+    row = EvidenceRow(
+        artifact_id="a", verifier="v", verifier_version="1",
+        binary_hash="b", verdict=Verdict.PASS, details=src,
+    )
+    src["n"] = 999
+    assert row.details == {"n": 8}
+
+
+def test_created_at_autopopulates():
+    row = EvidenceRow(
+        artifact_id="a", verifier="v", verifier_version="1",
+        binary_hash="b", verdict=Verdict.PASS,
+    )
+    assert row.created_at.endswith("+00:00")
 
 
 class TestDominates:
