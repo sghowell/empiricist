@@ -11,13 +11,16 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 from empiricist.ledger.models import (
     Artifact,
     EvidenceRow,
+    Run,
     Status,
     Verdict,
+    now_iso,
 )
 from empiricist.ledger.schema import PRAGMAS, SCHEMA
 
@@ -172,3 +175,84 @@ class Ledger:
                 "SELECT src, dst, rel FROM edges WHERE src = ?", (src,)
             )
         ]
+
+    # -- runs & resume (spec §4.4) -------------------------------------------
+
+    def start_run(self, run: Run) -> None:
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO runs (run_id, move, role, model, argv, seed, config_hash,"
+                " env_fingerprint, tokens_in, tokens_out, cache_read, cost_usd,"
+                " peak_rss_mb, exit_code, started, ended, wall_s)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (run.run_id, run.move, run.role, run.model, run.argv, run.seed,
+                 run.config_hash, run.env_fingerprint, run.tokens_in, run.tokens_out,
+                 run.cache_read, run.cost_usd, run.peak_rss_mb, run.exit_code,
+                 run.started, run.ended, run.wall_s),
+            )
+
+    def finish_run(
+        self,
+        run_id: str,
+        *,
+        exit_code: int,
+        wall_s: float,
+        peak_rss_mb: float | None = None,
+        tokens_in: int = 0,
+        tokens_out: int = 0,
+        cache_read: int = 0,
+        cost_usd: float = 0.0,
+    ) -> None:
+        with self._tx() as c:
+            cur = c.execute(
+                "UPDATE runs SET exit_code = ?, wall_s = ?, peak_rss_mb = ?,"
+                " tokens_in = ?, tokens_out = ?, cache_read = ?, cost_usd = ?,"
+                " ended = ? WHERE run_id = ?",
+                (exit_code, wall_s, peak_rss_mb, tokens_in, tokens_out,
+                 cache_read, cost_usd, now_iso(), run_id),
+            )
+            if cur.rowcount == 0:
+                raise KeyError(run_id)
+
+    def get_run(self, run_id: str) -> Run:
+        r = self.conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        if r is None:
+            raise KeyError(run_id)
+        return Run(
+            run_id=r["run_id"], move=r["move"], role=r["role"], model=r["model"],
+            argv=r["argv"], seed=r["seed"], config_hash=r["config_hash"],
+            env_fingerprint=r["env_fingerprint"], tokens_in=r["tokens_in"],
+            tokens_out=r["tokens_out"], cache_read=r["cache_read"],
+            cost_usd=r["cost_usd"], peak_rss_mb=r["peak_rss_mb"],
+            exit_code=r["exit_code"], started=r["started"], ended=r["ended"],
+            wall_s=r["wall_s"],
+        )
+
+    def reconcile_orphans(self) -> int:
+        """Mark runs that started but never ended (kill -9 mid-flight) as incomplete.
+
+        Resume rule (a) from spec §4.4: the in-flight sample is discarded;
+        nothing else is lost.
+        """
+        with self._tx() as c:
+            cur = c.execute(
+                "UPDATE runs SET exit_code = -1, ended = ? WHERE ended IS NULL",
+                (now_iso(),),
+            )
+            return cur.rowcount
+
+    def spent(self) -> Spent:
+        """Total budget consumed, summed from runs (spec §4.4(b): caps continue)."""
+        r = self.conn.execute(
+            "SELECT COALESCE(SUM(cost_usd), 0.0) AS cost,"
+            " COALESCE(SUM(tokens_in), 0) AS tin,"
+            " COALESCE(SUM(tokens_out), 0) AS tout FROM runs"
+        ).fetchone()
+        return Spent(cost_usd=r["cost"], tokens_in=r["tin"], tokens_out=r["tout"])
+
+
+@dataclass(frozen=True)
+class Spent:
+    cost_usd: float
+    tokens_in: int
+    tokens_out: int
