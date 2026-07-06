@@ -170,6 +170,13 @@ class Ledger:
     # -- certification stamps (spec §7: the trust boundary) --------------------
 
     def add_certification(self, cert: Certification) -> None:
+        """Upsert the stamp for a (verifier, version, binary_hash) triple.
+
+        certifications is a CURRENT-STATE view (upsert), not an append-only
+        ledger; historical certify runs live in `runs` (the M5 certify command
+        must record verdict+suite hash there or as evidence for
+        reconstructability).
+        """
         with self._tx() as c:
             c.execute(
                 "INSERT OR REPLACE INTO certifications (verifier, verifier_version,"
@@ -188,6 +195,29 @@ class Ledger:
             (verifier, version, binary_hash),
         ).fetchone()
         return row is not None and row["verdict"] == Verdict.PASS.value
+
+    def get_certification(
+        self, verifier: str, version: str, binary_hash: str
+    ) -> Certification | None:
+        """The full current stamp for a verifier triple, or None.
+
+        The M5 registry must check BOTH is_certified() AND that the stamp's
+        golden_suite_hash matches the suite it expects (spec §7): a PASS earned
+        against an outdated golden suite must not read as trust.
+        """
+        r = self.conn.execute(
+            "SELECT * FROM certifications WHERE verifier = ?"
+            " AND verifier_version = ? AND binary_hash = ?",
+            (verifier, version, binary_hash),
+        ).fetchone()
+        if r is None:
+            return None
+        return Certification(
+            verifier=r["verifier"], verifier_version=r["verifier_version"],
+            binary_hash=r["binary_hash"], golden_suite_hash=r["golden_suite_hash"],
+            verdict=Verdict(r["verdict"]), stamped_at=r["stamped_at"],
+            run_id=r["run_id"],
+        )
 
     # -- edges ---------------------------------------------------------------
 
