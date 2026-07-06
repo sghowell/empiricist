@@ -40,6 +40,38 @@ def test_reconcile_orphans_marks_unfinished_runs(ledger):
     assert ledger.reconcile_orphans() == 0
 
 
+def test_finish_run_is_exactly_once(ledger):
+    from empiricist.ledger.db import RunAlreadyFinishedError
+    ledger.start_run(Run(run_id="r1", move="SEARCH"))
+    ledger.finish_run("r1", exit_code=0, wall_s=1.0, tokens_out=500, cost_usd=0.25)
+    with pytest.raises(RunAlreadyFinishedError):
+        ledger.finish_run("r1", exit_code=0, wall_s=0.0)
+    # the first finish's numbers stand
+    assert ledger.get_run("r1").tokens_out == 500
+    assert ledger.spent().cost_usd == pytest.approx(0.25)
+
+
+def test_reconcile_leaves_finished_runs_untouched(ledger):
+    ledger.start_run(Run(run_id="ok", move="SEARCH"))
+    ledger.finish_run("ok", exit_code=0, wall_s=1.0)
+    ledger.reconcile_orphans()
+    assert ledger.get_run("ok").exit_code == 0
+
+
+def test_spent_is_zero_on_empty_ledger_and_ignores_inflight(ledger):
+    assert ledger.spent().cost_usd == 0.0
+    ledger.start_run(Run(run_id="inflight", move="SEARCH"))
+    s = ledger.spent()
+    assert s.cost_usd == 0.0 and s.tokens_in == 0  # documented floor semantics
+
+
+def test_duplicate_run_id_raises_integrity_error(ledger):
+    import sqlite3
+    ledger.start_run(Run(run_id="dup", move="SEARCH"))
+    with pytest.raises(sqlite3.IntegrityError):
+        ledger.start_run(Run(run_id="dup", move="SEARCH"))
+
+
 def test_spent_sums_cost_and_tokens(ledger):
     ledger.start_run(Run(run_id="r1", move="SEARCH"))
     ledger.finish_run("r1", exit_code=0, wall_s=1.0,

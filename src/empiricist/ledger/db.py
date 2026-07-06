@@ -29,6 +29,10 @@ class TerminalStatusError(Exception):
     """Raised on any attempt to change the status of a REFUTED artifact."""
 
 
+class RunAlreadyFinishedError(Exception):
+    """Raised on a second finish_run for the same run (exactly-once discipline)."""
+
+
 class Ledger:
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
@@ -207,12 +211,20 @@ class Ledger:
             cur = c.execute(
                 "UPDATE runs SET exit_code = ?, wall_s = ?, peak_rss_mb = ?,"
                 " tokens_in = ?, tokens_out = ?, cache_read = ?, cost_usd = ?,"
-                " ended = ? WHERE run_id = ?",
+                " ended = ? WHERE run_id = ? AND ended IS NULL",
                 (exit_code, wall_s, peak_rss_mb, tokens_in, tokens_out,
                  cache_read, cost_usd, now_iso(), run_id),
             )
             if cur.rowcount == 0:
-                raise KeyError(run_id)
+                row = c.execute(
+                    "SELECT ended FROM runs WHERE run_id = ?", (run_id,)
+                ).fetchone()
+                if row is None:
+                    raise KeyError(run_id)
+                raise RunAlreadyFinishedError(
+                    f"run {run_id} already finished at {row['ended']}; "
+                    "finish_run is exactly-once — the first finish's numbers stand"
+                )
 
     def get_run(self, run_id: str) -> Run:
         r = self.conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
@@ -233,6 +245,10 @@ class Ledger:
 
         Resume rule (a) from spec §4.4: the in-flight sample is discarded;
         nothing else is lost.
+
+        Precondition: call once at resume, BEFORE this session's first
+        start_run — it marks every ended-IS-NULL row and would orphan live
+        runs if called mid-session.
         """
         with self._tx() as c:
             cur = c.execute(
@@ -242,7 +258,13 @@ class Ledger:
             return cur.rowcount
 
     def spent(self) -> Spent:
-        """Total budget consumed, summed from runs (spec §4.4(b): caps continue)."""
+        """Total budget consumed, summed from runs (spec §4.4(b): caps continue).
+
+        NOTE: this is a LOWER BOUND on true spend — in-flight runs contribute
+        0 until finish_run, and runs killed mid-flight never record their
+        cost. A capped campaign must reserve in-flight cost against the cap
+        (M9 scheduler concern).
+        """
         r = self.conn.execute(
             "SELECT COALESCE(SUM(cost_usd), 0.0) AS cost,"
             " COALESCE(SUM(tokens_in), 0) AS tin,"
