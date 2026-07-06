@@ -53,3 +53,41 @@ def test_resolve_unknown_raises(gates):
 def test_invalid_kind_raises(gates):
     with pytest.raises(GateError):
         gates.open("NOT_A_GATE", artifact_id="a")
+
+
+def test_gates_survive_reopen(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    g = Gates(lg).open("REDUCE", artifact_id="a", note="reformulate")
+    lg.close()
+    lg2 = Ledger(tmp_path / "ledger.db")
+    gates2 = Gates(lg2)
+    persisted = gates2.list(state="pending")
+    assert [p.id for p in persisted] == [g.id] and persisted[0].kind == "REDUCE"
+    lg2.close()
+
+
+def test_list_filters_by_kind_and_artifact(gates):
+    gates.open("PROOF_CAMPAIGN", artifact_id="a")
+    gates.open("ACCEPT_DRAFT", artifact_id="b")
+    assert [g.kind for g in gates.list(kind="ACCEPT_DRAFT")] == ["ACCEPT_DRAFT"]
+    assert [g.artifact_id for g in gates.list(artifact_id="a")] == ["a"]
+
+
+def test_has_pending_and_duplicate_open_rejected(gates):
+    assert not gates.has_pending(artifact_id="a")
+    g = gates.open("PROOF_CAMPAIGN", artifact_id="a")
+    assert gates.has_pending(artifact_id="a")
+    assert gates.has_pending(artifact_id="a", kind="PROOF_CAMPAIGN")
+    with pytest.raises(GateError):
+        gates.open("PROOF_CAMPAIGN", artifact_id="a")
+    gates.resolve(g.id, approve=True)
+    assert not gates.has_pending(artifact_id="a")
+    # resolved gate no longer blocks a new one
+    gates.open("PROOF_CAMPAIGN", artifact_id="a")
+
+
+def test_resolve_note_semantics(gates):
+    g1 = gates.open("RELEASE", artifact_id="a", note="original")
+    assert gates.resolve(g1.id, approve=True).note == "original"  # None preserves
+    g2 = gates.open("RELEASE", artifact_id="b", note="original")
+    assert gates.resolve(g2.id, approve=False, note="override").note == "override"

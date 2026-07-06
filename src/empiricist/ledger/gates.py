@@ -27,6 +27,10 @@ class Gates:
     def open(self, kind: str, *, artifact_id: str, note: str | None = None) -> Gate:
         if kind not in GATE_KINDS:
             raise GateError(f"unknown gate kind: {kind!r} (expected one of {sorted(GATE_KINDS)})")
+        if self.has_pending(artifact_id=artifact_id, kind=kind):
+            raise GateError(
+                f"a pending {kind} gate already exists for artifact {artifact_id}"
+            )
         gate = Gate(
             id=uuid.uuid4().hex, kind=kind, artifact_id=artifact_id,
             state="pending", opened_at=now_iso(), note=note,
@@ -40,12 +44,28 @@ class Gates:
             )
         return gate
 
-    def list(self, *, state: str | None = None) -> list[Gate]:
-        q, params = "SELECT * FROM gates", ()
-        if state is not None:
-            q, params = q + " WHERE state = ?", (state,)
-        rows = self._ledger.conn.execute(q + " ORDER BY opened_at", params)
+    def list(
+        self,
+        *,
+        state: str | None = None,
+        kind: str | None = None,
+        artifact_id: str | None = None,
+    ) -> list[Gate]:
+        q, params = "SELECT * FROM gates", []
+        clauses = []
+        for col, val in (("state", state), ("kind", kind), ("artifact_id", artifact_id)):
+            if val is not None:
+                clauses.append(f"{col} = ?")
+                params.append(val)
+        if clauses:
+            q += " WHERE " + " AND ".join(clauses)
+        rows = self._ledger.conn.execute(q + " ORDER BY opened_at, rowid", params)
         return [self._from_row(r) for r in rows]
+
+    def has_pending(self, *, artifact_id: str, kind: str | None = None) -> bool:
+        """Scheduler seam: is this branch parked? Check before open() —
+        re-parking a still-parked branch must not open duplicate gates."""
+        return bool(self.list(state="pending", kind=kind, artifact_id=artifact_id))
 
     def resolve(self, gate_id: str, *, approve: bool, note: str | None = None) -> Gate:
         with self._ledger._tx() as c:
