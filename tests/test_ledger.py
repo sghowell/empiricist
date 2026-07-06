@@ -151,6 +151,24 @@ def test_nested_tx_raises_loudly(ledger):
                 pass  # pragma: no cover
 
 
+def test_substatus_clears_on_status_change_unless_passed(ledger, store):
+    art = make_artifact(store)
+    ledger.add_artifact(art)
+    ledger.record_evidence(
+        make_evidence(art.id), new_status=Status.CONJECTURED, substatus="PROVED_DRAFT"
+    )
+    assert ledger.get_artifact(art.id).substatus == "PROVED_DRAFT"
+    # evidence-only record leaves substatus alone
+    ledger.record_evidence(make_evidence(art.id))
+    assert ledger.get_artifact(art.id).substatus == "PROVED_DRAFT"
+    # status change without substatus clears it (no self-contradictory REFUTED+PROVED_DRAFT)
+    ledger.record_evidence(
+        make_evidence(art.id, verdict=Verdict.FAIL), new_status=Status.REFUTED
+    )
+    got = ledger.get_artifact(art.id)
+    assert got.status == Status.REFUTED and got.substatus is None
+
+
 def test_status_n_clears_when_leaving_verified_n(ledger, store):
     art = make_artifact(store, kind="dataset")
     ledger.add_artifact(art)

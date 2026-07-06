@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from empiricist.ledger.db import Ledger, RunAlreadyFinishedError
+from empiricist.ledger.db import ORPHANED_EXIT_CODE, Ledger, RunAlreadyFinishedError
 from empiricist.ledger.models import Run
 
 
@@ -37,7 +37,7 @@ def test_reconcile_orphans_marks_unfinished_runs(ledger):
     n = ledger.reconcile_orphans()
     assert n == 1
     r2 = ledger.get_run("r2")
-    assert r2.exit_code == -1 and r2.ended is not None
+    assert r2.exit_code == ORPHANED_EXIT_CODE and r2.ended is not None
     # idempotent
     assert ledger.reconcile_orphans() == 0
 

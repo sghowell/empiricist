@@ -25,6 +25,10 @@ from empiricist.ledger.models import (
 )
 from empiricist.ledger.schema import PRAGMAS, SCHEMA
 
+# Sentinel for runs orphaned by a crash (reconcile_orphans). Outside the
+# -1..-64 range Python uses for signal-killed subprocess returncodes.
+ORPHANED_EXIT_CODE = -999
+
 
 class TerminalStatusError(Exception):
     """Raised on any attempt to change the status of a REFUTED artifact."""
@@ -113,6 +117,10 @@ class Ledger:
 
         This is the ONLY way a status changes (F1: no promotion without
         machine evidence).
+
+        On any status change, substatus is set to exactly the given value
+        (None clears it — a sub-status never survives a lattice move
+        implicitly); evidence-only records leave it untouched.
         """
         with self._tx() as c:
             row = c.execute(
@@ -130,7 +138,7 @@ class Ledger:
                         "UPDATE artifacts SET status = ?,"
                         " status_n = COALESCE(?, status_n),"
                         " coverage = COALESCE(?, coverage),"
-                        " substatus = COALESCE(?, substatus)"
+                        " substatus = ?"
                         " WHERE id = ?",
                         (new_status.value, status_n, coverage, substatus, ev.artifact_id),
                     )
@@ -138,7 +146,7 @@ class Ledger:
                     # status_n/coverage are VERIFIED_N-specific: clear on any other status.
                     c.execute(
                         "UPDATE artifacts SET status = ?, status_n = NULL,"
-                        " coverage = NULL, substatus = COALESCE(?, substatus)"
+                        " coverage = NULL, substatus = ?"
                         " WHERE id = ?",
                         (new_status.value, substatus, ev.artifact_id),
                     )
@@ -305,8 +313,8 @@ class Ledger:
         """
         with self._tx() as c:
             cur = c.execute(
-                "UPDATE runs SET exit_code = -1, ended = ? WHERE ended IS NULL",
-                (now_iso(),),
+                "UPDATE runs SET exit_code = ?, ended = ? WHERE ended IS NULL",
+                (ORPHANED_EXIT_CODE, now_iso()),
             )
             return cur.rowcount
 
@@ -316,7 +324,8 @@ class Ledger:
         NOTE: this is a LOWER BOUND on true spend — in-flight runs contribute
         0 until finish_run, and runs killed mid-flight never record their
         cost. A capped campaign must reserve in-flight cost against the cap
-        (M9 scheduler concern).
+        (M9 scheduler concern). cache_read is informational sub-accounting
+        and deliberately not summed here.
         """
         r = self.conn.execute(
             "SELECT COALESCE(SUM(cost_usd), 0.0) AS cost,"

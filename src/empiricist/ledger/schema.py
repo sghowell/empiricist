@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS certifications (
   verifier_version TEXT NOT NULL,
   binary_hash TEXT NOT NULL,
   golden_suite_hash TEXT NOT NULL,
-  verdict TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('PASS','FAIL','ERROR','TIMEOUT')),
   stamped_at TEXT NOT NULL,
   run_id TEXT,
   PRIMARY KEY (verifier, verifier_version, binary_hash)
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS certifications (
 CREATE TABLE IF NOT EXISTS edges (
   src TEXT NOT NULL,
   dst TEXT NOT NULL,
-  rel TEXT NOT NULL
+  rel TEXT NOT NULL CHECK (rel IN ('depends_on','refutes','generalizes','formalizes','golden_for'))
 );
 
 CREATE TABLE IF NOT EXISTS runs (
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS claims (
 
 CREATE TABLE IF NOT EXISTS gates (
   id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('REDUCE','PROOF_CAMPAIGN','ACCEPT_DRAFT','RELEASE')),
   artifact_id TEXT NOT NULL,
-  state TEXT NOT NULL DEFAULT 'pending',
+  state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending','approved','rejected')),
   opened_at TEXT NOT NULL,
   resolved_at TEXT,
   note TEXT
