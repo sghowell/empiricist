@@ -61,3 +61,29 @@ def test_recompute_matches_incremental(frontier):
     for k, v in vecs.items():
         frontier.consider(k, v)
     assert recompute_frontier(vecs) == frontier.entries()
+
+
+def test_tied_vectors_geometry_matches_despite_key_divergence(frontier):
+    from empiricist.ledger.frontier import geometry, recompute_frontier
+
+    # zzz arrives first and holds the frontier slot; recompute prefers aaa.
+    frontier.consider("zzz", [5.0])
+    assert frontier.consider("aaa", [5.0]) is False
+    pop = {"zzz": [5.0], "aaa": [5.0]}
+    assert recompute_frontier(pop) == {"aaa": [5.0]}          # sorted-key winner
+    assert frontier.entries() == {"zzz": [5.0]}               # arrival winner
+    # The resume check compares geometry, which agrees:
+    assert geometry(recompute_frontier(pop)) == frontier.geometry() == {(5.0,)}
+
+
+def test_non_finite_vectors_rejected(frontier):
+    import math
+
+    from empiricist.ledger.frontier import recompute_frontier
+
+    for bad in ([math.nan], [math.inf, 1.0], [1.0, -math.inf]):
+        with pytest.raises(ValueError):
+            frontier.consider("g", bad)
+        with pytest.raises(ValueError):
+            recompute_frontier({"g": bad})
+    assert frontier.entries() == {}  # nothing squatted

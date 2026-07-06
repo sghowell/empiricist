@@ -5,27 +5,55 @@ Goodhart-resistant search score (spec §4.3). It is distinct from an
 epistemic status promotion. The monotone version counter is MAX(frontier_version).
 
 recompute_frontier() is the pure function used by the resume consistency
-check (spec §4.4(d)): the persisted table must equal the recomputation
-from the population, else resume fails hard.
+check (spec §4.4(d)): the persisted table's GEOMETRY (set of objective
+vectors) must equal the recomputation's from the population, else resume
+fails hard. Geometry, not {key: vec} dicts — tied vectors have
+arrival-dependent representative keys.
 """
 
 from __future__ import annotations
 
 import json
+import math
 
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import dominates
 
 
+def _require_finite(vec: list[float]) -> None:
+    """Reject NaN/inf objectives: a non-finite vector is never dominated,
+    equal, or evicted, so it would squat on the frontier permanently and
+    block genuinely better candidates. This is the frontier-insert guard
+    deferred from the models review."""
+    if not all(math.isfinite(x) for x in vec):
+        raise ValueError(f"non-finite objective component in {vec!r}")
+
+
+def geometry(vecs: dict[str, list[float]]) -> set[tuple[float, ...]]:
+    """The frontier's geometry: its set of objective vectors, key-independent.
+
+    The non-dominated subset of a point set is unique as a SET OF POINTS;
+    only the representative key for a tied vector is arrival-dependent.
+    The §4.4(d) resume consistency check MUST compare geometries, never
+    {key: vec} mappings.
+    """
+    return {tuple(v) for v in vecs.values()}
+
+
 def recompute_frontier(vecs: dict[str, list[float]]) -> dict[str, list[float]]:
     """The non-dominated subset of vecs (pure; deterministic tie-handling).
 
-    Duplicate vectors: the lexicographically-smallest key wins, matching the
-    incremental rule that an equal vector never displaces an incumbent.
+    Duplicate vectors: the lexicographically-smallest key wins. NOTE this
+    representative choice deliberately differs from consider(), which keeps
+    the first-arrived key — for tied vectors only the GEOMETRY (set of
+    vectors) is order-independent, never the representative keys. Resume
+    consistency (§4.4(d)) therefore compares geometry(recompute_frontier(pop))
+    == frontier.geometry(), NOT dict equality.
     """
     result: dict[str, list[float]] = {}
     for key in sorted(vecs):
         vec = vecs[key]
+        _require_finite(vec)
         if any(dominates(other, vec) or other == vec for other in result.values()):
             continue
         result = {k: v for k, v in result.items() if not dominates(vec, v)}
@@ -51,12 +79,17 @@ class Frontier:
             )
         }
 
+    def geometry(self) -> set[tuple[float, ...]]:
+        """Key-independent view for the resume consistency check (§4.4(d))."""
+        return geometry(self.entries())
+
     def consider(self, key: str, vec: list[float]) -> bool:
         """Insert iff not dominated; evict newly-dominated rows; bump version.
 
         Returns True iff the frontier strictly improved (the event the
         stall detector and scheduler score on).
         """
+        _require_finite(vec)
         with self._ledger._tx() as c:
             rows = c.execute(
                 "SELECT lc_orbit_key, objective_vec FROM pareto_frontier"
