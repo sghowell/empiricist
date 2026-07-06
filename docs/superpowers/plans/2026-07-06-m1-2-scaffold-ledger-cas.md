@@ -368,7 +368,7 @@ is terminal. Statuses change only alongside evidence rows (spec §4.2).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -390,7 +390,7 @@ class Verdict(StrEnum):
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass(frozen=True)
@@ -475,7 +475,9 @@ def dominates(a: list[float], b: list[float]) -> bool:
     """True iff objective vector `a` Pareto-dominates `b` (minimizing)."""
     if len(a) != len(b):
         raise ValueError(f"objective vectors differ in length: {len(a)} vs {len(b)}")
-    return all(x <= y for x, y in zip(a, b)) and any(x < y for x, y in zip(a, b))
+    return all(x <= y for x, y in zip(a, b, strict=True)) and any(
+        x < y for x, y in zip(a, b, strict=True)
+    )
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -1008,7 +1010,7 @@ Expected: FAIL with `AttributeError: 'Ledger' object has no attribute 'start_run
 
 - [ ] **Step 3: Append to `src/empiricist/ledger/db.py`**
 
-Add near the top imports: `from dataclasses import dataclass, replace` (extend the existing import from `empiricist.ledger.models` with `Run`). Then append inside `Ledger`:
+Add near the top imports: `from dataclasses import dataclass` (extend the existing import from `empiricist.ledger.models` with `Run`). Then append inside `Ledger`:
 
 ```python
     # -- runs & resume (spec §4.4) -------------------------------------------
@@ -1076,7 +1078,7 @@ Add near the top imports: `from dataclasses import dataclass, replace` (extend t
             )
             return cur.rowcount
 
-    def spent(self) -> "Spent":
+    def spent(self) -> Spent:
         """Total budget consumed, summed from runs (spec §4.4(b): caps continue)."""
         r = self.conn.execute(
             "SELECT COALESCE(SUM(cost_usd), 0.0) AS cost,"
@@ -1342,7 +1344,8 @@ class Gates:
         q, params = "SELECT * FROM gates", ()
         if state is not None:
             q, params = q + " WHERE state = ?", (state,)
-        return [self._from_row(r) for r in self._ledger.conn.execute(q + " ORDER BY opened_at", params)]
+        rows = self._ledger.conn.execute(q + " ORDER BY opened_at", params)
+        return [self._from_row(r) for r in rows]
 
     def resolve(self, gate_id: str, *, approve: bool, note: str | None = None) -> Gate:
         with self._ledger._tx() as c:
