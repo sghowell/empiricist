@@ -893,7 +893,7 @@ class Ledger:
 
     def evidence_for(self, artifact_id: str) -> list[EvidenceRow]:
         rows = self.conn.execute(
-            "SELECT * FROM evidence WHERE artifact_id = ? ORDER BY created_at",
+            "SELECT * FROM evidence WHERE artifact_id = ? ORDER BY created_at, rowid",
             (artifact_id,),
         ).fetchall()
         return [
