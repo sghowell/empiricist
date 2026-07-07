@@ -42,7 +42,7 @@ def test_breach_kills_process_group():
 def test_normal_process_untouched_and_peak_recorded():
     async def scenario():
         proc = await spawn_py(
-            "x = bytearray(32 * 1024 * 1024)\nprint('ok')"
+            "x = bytearray(32 * 1024 * 1024)\nprint('ok')\nimport time; time.sleep(0.3)"
         )
         dog = RssWatchdog(proc.pid, rss_mb=512.0)
         task = asyncio.create_task(dog.run())
@@ -59,7 +59,9 @@ def test_normal_process_untouched_and_peak_recorded():
 
 def test_no_limit_only_observes():
     async def scenario():
-        proc = await spawn_py("x = bytearray(64 * 1024 * 1024)\nprint('ok')")
+        proc = await spawn_py(
+            "x = bytearray(64 * 1024 * 1024)\nprint('ok')\nimport time; time.sleep(0.3)"
+        )
         dog = RssWatchdog(proc.pid, rss_mb=None)
         task = asyncio.create_task(dog.run())
         rc = await asyncio.wait_for(proc.wait(), timeout=30)

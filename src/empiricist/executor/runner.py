@@ -9,7 +9,9 @@ The finish path tolerates RunAlreadyFinishedError (crash-resume race, M1-2).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import shlex
+import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -25,6 +27,14 @@ from empiricist.ledger.models import Run
 
 _CAPTURE_CAP = 64 * 1024  # bytes kept per stream; full logs go to CAS later
 
+# Distinct from watchdog kills (-9) and the ledger's ORPHANED_EXIT_CODE (-999):
+# marks a run whose subprocess never actually started (spawn raised).
+SPAWN_FAILED_EXIT_CODE = -998
+
+
+class DuplicateRunError(Exception):
+    """A run_id already exists in the ledger (caller-supplied collision)."""
+
 
 @dataclass(frozen=True)
 class ExecSpec:
@@ -34,8 +44,12 @@ class ExecSpec:
     run_id: str | None = None
     cwd: Path | None = None            # default: fresh mkdtemp per run
     env_extra: dict[str, str] = field(default_factory=dict)
-    limits: ResourceLimits = field(default_factory=ResourceLimits)
-    rss_mb: float | None = None
+    # Safe-by-default ceilings (opt-out): bound a runaway leak/write without
+    # breaking legit harness code. M4/M5/M6 tune per-move.
+    limits: ResourceLimits = field(
+        default_factory=lambda: ResourceLimits(fsize_mb=1024)
+    )
+    rss_mb: float | None = 4096.0
     timeout_s: float = 600.0
     sandbox: SandboxMode = SandboxMode.SANDBOX_EXEC
     seed: int | None = None
@@ -49,7 +63,7 @@ class ExecResult:
     stdout: str
     stderr: str
     wall_s: float
-    peak_rss_mb: float
+    peak_rss_mb: float | None
     timed_out: bool
     rss_killed: bool
     output_truncated: bool
@@ -82,78 +96,96 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
     # profile_for() also resolves — so cwd/HOME/TMPDIR and the SBPL profile must
     # all agree on the one canonical path.
     workdir = (spec.cwd or Path(mkdtemp(prefix="empiricist-run-"))).resolve()
+    # NOTE (M5): workdir cleanup is deferred to M5/CAS wiring (runs keep their
+    # dir for now); and the full-buffer-before-truncation OOM risk (communicate()
+    # reads the whole stream before _decode_capped) is deferred until
+    # model-authored code lands (D11) — both v0-acceptable: v0 executed code is
+    # harness-authored.
     argv = sandbox_wrap(spec.argv, workdir=workdir, mode=spec.sandbox)
     env = scrub_env(workdir, spec.env_extra)
 
     if ledger is not None:
-        ledger.start_run(
-            Run(
-                run_id=run_id,
-                move=spec.move,
-                role=spec.role,
-                argv=shlex.join(spec.argv),
-                seed=spec.seed,
-                config_hash=spec.config_hash,
-                env_fingerprint=env_fingerprint(),
+        try:
+            ledger.start_run(
+                Run(
+                    run_id=run_id, move=spec.move, role=spec.role,
+                    argv=shlex.join(spec.argv), seed=spec.seed,
+                    config_hash=spec.config_hash, env_fingerprint=env_fingerprint(),
+                )
             )
-        )
+        except sqlite3.IntegrityError as e:
+            raise DuplicateRunError(run_id) from e
 
     t0 = time.monotonic()
-    proc = await asyncio.create_subprocess_exec(
-        *argv,
-        cwd=workdir,
-        env=env,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        start_new_session=True,
-        preexec_fn=make_preexec(spec.limits),
-    )
-    watchdog = RssWatchdog(proc.pid, spec.rss_mb)
-    watch_task = asyncio.create_task(watchdog.run())
+    proc: asyncio.subprocess.Process | None = None
+    watchdog: RssWatchdog | None = None
+    watch_task: asyncio.Task | None = None
 
-    timed_out = False
+    def _peak() -> float | None:
+        return watchdog.peak_mb if (watchdog is not None and watchdog.sampled) else None
+
     try:
-        stdout_raw, stderr_raw = await asyncio.wait_for(
-            proc.communicate(), timeout=spec.timeout_s
+        proc = await asyncio.create_subprocess_exec(
+            *argv, cwd=workdir, env=env,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            start_new_session=True, preexec_fn=make_preexec(spec.limits),
         )
-    except TimeoutError:
-        timed_out = True
-        # Stop the watchdog BEFORE reaping: once we reap, the pid is free to be
-        # reused, and a still-polling dog could measure/kill an unrelated pid
-        # (the reuse hazard the watchdog guards, closed on both sides).
-        watchdog.stop()
-        await watch_task
-        kill_process_group(proc.pid)
-        stdout_raw, stderr_raw = await proc.communicate()
-    else:
-        watchdog.stop()
-        await watch_task
+        watchdog = RssWatchdog(proc.pid, spec.rss_mb)
+        watch_task = asyncio.create_task(watchdog.run())
+        comm_task = asyncio.create_task(proc.communicate())
+
+        timed_out = False
+        try:
+            # shield keeps comm_task alive across a wait_for timeout, so the bytes
+            # it already read are NOT discarded (a plain double-communicate loses them).
+            stdout_raw, stderr_raw = await asyncio.wait_for(
+                asyncio.shield(comm_task), timeout=spec.timeout_s
+            )
+            watchdog.stop()
+            await watch_task
+        except TimeoutError:
+            timed_out = True
+            # stop+await the watchdog BEFORE kill+reap (PID-reuse interlock),
+            # then resume the SAME comm_task to collect the pre-timeout output.
+            watchdog.stop()
+            await watch_task
+            kill_process_group(proc.pid)
+            stdout_raw, stderr_raw = await comm_task
+    except BaseException:
+        # Spawn failure or any mid-flight error: contain the child, close the run
+        # row with a real failure code (never leave it open -> ORPHANED), re-raise.
+        if watchdog is not None:
+            watchdog.stop()
+        if watch_task is not None:
+            with contextlib.suppress(BaseException):
+                await watch_task
+        if proc is not None and proc.returncode is None:
+            kill_process_group(proc.pid)
+            with contextlib.suppress(BaseException):
+                await proc.wait()
+        if ledger is not None:
+            with contextlib.suppress(RunAlreadyFinishedError, KeyError):
+                ledger.finish_run(
+                    run_id, exit_code=SPAWN_FAILED_EXIT_CODE,
+                    wall_s=time.monotonic() - t0, peak_rss_mb=_peak(),
+                )
+        raise
 
     wall_s = time.monotonic() - t0
     exit_code = proc.returncode if proc.returncode is not None else -1
     stdout, trunc_out = _decode_capped(stdout_raw)
     stderr, trunc_err = _decode_capped(stderr_raw)
+    peak = _peak()
 
     if ledger is not None:
-        try:
+        with contextlib.suppress(RunAlreadyFinishedError):
             ledger.finish_run(
-                run_id,
-                exit_code=exit_code,
-                wall_s=wall_s,
-                peak_rss_mb=watchdog.peak_mb,
+                run_id, exit_code=exit_code, wall_s=wall_s, peak_rss_mb=peak,
             )
-        except RunAlreadyFinishedError:
-            pass  # crash-resume race: reconcile_orphans got there first (M1-2)
 
     return ExecResult(
-        run_id=run_id,
-        exit_code=exit_code,
-        stdout=stdout,
-        stderr=stderr,
-        wall_s=wall_s,
-        peak_rss_mb=watchdog.peak_mb,
-        timed_out=timed_out,
-        rss_killed=watchdog.killed,
-        output_truncated=trunc_out or trunc_err,
+        run_id=run_id, exit_code=exit_code, stdout=stdout, stderr=stderr,
+        wall_s=wall_s, peak_rss_mb=peak, timed_out=timed_out,
+        rss_killed=watchdog.killed, output_truncated=trunc_out or trunc_err,
         workdir=workdir,
     )

@@ -59,6 +59,7 @@ class RssWatchdog:
         self._stopped = False
         self.peak_mb: float = 0.0
         self.killed: bool = False
+        self.sampled: bool = False
 
     def stop(self) -> None:
         self._stopped = True
@@ -76,6 +77,7 @@ class RssWatchdog:
             except psutil.NoSuchProcess:
                 return
             self.peak_mb = max(self.peak_mb, rss / (1024 * 1024))
+            self.sampled = True
             if self._rss_mb is not None and self.peak_mb > self._rss_mb:
                 self.killed = True
                 kill_process_group(self._pid)
