@@ -836,9 +836,14 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
         )
     except TimeoutError:
         timed_out = True
+        # Stop the watchdog BEFORE reaping: once we reap, the pid is free to be
+        # reused, and a still-polling dog could measure/kill an unrelated pid
+        # (the reuse hazard the watchdog guards, closed on both sides).
+        watchdog.stop()
+        await watch_task
         kill_process_group(proc.pid)
         stdout_raw, stderr_raw = await proc.communicate()
-    finally:
+    else:
         watchdog.stop()
         await watch_task
 
