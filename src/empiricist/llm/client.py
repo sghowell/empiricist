@@ -30,6 +30,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from empiricist.config import env_fingerprint
 from empiricist.executor.runner import (
     SPAWN_FAILED_EXIT_CODE,
     DuplicateRunError,
@@ -51,7 +52,14 @@ class LLMClient(Protocol):
         system_prompt: str | None = None,
         schema: type[BaseModel] | None = None,
         run_id: str | None = None, ledger: Ledger | None = None,
-    ) -> LLMResult | None: ...
+    ) -> LLMResult | None:
+        """Run one model call.
+
+        NOTE: ``session_id`` is an accepted label only — it is NOT the claude
+        session id. The client mints a fresh UUID per call (F2: fresh context, no
+        cross-call state). Callers cannot pin or resume a session.
+        """
+        ...
 
     async def complete_many(
         self, role: Role, prompts: list[str], *,
@@ -107,6 +115,12 @@ class ClaudeCodeClient:
         schema: type[BaseModel] | None = None,
         run_id: str | None = None, ledger: Ledger | None = None,
     ) -> LLMResult | None:
+        """Run one model call through the audited executor.
+
+        NOTE: ``session_id`` is an accepted label only — it is NOT the claude
+        session id. The client mints a fresh UUID per call (F2: fresh context, no
+        cross-call state). Callers cannot pin or resume a session.
+        """
         cli_session_id = str(uuid.uuid4())   # valid UUID (claude requires it) + F2 fresh context
         sys_prompt = system_prompt if system_prompt is not None else role.system_prompt
         schema_dict = json_schema_for(schema) if schema is not None else None
@@ -124,7 +138,7 @@ class ClaudeCodeClient:
             try:
                 ledger.start_run(Run(
                     run_id=rid, move="SAMPLE", role=role.name, model=role.model,
-                    started=started,
+                    env_fingerprint=env_fingerprint(), started=started,
                 ))
             except sqlite3.IntegrityError as e:
                 raise DuplicateRunError(rid) from e
@@ -169,14 +183,14 @@ class ClaudeCodeClient:
         schema: type[BaseModel] | None = None, ledger: Ledger | None = None,
     ) -> list[LLMResult]:
         # Distinct session_id + nonce per prompt = fresh context + diversity.
-        async def one(i: int, p: str) -> LLMResult | None:
+        async def one(p: str) -> LLMResult | None:
             return await self.complete(
                 role, p, schema=schema,
                 run_id=f"{role.name}-{uuid.uuid4().hex}" if ledger else None,
                 ledger=ledger,
             )
 
-        results = await asyncio.gather(*(one(i, p) for i, p in enumerate(prompts)))
+        results = await asyncio.gather(*(one(p) for p in prompts))
         return [r for r in results if r is not None]
 
 

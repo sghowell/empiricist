@@ -12,45 +12,46 @@ import os
 import sys
 import uuid as _uuid
 
-if (argv_file := os.environ.get("STUB_ARGV_FILE")):
-    with open(argv_file, "w") as f:
-        json.dump(sys.argv[1:], f)
+if __name__ == "__main__":
+    if (argv_file := os.environ.get("STUB_ARGV_FILE")):
+        with open(argv_file, "w") as f:
+            json.dump(sys.argv[1:], f)
 
-if "--session-id" in sys.argv:
-    sid = sys.argv[sys.argv.index("--session-id") + 1]
-    try:
-        _uuid.UUID(sid)
-    except ValueError:
-        sys.stdout.write(json.dumps({
-            "type": "result", "is_error": True, "result": "Invalid session ID",
-            "stop_reason": "end_turn", "session_id": "", "uuid": "e",
-            "total_cost_usd": 0.0, "duration_ms": 0, "usage": {}, "modelUsage": {},
-        }))
-        sys.exit(0)
+    if "--session-id" in sys.argv:
+        sid = sys.argv[sys.argv.index("--session-id") + 1]
+        try:
+            _uuid.UUID(sid)
+        except ValueError:
+            sys.stdout.write(json.dumps({
+                "type": "result", "is_error": True, "result": "Invalid session ID",
+                "stop_reason": "end_turn", "session_id": "", "uuid": "e",
+                "total_cost_usd": 0.0, "duration_ms": 0, "usage": {}, "modelUsage": {},
+            }))
+            sys.exit(0)
 
-mode = os.environ.get("STUB_MODE", "success")
+    mode = os.environ.get("STUB_MODE", "success")
 
-if mode == "crash":
-    sys.stderr.write("stub crash\n")
-    sys.exit(2)
+    if mode == "crash":
+        sys.stderr.write("stub crash\n")
+        sys.exit(2)
 
-env = {
-    "type": "result", "is_error": False, "duration_ms": 5,
-    "session_id": "stub-session", "uuid": "stub-uuid", "total_cost_usd": 0.001,
-    "usage": {"input_tokens": 30, "output_tokens": 5, "cache_read_input_tokens": 0,
-              "cache_creation_input_tokens": 600},
-    "modelUsage": {"claude-fable-5": {"inputTokens": 30, "outputTokens": 5}},
-}
-if mode == "success":
-    env |= {"result": "stub text answer", "stop_reason": "end_turn"}
-elif mode == "schema":
-    env |= {"result": "{\"family\":\"path\",\"closed_form\":\"N-3\","
-                       "\"predicted_values\":{\"3\":0},\"confidence\":0.9}",
-            "stop_reason": "tool_use",
-            "structured_output": {"family": "path", "closed_form": "N-3",
-                                  "predicted_values": {"3": 0}, "confidence": 0.9}}
-elif mode == "refusal":
-    env |= {"result": "", "stop_reason": "refusal"}
+    env = {
+        "type": "result", "is_error": False, "duration_ms": 5,
+        "session_id": "stub-session", "uuid": "stub-uuid", "total_cost_usd": 0.001,
+        "usage": {"input_tokens": 30, "output_tokens": 5, "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 600},
+        "modelUsage": {"claude-fable-5": {"inputTokens": 30, "outputTokens": 5}},
+    }
+    if mode == "success":
+        env |= {"result": "stub text answer", "stop_reason": "end_turn"}
+    elif mode == "schema":
+        env |= {"result": "{\"family\":\"path\",\"closed_form\":\"N-3\","
+                           "\"predicted_values\":{\"3\":0},\"confidence\":0.9}",
+                "stop_reason": "tool_use",
+                "structured_output": {"family": "path", "closed_form": "N-3",
+                                      "predicted_values": {"3": 0}, "confidence": 0.9}}
+    elif mode == "refusal":
+        env |= {"result": "", "stop_reason": "refusal"}
 
-sys.stdout.write(json.dumps(env))
-sys.exit(0)
+    sys.stdout.write(json.dumps(env))
+    sys.exit(0)
