@@ -10,6 +10,9 @@ the verdicts of".
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
+from typing import Any
+
 from empiricist.domain.p5.construction import Construction
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Certification, Verdict
@@ -135,3 +138,47 @@ def verify_agreed(registry: Registry, construction: Construction) -> VerifierRes
 
     # Full agreement: identical keys, identical verdicts -- PASS, or an honest FAIL.
     return VerifierResult(verdict=stab_res.verdict, details=details)
+
+
+def certify_with_suite(
+    ledger: Ledger,
+    verifier: Any,
+    suite: Sequence[tuple[Any, bool]],
+    run: Callable[[Any, Any], VerifierResult],
+    *,
+    golden_suite_hash: str,
+) -> Certification:
+    """Additive sibling of `Registry.certify()` for verifiers whose
+    `verify()` signature does not match the fusion `Verifier` protocol's
+    single-argument `verify(construction)` -- e.g. `LeanVerifier.verify(
+    module_source, *, decl, timeout_s)` (M8). `Registry.certify()` stays
+    fusion-specific (P5_GOLDEN_SUITE, `Construction` cases); this is the
+    generic engine it factors out for any OTHER verifier with its own
+    golden suite.
+
+    `suite` is a list of `(case, expected_pass)` pairs; `run(verifier,
+    case)` must invoke `verifier.verify(...)` appropriately for `case` and
+    return its `VerifierResult` -- the caller supplies the glue since a
+    "case" has no fixed shape across verifier kinds. `golden_suite_hash`
+    pins the stamp to the exact suite content (same rule as the P5 suite:
+    a changed suite invalidates every existing stamp -- spec §7).
+
+    Same all-or-nothing rule as `Registry.certify()`: the stamp is PASS iff
+    EVERY case's outcome (`verdict == PASS`) matches its `expected_pass`
+    exactly. Writes the stamp to `ledger` and returns it.
+    """
+    all_match = True
+    for case, expected_pass in suite:
+        outcome = run(verifier, case)
+        if (outcome.verdict == Verdict.PASS) != expected_pass:
+            all_match = False
+    stamp_verdict = Verdict.PASS if all_match else Verdict.FAIL
+    cert = Certification(
+        verifier=verifier.name,
+        verifier_version=verifier.version,
+        binary_hash=verifier.binary_hash,
+        golden_suite_hash=golden_suite_hash,
+        verdict=stamp_verdict,
+    )
+    ledger.add_certification(cert)
+    return cert
