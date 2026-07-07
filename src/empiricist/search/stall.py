@@ -1,7 +1,7 @@
 """Stall detection (M6 T4, spec §9): a two-signal, offline recommendation
 over a sliding window of `search.loop.GenerationReport`s -- no-improvement
-window + a diversity floor. `StallDetector` only RECOMMENDS a state; it
-writes nothing and emits nothing itself (the M7 scheduler is the one that
+window + a verified-activity floor. `StallDetector` only RECOMMENDS a state;
+it writes nothing and emits nothing itself (the M7 scheduler is the one that
 acts on `assess()`'s return value -- e.g. by logging a `search_events` row
 and actually resetting/restarting).
 
@@ -14,28 +14,39 @@ and actually resetting/restarting).
   - `total_inserted = sum(r.inserted for r in window)`. If `total_inserted >
     0` (the population gained at least one new key somewhere in the window)
     -> `"healthy"`, regardless of diversity.
-  - Otherwise (`total_inserted == 0`, i.e. a fully stalled window: every
-    sample in it either failed some earlier stage or hit an
-    already-known key): compute `diversity = total_inserted /
-    total_sampled` (0.0, since the numerator is 0) and compare to
-    `diversity_floor`.
-    - `diversity < diversity_floor` -> `"hard_restart"`.
-    - otherwise -> `"island_reset"`.
+  - Otherwise (`total_inserted == 0`, i.e. no NEW key was found anywhere in
+    the window) the two remaining states are distinguished by whether the
+    search is still ALIVE: are candidates still passing the certified
+    verifier at all, even if every one of them lands on an already-known
+    key? That is `verified_activity = sum(inserted + duplicates) /
+    sum(sampled)` over the window (both `inserted` and `duplicates` come
+    from a `population.consider` call, i.e. a candidate that reached PASS
+    under `verify_agreed` -- the difference between them is only whether the
+    achieved key was new). Compare `verified_activity` to `diversity_floor`:
+    - `verified_activity >= diversity_floor` -> `"island_reset"`: the search
+      is CONVERGED, not broken -- samples keep verifying, they just keep
+      landing on orbits already in the population (e.g. one island has been
+      fully mined out). The recommended remedy is to shift the island/target
+      set, not to blow away search state.
+    - `verified_activity < diversity_floor` -> `"hard_restart"`: the search
+      is DEGENERATE -- samples aren't even verifying (screen rejects,
+      verify FAILs/ERRORs dominate), so there is no live signal left to
+      redirect. The recommended remedy is a harder reset.
 
-**Documented quirk:** `diversity` is `sum(inserted) / sum(sampled)` over the
-window -- the plan's own proxy for "distinct new keys / window", since
-`GenerationReport` (M6 T3) does not carry the set of individual achieved
-keys, only aggregate counts, and `population.consider` returning `True` is
-exactly "this candidate was a new key" per `search.database.Population`'s
-own contract. A direct consequence: whenever `total_inserted == 0` (the only
-way to reach the diversity comparison at all), `diversity` is trivially
-`0.0`, so for any `diversity_floor > 0` the comparison ALWAYS resolves to
-`"hard_restart"` -- `"island_reset"` is reached only when `diversity_floor
-<= 0.0` (i.e. a config that disables the harder escalation and always
-prefers the softer recommendation for a stalled window). This is accepted
-as a known limitation of the proxy, not a bug: a real distinct-key diversity
-signal would require widening `GenerationReport` to carry per-candidate
-keys, deferred to M7 alongside the rest of the scheduler wiring.
+**Why the earlier "diversity = inserted / sampled" formulation was wrong:**
+that proxy only credits NEW keys in its numerator, but by construction the
+diversity branch is only ever reached when `total_inserted == 0` (that's
+the `if total_inserted > 0: return "healthy"` guard above) -- so the old
+`diversity` was trivially `0.0` on every path that reached it, and any
+`diversity_floor > 0` collapsed the whole branch to `"hard_restart"`,
+making `"island_reset"` unreachable for any realistic (positive) floor. The
+fix widens the numerator to `inserted + duplicates` -- i.e. it asks "is
+verification still succeeding?" rather than "did verification succeed on
+something NEW?" (the latter is already fully covered by the `total_inserted
+> 0` branch above) -- which is what actually distinguishes "converged onto
+known territory" (island_reset) from "nothing verifies any more"
+(hard_restart), and makes both branches genuinely reachable for any
+`diversity_floor` in `[0, 1]`.
 """
 
 from __future__ import annotations
@@ -68,7 +79,8 @@ class StallDetector:
             return "healthy"
 
         total_sampled = sum(r.sampled for r in self._reports)
-        diversity = total_inserted / total_sampled if total_sampled else 0.0
-        if diversity < self._diversity_floor:
-            return "hard_restart"
-        return "island_reset"
+        total_verified = sum(r.inserted + r.duplicates for r in self._reports)
+        verified_activity = total_verified / total_sampled if total_sampled else 0.0
+        if verified_activity >= self._diversity_floor:
+            return "island_reset"
+        return "hard_restart"
