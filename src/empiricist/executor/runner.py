@@ -112,6 +112,11 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
     # model-authored code lands (D11) — both v0-acceptable: v0 executed code is
     # harness-authored.
     argv = sandbox_wrap(spec.argv, workdir=workdir, mode=spec.sandbox)
+    if spec.env_passthrough and spec.sandbox is not SandboxMode.NONE:
+        raise ValueError(
+            "env_passthrough=True requires sandbox=NONE: the full parent env "
+            "(secrets) must never enter a sandboxed/untrusted subprocess"
+        )
     if spec.env_passthrough:
         env = {**os.environ, **spec.env_extra}  # trusted: full inherit + overrides
     else:

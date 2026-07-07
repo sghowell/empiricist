@@ -24,11 +24,18 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import sqlite3
+import uuid
 from typing import Any, Protocol
 
 from pydantic import BaseModel
 
-from empiricist.executor.runner import ExecSpec, execute
+from empiricist.executor.runner import (
+    SPAWN_FAILED_EXIT_CODE,
+    DuplicateRunError,
+    ExecSpec,
+    execute,
+)
 from empiricist.executor.sandbox import SandboxMode
 from empiricist.ledger.db import Ledger, RunAlreadyFinishedError
 from empiricist.ledger.models import Run, now_iso
@@ -40,7 +47,7 @@ from empiricist.llm.schemas import json_schema_for
 
 class LLMClient(Protocol):
     async def complete(
-        self, role: Role, prompt: str, *, session_id: str,
+        self, role: Role, prompt: str, *, session_id: str | None = None,
         system_prompt: str | None = None,
         schema: type[BaseModel] | None = None,
         run_id: str | None = None, ledger: Ledger | None = None,
@@ -59,9 +66,21 @@ class ClaudeCodeClient:
         capture_cap: int = 8 * 1024 * 1024,   # model envelopes can be large
     ) -> None:
         self._bin = list(claude_bin) if claude_bin else ["claude"]
-        self._sem = asyncio.Semaphore(max_concurrency)
+        self._max_concurrency = max_concurrency
+        # The semaphore is bound to whatever event loop first contends it, so it
+        # cannot be shared across asyncio.run() calls; create it lazily per running
+        # loop (a client instance is legitimately reused across campaigns/loops).
+        self._sem: asyncio.Semaphore | None = None
+        self._sem_loop: asyncio.AbstractEventLoop | None = None
         self._timeout_s = timeout_s
         self._capture_cap = capture_cap
+
+    def _sem_for_loop(self) -> asyncio.Semaphore:
+        loop = asyncio.get_running_loop()
+        if self._sem is None or self._sem_loop is not loop:
+            self._sem = asyncio.Semaphore(self._max_concurrency)
+            self._sem_loop = loop
+        return self._sem
 
     def build_argv(
         self, role: Role, prompt: str, *, session_id: str,
@@ -83,30 +102,34 @@ class ClaudeCodeClient:
         return argv
 
     async def complete(
-        self, role: Role, prompt: str, *, session_id: str,
+        self, role: Role, prompt: str, *, session_id: str | None = None,
         system_prompt: str | None = None,
         schema: type[BaseModel] | None = None,
         run_id: str | None = None, ledger: Ledger | None = None,
     ) -> LLMResult | None:
+        cli_session_id = str(uuid.uuid4())   # valid UUID (claude requires it) + F2 fresh context
         sys_prompt = system_prompt if system_prompt is not None else role.system_prompt
         schema_dict = json_schema_for(schema) if schema is not None else None
         argv = self.build_argv(
-            role, prompt, session_id=session_id, system_prompt=sys_prompt,
+            role, prompt, session_id=cli_session_id, system_prompt=sys_prompt,
             schema=schema_dict,
         )
         started = now_iso()
-        rid = run_id or f"sample-{session_id}"
+        rid = run_id or f"sample-{cli_session_id}"
         # Open the runs row BEFORE the call so an in-flight harness crash leaves an
         # orphan row (reconcile_orphans closes it) rather than losing the call
         # silently. execute() runs with ledger=None so there is exactly one row —
         # this richer one, with the token/cost accounting the executor cannot see.
         if ledger is not None:
-            ledger.start_run(Run(
-                run_id=rid, move="SAMPLE", role=role.name, model=role.model,
-                started=started,
-            ))
+            try:
+                ledger.start_run(Run(
+                    run_id=rid, move="SAMPLE", role=role.name, model=role.model,
+                    started=started,
+                ))
+            except sqlite3.IntegrityError as e:
+                raise DuplicateRunError(rid) from e
         try:
-            async with self._sem:
+            async with self._sem_for_loop():
                 res = await execute(
                     ExecSpec(
                         argv=argv, move="SAMPLE", role=role.name,
@@ -120,7 +143,7 @@ class ClaudeCodeClient:
         except BaseException:
             if ledger is not None:
                 with contextlib.suppress(RunAlreadyFinishedError, KeyError):
-                    ledger.finish_run(rid, exit_code=-998, wall_s=0.0)
+                    ledger.finish_run(rid, exit_code=SPAWN_FAILED_EXIT_CODE, wall_s=0.0)
             raise
 
         result: LLMResult | None = None
@@ -148,8 +171,9 @@ class ClaudeCodeClient:
         # Distinct session_id + nonce per prompt = fresh context + diversity.
         async def one(i: int, p: str) -> LLMResult | None:
             return await self.complete(
-                role, p, session_id=f"{role.name}-{i}", schema=schema,
-                run_id=f"{role.name}-wave-{i}" if ledger else None, ledger=ledger,
+                role, p, schema=schema,
+                run_id=f"{role.name}-{uuid.uuid4().hex}" if ledger else None,
+                ledger=ledger,
             )
 
         results = await asyncio.gather(*(one(i, p) for i, p in enumerate(prompts)))
@@ -165,7 +189,7 @@ class FakeLLMClient:
         self.calls: list[tuple[str, str]] = []  # (role name, prompt)
 
     async def complete(
-        self, role: Role, prompt: str, *, session_id: str,
+        self, role: Role, prompt: str, *, session_id: str | None = None,
         system_prompt: str | None = None,
         schema: type[BaseModel] | None = None,
         run_id: str | None = None, ledger: Ledger | None = None,

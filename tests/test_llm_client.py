@@ -138,6 +138,30 @@ def test_complete_many_fans_out(tmp_path):
     assert len(results) == 10 and all(r.ok for r in results)
 
 
+def test_session_id_is_a_fresh_valid_uuid_per_call(tmp_path, monkeypatch):
+    import uuid as _uuid
+    seen = set()
+    for _ in range(3):
+        f = tmp_path / f"argv{_}.json"
+        monkeypatch.setenv("STUB_ARGV_FILE", str(f))
+        c = stub_client()
+        run(c.complete(ROLES["searcher"], "p"))
+        argv = json.loads(f.read_text())
+        sid = argv[argv.index("--session-id") + 1]
+        _uuid.UUID(sid)              # must parse as a UUID (real claude requires it)
+        seen.add(sid)
+    assert len(seen) == 3           # fresh per call (F2)
+
+
+def test_complete_many_two_waves_no_runid_collision(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    c = stub_client(max_concurrency=4)
+    r1 = run(c.complete_many(ROLES["searcher"], [f"a{i}" for i in range(5)], ledger=lg))
+    r2 = run(c.complete_many(ROLES["searcher"], [f"b{i}" for i in range(5)], ledger=lg))
+    assert len(r1) == 5 and len(r2) == 5   # second wave must not crash on run_id collision
+    lg.close()
+
+
 # -- FakeLLMClient (deterministic, for downstream tests) ----------------------
 
 def test_fake_client_returns_scripted_results():

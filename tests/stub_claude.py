@@ -10,10 +10,23 @@ client invoked it. This exercises the full execute() -> parse path.
 import json
 import os
 import sys
+import uuid as _uuid
 
 if (argv_file := os.environ.get("STUB_ARGV_FILE")):
     with open(argv_file, "w") as f:
         json.dump(sys.argv[1:], f)
+
+if "--session-id" in sys.argv:
+    sid = sys.argv[sys.argv.index("--session-id") + 1]
+    try:
+        _uuid.UUID(sid)
+    except ValueError:
+        sys.stdout.write(json.dumps({
+            "type": "result", "is_error": True, "result": "Invalid session ID",
+            "stop_reason": "end_turn", "session_id": "", "uuid": "e",
+            "total_cost_usd": 0.0, "duration_ms": 0, "usage": {}, "modelUsage": {},
+        }))
+        sys.exit(0)
 
 mode = os.environ.get("STUB_MODE", "success")
 

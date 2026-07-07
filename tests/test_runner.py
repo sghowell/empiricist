@@ -232,6 +232,15 @@ def test_capture_cap_is_configurable():
     assert big.output_truncated is False and "yyyy" in big.stdout
 
 
+def test_env_passthrough_requires_no_sandbox():
+    import pytest
+
+    from empiricist.executor.sandbox import SandboxMode
+    with pytest.raises(ValueError, match="sandbox=NONE"):
+        run(ExecSpec(argv=["true"], move="T", env_passthrough=True,
+                     sandbox=SandboxMode.SANDBOX_EXEC))
+
+
 @pytest.mark.skipif(sys.platform != "darwin", reason="sandbox-exec is macOS-only")
 def test_sandboxed_execution_end_to_end():
     res = run(
