@@ -110,6 +110,40 @@ def test_record_evidence_for_unknown_artifact_raises(ledger):
         ledger.record_evidence(make_evidence("0" * 64))
 
 
+def test_find_artifacts_filters_by_kind_problem_status(ledger, store):
+    a = make_artifact(store, content=b"a", kind="dataset", problem="P5", status=Status.VERIFIED_N)
+    b = make_artifact(store, content=b"b", kind="dataset", problem="P5", status=Status.HEURISTIC)
+    c = make_artifact(store, content=b"c", kind="statement", problem="P5", status=Status.VERIFIED_N)
+    d = make_artifact(store, content=b"d", kind="dataset", problem="P4", status=Status.VERIFIED_N)
+    for art in (a, b, c, d):
+        ledger.add_artifact(art)
+
+    assert ledger.find_artifacts(kind="dataset", problem="P5", status=Status.VERIFIED_N) == [a]
+    assert {x.id for x in ledger.find_artifacts(kind="dataset")} == {a.id, b.id, d.id}
+    assert {x.id for x in ledger.find_artifacts(problem="P5")} == {a.id, b.id, c.id}
+    assert {x.id for x in ledger.find_artifacts()} == {a.id, b.id, c.id, d.id}
+    assert ledger.find_artifacts(kind="proof_dag") == []
+
+
+def test_find_artifacts_status_accepts_string_or_enum(ledger, store):
+    art = make_artifact(store, status=Status.CONJECTURED)
+    ledger.add_artifact(art)
+    assert ledger.find_artifacts(status=Status.CONJECTURED) == [art]
+    assert ledger.find_artifacts(status="CONJECTURED") == [art]
+
+
+def test_find_artifacts_orders_oldest_to_newest(ledger, store):
+    """Insertion order, oldest first -- the rowid tiebreak makes this
+    deterministic even when created_at timestamps tie (coarse clock
+    resolution), matching ORDER BY created_at, rowid used elsewhere."""
+    a = make_artifact(store, content=b"a")
+    ledger.add_artifact(a)
+    b = make_artifact(store, content=b"b")
+    ledger.add_artifact(b)
+    found = ledger.find_artifacts()
+    assert [x.id for x in found] == [a.id, b.id]
+
+
 def test_edges(ledger, store):
     a = make_artifact(store, content=b"a")
     b = make_artifact(store, content=b"b")

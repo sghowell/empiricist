@@ -28,6 +28,15 @@ class RunConfig:
     verify_timeout_s: float = 30.0
     transient_cap: int = 4          # minsearch transient component size = n0 + this
 
+    # -- M7 campaign knobs (additive; config_hash covers them automatically) --
+    tier0_n: int = 9                 # ENUMERATE: Tier-0 all-merge BFS ceiling
+    tier1_n: int = 7                 # ENUMERATE: Tier-1 one-intra-fusion ceiling
+    search_target_n: int = 8         # SEARCH: which n's open orbits to target
+    targets_per_gen: int = 8         # SEARCH: max targets per generation wave
+    conjecture_every: int = 3        # scheduler: CONJECTURE cadence (every N gens)
+    max_generations: int | None = None   # scheduler stop condition (None = unbounded)
+    max_cost_usd: float | None = None    # scheduler stop condition (None = unbounded)
+
     def config_hash(self) -> str:
         """Stable blake3 hash of this config's fields and values.
 

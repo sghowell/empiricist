@@ -95,6 +95,40 @@ class Ledger:
         ).fetchone()
         if row is None:
             raise KeyError(artifact_id)
+        return self._artifact_from_row(row)
+
+    def find_artifacts(
+        self,
+        *,
+        kind: str | None = None,
+        problem: str | None = None,
+        status: Status | str | None = None,
+    ) -> list[Artifact]:
+        """Query artifacts by any combination of (kind, problem, status) --
+        every filter is optional (None = unconstrained). Ordered oldest to
+        newest (created_at, rowid tiebreak); a caller wanting the single
+        newest match (e.g. campaign.moves.ensure_enumerate's idempotent
+        VERIFIED_N dataset lookup) takes the last element."""
+        q = "SELECT * FROM artifacts"
+        clauses: list[str] = []
+        params: list[str] = []
+        if kind is not None:
+            clauses.append("kind = ?")
+            params.append(kind)
+        if problem is not None:
+            clauses.append("problem = ?")
+            params.append(problem)
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status.value if isinstance(status, Status) else status)
+        if clauses:
+            q += " WHERE " + " AND ".join(clauses)
+        q += " ORDER BY created_at, rowid"
+        rows = self.conn.execute(q, params).fetchall()
+        return [self._artifact_from_row(r) for r in rows]
+
+    @staticmethod
+    def _artifact_from_row(row: sqlite3.Row) -> Artifact:
         return Artifact(
             id=row["id"], kind=row["kind"], problem=row["problem"], title=row["title"],
             content_path=row["content_path"], status=Status(row["status"]),

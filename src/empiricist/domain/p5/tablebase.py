@@ -63,6 +63,7 @@ population -- asserted, not assumed.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import itertools
 import shutil
 import time
@@ -475,6 +476,32 @@ def _find_geng() -> str | None:
     return None
 
 
+def _run_sync(spec: ExecSpec):
+    """Run `execute(spec)` to completion from EITHER a plain synchronous
+    caller or one nested inside an already-running asyncio event loop.
+
+    `tier0_search`/`tier1_search`/`enumerate_connected_orbits` are
+    synchronous top-level functions (M5c), but M7's campaign moves
+    (`search_move`/`conjecture_move`) are coroutines that call
+    `ensure_enumerate` -- which calls these -- directly from their own
+    bodies (no thread hop: `Ledger`'s sqlite3 connection is thread-confined,
+    so ENUMERATE has to run on the event-loop thread, not a worker thread).
+    A bare `asyncio.run(execute(spec))` would then raise "asyncio.run()
+    cannot be called from a running event loop". When no loop is running in
+    the CURRENT thread, this is exactly that bare call; when one is, the
+    call is dispatched to a throwaway thread with its OWN fresh loop (via a
+    single-use `ThreadPoolExecutor`) so the caller's loop is never touched
+    -- `execute()`'s subprocess machinery is loop-local, not shared state,
+    so this is safe and this function blocks either way (same synchronous
+    contract for both callers)."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(execute(spec))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, execute(spec)).result()
+
+
 def _run_geng(n: int, geng_path: str) -> bytes:
     """Spawn `geng -c n` through the harness's one audited subprocess path
     (`executor.runner.execute()` -- spec §6 names "enumerator" explicitly
@@ -492,7 +519,7 @@ def _run_geng(n: int, geng_path: str) -> bytes:
         move="ENUMERATE",
         capture_cap=_GENG_CAPTURE_CAP,
     )
-    result = asyncio.run(execute(spec))
+    result = _run_sync(spec)
     if result.exit_code != 0:
         raise RuntimeError(
             f"geng -c {n} exited {result.exit_code}: {result.stderr[:2000]}"
