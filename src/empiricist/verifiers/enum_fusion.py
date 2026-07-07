@@ -20,8 +20,9 @@ from empiricist.verifiers.base import VerifierResult, module_source_hash
 class EnumFusionVerifier:
     """Verifier: engine B (GF2Engine). PASS iff apply_construction's result
     is LC-equivalent to construction.target; FAIL otherwise (both keys are
-    recorded in details either way); ERROR -- never raise -- if the engine
-    itself throws (an engine bug is evidence, not a crashed run)."""
+    recorded in details either way); ERROR -- never raise -- if ANY part of
+    the verify body throws, engine or canonicalizer alike (a machinery bug
+    is evidence, not a crashed run)."""
 
     name = "enum_fusion"
     version = "1.0"
@@ -37,12 +38,15 @@ class EnumFusionVerifier:
         return kind == "construction"
 
     def verify(self, construction: Construction) -> VerifierResult:
+        # The try covers the WHOLE body -- engine AND canonicalizer: a raise
+        # from lc_orbit_key (e.g. an orbit-size blowup at M5c scale) must also
+        # become an ERROR verdict with the message in details, never a crash.
         try:
             result = apply_construction(construction, self._engine)
+            result_key = lc_orbit_key(result)
+            target_key = lc_orbit_key(construction.target)
         except Exception as exc:
             return VerifierResult(verdict=Verdict.ERROR, details={"error": str(exc)})
-        result_key = lc_orbit_key(result)
-        target_key = lc_orbit_key(construction.target)
         details = {
             "lc_orbit_key": result_key,
             "fusion_count": construction.fusion_count,

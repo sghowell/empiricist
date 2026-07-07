@@ -80,20 +80,51 @@ class Registry:
 
 def verify_agreed(registry: Registry, construction: Construction) -> VerifierResult:
     """Run BOTH independent, certification-gated fusion verifiers on
-    `construction` and require agreement: PASS only if both individually PASS
-    AND their result LC-orbit keys are identical -- F3 (two independent
-    implementations, no shared transition code) made concrete. This is the
-    function M5c/M6 call to treat a construction as verified.
+    `construction`. This is the function M5c/M6 call to treat a construction
+    as verified, and its verdict contract distinguishes the F3 alarm from an
+    honest miss:
+
+    - Both PASS with identical LC-orbit keys -> **PASS** (the F3 certificate:
+      two independent implementations agree the construction hits its target).
+    - Both FAIL with identical keys -> **FAIL** (honest: the engines agree on
+      what the construction produces and it genuinely misses the target --
+      "this recipe doesn't work", safe to record and move on).
+    - Both ran to a PASS/FAIL verdict but their keys DIFFER, or one says PASS
+      and the other FAIL -> **ERROR** with `details["disagreement"] = True`
+      plus both keys and verdicts. This is the F3 alarm: one of our two
+      engines is WRONG. It is a machinery fault, never evidence about the
+      construction -- callers must stop the world, not read it as
+      "construction didn't work".
+    - Either sub-verifier returns ERROR (engine or canonicalizer raised) ->
+      **ERROR**, propagating each failing sub-verifier's `details["error"]`
+      message prefixed by which verifier produced it.
+
+    Details always record both verifiers' keys and verdicts.
     """
     stab_res = registry.verify(StabFusionVerifier(), construction)
     enum_res = registry.verify(EnumFusionVerifier(), construction)
     details = {
         "stab_fusion_key": stab_res.details.get("lc_orbit_key"),
         "enum_fusion_key": enum_res.details.get("lc_orbit_key"),
+        "stab_fusion_verdict": stab_res.verdict.value,
+        "enum_fusion_verdict": enum_res.verdict.value,
     }
-    agree = (
-        stab_res.verdict is Verdict.PASS
-        and enum_res.verdict is Verdict.PASS
-        and details["stab_fusion_key"] == details["enum_fusion_key"]
-    )
-    return VerifierResult(verdict=Verdict.PASS if agree else Verdict.FAIL, details=details)
+
+    errors = [
+        f"{name}: {res.details.get('error', 'unknown error')}"
+        for name, res in (("stab_fusion", stab_res), ("enum_fusion", enum_res))
+        if res.verdict is Verdict.ERROR
+    ]
+    if errors:
+        details["error"] = "; ".join(errors)
+        return VerifierResult(verdict=Verdict.ERROR, details=details)
+
+    if (
+        details["stab_fusion_key"] != details["enum_fusion_key"]
+        or stab_res.verdict is not enum_res.verdict
+    ):
+        details["disagreement"] = True
+        return VerifierResult(verdict=Verdict.ERROR, details=details)
+
+    # Full agreement: identical keys, identical verdicts -- PASS, or an honest FAIL.
+    return VerifierResult(verdict=stab_res.verdict, details=details)

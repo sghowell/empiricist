@@ -3,17 +3,25 @@ that every fusion verifier must pass -- exactly, case by case -- to earn a
 PASS stamp from `registry.Registry.certify()`.
 
 Cases: the P4 pair-fusion construction (plan header golden: GHZ3 x GHZ3 fused
-leaf-to-leaf) and the g=3,4,5 leaf-to-leaf chains (each yields P_{g+2}, the
-F(path)=N-3 achievability witness) -- all must PASS -- plus one wrong-target
-case that must FAIL. A suite that can't fail certifies nothing: a verifier
-that always says PASS would sail through a suite with only PASS cases, so the
-must-fail case is not optional decoration, it's the suite's actual teeth.
+leaf-to-leaf), the g=3,4,5 leaf-to-leaf chains (each yields P_{g+2}, the
+F(path)=N-3 achievability witness), and two intra-component constructions
+(one closing a cycle, one fusing adjacent qubits -- the latter is what
+certification-gates engine B's deterministic-measurement branch; see the
+comments on each) -- all must PASS -- plus one wrong-target case that must
+FAIL. A suite that can't fail certifies nothing: a verifier that always says
+PASS would sail through a suite with only PASS cases, so the must-fail case
+is not optional decoration, it's the suite's actual teeth.
 
 `suite_hash()` is a blake3 digest of a canonical (JSON) repr of the suite;
 `registry.Registry.verify()` pins every certification stamp to this exact
 hash, so editing the suite (adding/removing/changing a case) invalidates
 every existing stamp rather than letting a certification earned against a
 DIFFERENT suite silently continue to read as trust.
+
+NOTE (M5c): binary_hash covers verifier+engine source but NOT the shared M5a
+modules (canonical/localcomp/graphstate) both engines depend on -- the shared
+canonicalizer is the residual single point of failure, trusted on the Adcock
+goldens. M5c should consider extending the hash to the shared closure.
 """
 
 from __future__ import annotations
@@ -47,11 +55,47 @@ _WRONG_TARGET = Construction(
     target=GraphState(n=4, edges=[(0, 1), (0, 2), (0, 3)]),
 )
 
+# Intra-component goldens. Both start from the g=3 chain (fusions (2,4) then
+# (5,7) merge the three stars into ONE component: P5 in path order
+# 1-0-3-6-8), then apply a third, INTRA-component fusion. Targets were
+# computed by running both engines (they agree; instrumented in the M5b
+# closeout review) and pinned here.
+#
+# (a) Cycle-close: fuse the P5's two ENDPOINT qubits (1, 8). Exercises the
+# general intra-component random-measurement path (both fusion observables
+# anticommute with some generator). Result on the survivors {0, 3, 6},
+# relabelled (0, 1, 2): the triangle -- the connected 3-vertex orbit
+# (LC-equivalent to P3 / the GHZ3 star).
+_INTRA_CYCLE_CLOSE = Construction(
+    resources=3,
+    steps=(FusionOp(a=2, b=4), FusionOp(a=5, b=7), FusionOp(a=1, b=8)),
+    target=GraphState(n=3, edges=[(0, 1), (0, 2), (1, 2)]),
+)
+
+# (b) Adjacent-qubit fusion: fuse the P5's endpoint 1 with its NEIGHBOR 0.
+# For adjacent qubits one of the two fusion observables {X_a Z_b, Z_a X_b}
+# is already (signs ignored) in the stabilizer group, so this golden drives
+# engine B's DETERMINISTIC-measurement branch (_measure's no-anticommuting
+# no-op path -- the previously-broken path fixed in the A/B fuzz, commit
+# 8293edb): verified by instrumentation to fire exactly once here, so a
+# regression on that branch can no longer earn a certification stamp.
+# (The cycle-close golden above does NOT hit that branch -- also
+# instrumented -- which is why this second intra-component case exists.)
+# Result on the survivors {3, 6, 8}, relabelled (0, 1, 2): the single edge
+# (1, 2) with vertex 0 isolated.
+_INTRA_ADJACENT = Construction(
+    resources=3,
+    steps=(FusionOp(a=2, b=4), FusionOp(a=5, b=7), FusionOp(a=0, b=1)),
+    target=GraphState(n=3, edges=[(1, 2)]),
+)
+
 P5_GOLDEN_SUITE: list[tuple[Construction, bool]] = [
     (_P4, True),
     (_chain(3), True),
     (_chain(4), True),
     (_chain(5), True),
+    (_INTRA_CYCLE_CLOSE, True),
+    (_INTRA_ADJACENT, True),
     (_WRONG_TARGET, False),
 ]
 

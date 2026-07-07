@@ -8,9 +8,11 @@ source (see `module_source_hash`), so editing either -- even a comment change
 -- mints a new identity and silently drops any certification stamp earned by
 the old one (registry.py enforces this; base.py just computes the digest).
 
-Verifiers must never raise on an engine failure: `verify()` catches engine
-exceptions and reports Verdict.ERROR with the message in `details["error"]`,
-so a buggy engine becomes evidence in the ledger rather than a crashed run.
+Verifiers must never raise from `verify()`: the WHOLE verify body is total --
+an exception anywhere in it (the engine, the canonicalizer, anything else the
+verdict computation touches) is caught and reported as Verdict.ERROR with the
+message in `details["error"]`, so a machinery fault becomes evidence in the
+ledger rather than a crashed run.
 """
 
 from __future__ import annotations
