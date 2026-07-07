@@ -799,7 +799,11 @@ def _decode_capped(raw: bytes) -> tuple[str, bool]:
 
 async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult:
     run_id = spec.run_id or uuid.uuid4().hex
-    workdir = spec.cwd or Path(mkdtemp(prefix="empiricist-run-"))
+    # Resolve up front: mkdtemp under $TMPDIR yields /var/... (a symlink to
+    # /private/var/...); the child's getcwd() canonicalizes, and sandbox.py's
+    # profile_for() also resolves — so cwd/HOME/TMPDIR and the SBPL profile must
+    # all agree on the one canonical path.
+    workdir = (spec.cwd or Path(mkdtemp(prefix="empiricist-run-"))).resolve()
     argv = sandbox_wrap(spec.argv, workdir=workdir, mode=spec.sandbox)
     env = scrub_env(workdir, spec.env_extra)
 
