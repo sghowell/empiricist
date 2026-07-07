@@ -35,14 +35,17 @@ def iso_certificate(gs: GraphState) -> bytes:
     return pynauty.certificate(_to_pynauty(gs))
 
 
-def lc_orbit_key(gs: GraphState, *, cap: int | None = None) -> bytes:
-    """The LC-orbit canonical key: min iso-certificate over the LC orbit.
+def lc_orbit_key(gs: GraphState, *, cap: int | None = None) -> str:
+    """The LC-orbit canonical key as a hex string -- the single dedup identity
+    for the population/frontier (the ledger stores it as TEXT PRIMARY KEY).
 
-    Invariant across the orbit, so equal iff LC-equivalent (for orbits within cap).
-    `cap=None` uses lc_orbit's own default (DEFAULT_ORBIT_CAP).
+    The min iso-certificate over the LC orbit, hex-encoded. Invariant under BOTH
+    local complementation AND vertex relabeling (the Adcock orbit-count match
+    proves this); the certificate length encodes n, so keys for different n never
+    collide. `cap=None` uses lc_orbit's own default (DEFAULT_ORBIT_CAP).
     """
     resolved_cap = DEFAULT_ORBIT_CAP if cap is None else cap
-    return min(iso_certificate(g) for g in lc_orbit(gs, cap=resolved_cap))
+    return min(iso_certificate(g) for g in lc_orbit(gs, cap=resolved_cap)).hex()
 
 
 def lc_equivalent(a: GraphState, b: GraphState) -> bool:

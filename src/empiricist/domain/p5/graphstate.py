@@ -61,8 +61,9 @@ class GraphState:
         return stabs
 
     def to_networkx(self):
-        """An nx.Graph view (vertices 0..n-1, undirected edges). Centralized so the
-        LC/pynauty paths don't each rebuild an nx.Graph/adjacency-dict by hand."""
+        """Return an nx.Graph view (nodes 0..n-1 + the edges) for callers wanting
+        networkx algorithms. The internal adjacency()/pynauty paths derive structure
+        directly from `edges`."""
         import networkx as nx
 
         g = nx.Graph()

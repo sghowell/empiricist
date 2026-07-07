@@ -55,6 +55,16 @@ def test_lc_equivalent_predicate():
     assert lc_equivalent(star, p4) is False
 
 
+def test_lc_orbit_key_is_a_hex_string_for_the_ledger_text_pk():
+    key = lc_orbit_key(GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3)]))
+    assert isinstance(key, str)
+    assert key and all(c in "0123456789abcdef" for c in key)
+    # different n -> different key length (cert length encodes n) -> never collide
+    k3 = lc_orbit_key(GraphState(n=3, edges=[(0, 1), (1, 2)]))
+    k5 = lc_orbit_key(GraphState(n=5, edges=[(0, 1), (1, 2), (2, 3), (3, 4)]))
+    assert len(k3) != len(k5)
+
+
 ADCOCK_CUMULATIVE = {1: 1, 2: 1, 3: 1, 4: 2, 5: 4, 6: 11, 7: 26, 8: 101, 9: 440}
 
 
