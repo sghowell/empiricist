@@ -15,7 +15,7 @@ and `ps.pauli_indices("X")` lists the qubits carrying that Pauli type.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import stim
@@ -24,9 +24,11 @@ import stim
 @dataclass(frozen=True)
 class GraphState:
     n: int
-    edges: frozenset[tuple[int, int]] = field(default_factory=frozenset)
+    edges: frozenset[tuple[int, int]] = frozenset()
 
-    def __init__(self, n: int, edges) -> None:
+    def __init__(self, n: int, edges=()) -> None:
+        if not isinstance(n, int) or n < 0:
+            raise ValueError(f"n must be a non-negative int, got {n!r}")
         norm: set[tuple[int, int]] = set()
         for a, b in edges:
             if a == b:
@@ -58,8 +60,23 @@ class GraphState:
             stabs.append(ps)
         return stabs
 
+    def to_networkx(self):
+        """An nx.Graph view (vertices 0..n-1, undirected edges). Centralized so the
+        LC/pynauty paths don't each rebuild an nx.Graph/adjacency-dict by hand."""
+        import networkx as nx
+
+        g = nx.Graph()
+        g.add_nodes_from(range(self.n))
+        g.add_edges_from(sorted(self.edges))
+        return g
+
     def apply_state_prep(self, sim: stim.TableauSimulator) -> None:
-        """Prepare |G> on `sim`: H on every qubit, then CZ on every edge."""
+        """Prepare |G> on `sim`: H on every qubit, then CZ on every edge.
+
+        Assumes `sim` is a FRESH all-|0> simulator and that qubit index == vertex
+        index (M5b juggles simulators around Bell measurements — do not reuse a sim
+        that already carries state or a different qubit->vertex mapping).
+        """
         sim.set_num_qubits(self.n)
         for q in range(self.n):
             sim.h(q)
@@ -68,6 +85,15 @@ class GraphState:
 
     @classmethod
     def from_adjacency(cls, A: np.ndarray) -> GraphState:
+        A = np.asarray(A)
+        if A.ndim != 2 or A.shape[0] != A.shape[1]:
+            raise ValueError(f"adjacency must be square 2-D, got shape {A.shape}")
+        if not np.array_equal(A, A.T):
+            raise ValueError("adjacency must be symmetric")
+        if np.any(np.diag(A) != 0):
+            raise ValueError("adjacency must have zero diagonal (no self-loops)")
+        if not set(np.unique(A).tolist()) <= {0, 1}:
+            raise ValueError("adjacency must be GF(2)-valued (0/1)")
         n = A.shape[0]
         edges = [(i, j) for i in range(n) for j in range(i + 1, n) if A[i, j]]
         return cls(n=n, edges=edges)

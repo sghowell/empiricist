@@ -152,3 +152,32 @@ def test_rejects_self_loops_and_out_of_range():
         GraphState(n=3, edges=[(0, 0)])
     with pytest.raises(ValueError):
         GraphState(n=3, edges=[(0, 3)])
+
+
+def test_graphstate_n_only_is_empty_graph():
+    gs = GraphState(3)
+    assert gs.edges == frozenset() and gs.adjacency().sum() == 0
+    assert gs.neighbors(0) == frozenset()
+
+
+def test_negative_n_rejected():
+    with pytest.raises(ValueError):
+        GraphState(-1)
+
+
+def test_from_adjacency_rejects_malformed():
+    with pytest.raises(ValueError):  # asymmetric
+        GraphState.from_adjacency(np.array([[0, 1], [0, 0]], dtype=np.uint8))
+    with pytest.raises(ValueError):  # non-square
+        GraphState.from_adjacency(np.zeros((2, 3), dtype=np.uint8))
+    with pytest.raises(ValueError):  # nonzero diagonal
+        GraphState.from_adjacency(np.array([[1, 0], [0, 0]], dtype=np.uint8))
+    with pytest.raises(ValueError):  # non-binary
+        GraphState.from_adjacency(np.array([[0, 2], [2, 0]], dtype=np.uint8))
+
+
+def test_to_networkx_roundtrip():
+    gs = GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3)])
+    g = gs.to_networkx()
+    assert g.number_of_nodes() == 4
+    assert set(map(frozenset, g.edges())) == {frozenset(e) for e in gs.edges}
