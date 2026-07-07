@@ -16,26 +16,41 @@ are Pauli corrections, i.e. local Cliffords, invisible to the LC orbit):
   `popcount(x1 & z2) + popcount(x2 & z1)` is odd (the symplectic form).
 - Measuring an observable P against a stabilizer generating set: collect the
   generators that anticommute with P. None anticommuting -> the outcome is
-  already determined, state unchanged. Otherwise pick one anticommuting
-  generator as the pivot, fold it (XOR) into every *other* anticommuting
-  generator, then overwrite the pivot slot with P itself.
+  already determined (P is, signs ignored, already IN the group) and the
+  state is UNCHANGED -- a legitimate no-op branch, reachable when an
+  intra-component fusion's observable is already stabilized by the state.
+  Otherwise pick one anticommuting generator as the pivot, fold it (XOR)
+  into every *other* anticommuting generator, then overwrite the pivot slot
+  with P itself.
 - Fusion of active qubits (a, b) measures the ratified commuting pair
   `{X_a Z_b, Z_a X_b}` (spec D6: NOT `{X_a X_b, Z_a Z_b}` -- the two
   conventions differ by a free Hadamard on one fusion qubit and thus give the
   same LC orbit, but `{XZ, ZX}` is the one whose bit bookkeeping matches the
-  graph rule used by the goldens here). Both measured operators always
-  commute with each other, so measuring the second can never disturb the
-  generator that now holds the first (that generator's row is provably never
-  in the second measurement's anticommuting set). After both measurements,
-  every *other* generator in the group must commute with both pivots, which
-  forces (by the same symplectic-form identity) `x_a(g) == z_b(g)` and
-  `x_b(g) == z_a(g)` for every such g -- so XORing by the X_aZ_b pivot when
-  `x_a(g)` is set, and by the Z_aX_b pivot when `x_b(g)` is set, always fully
-  clears both the X and Z support at a and b simultaneously. The two pivot
-  rows are then dropped (they now describe an isolated Bell pair on a, b) and
-  bit positions a, b are compacted out of every remaining generator, shifting
-  higher bit positions down so the k = n - 2 survivors live on qubits
-  0..k-1.
+  graph rule used by the goldens here). The two operators commute, so the
+  second measurement never disturbs the first's group membership. After both
+  updates the sign-free group contains B1 = X_a Z_b AND B2 = Z_a X_b --
+  whether each outcome was random (B_i literally replaced a generator) or
+  deterministic (B_i was already a group element) -- so (a, b) holds a Bell
+  state disentangled from the rest.
+- Removal of (a, b) -- the general elimination, correct in ALL cases (it
+  does NOT assume the measured observables sit in the generator list): each
+  generator projects to a 4-bit BLOCK (x_a, z_a, x_b, z_b). Every group
+  element commutes with B1 and B2, and the symplectic form then pins every
+  block to satisfy `x_a == z_b` and `x_b == z_a`: the block space has rank
+  exactly 2 (it contains B1's and B2's own blocks). GF(2)-eliminate on the
+  block bits: keep (up to) 2 pivot generators with independent nonzero
+  blocks, XOR them into every other generator, leaving all others
+  block-free, i.e. with ZERO x and z bits at both a and b. Block rank > 2 is
+  impossible if the pair is disentangled -- assert. The 2 pivots may still
+  carry support outside {a, b}; multiplying by B1/B2 (pure-block group
+  elements) shows each pivot's outside part lies in the group's zero-block
+  subgroup, which the block-free generators span exactly -- so reducing each
+  pivot's outside part against the block-free rows must reach exactly zero
+  (assert; failure means the disentanglement premise, and hence the
+  measurement update, is wrong). Drop the two pivots (they generate the
+  isolated Bell pair) and compact bit positions a, b out of every remaining
+  generator, shifting higher bit positions down so the k = n - 2 survivors
+  live on qubits 0..k-1.
 - Postselection: because signs are ignored there is no impossible branch to
   fall back from -- the deterministic update above already *is* the (+1, +1)
   branch up to a Pauli frame, and that frame is invisible to the LC orbit.
@@ -81,15 +96,18 @@ def _anticommute(x1: int, z1: int, x2: int, z2: int) -> bool:
     return (_parity(x1 & z2) + _parity(x2 & z1)) % 2 == 1
 
 
-def _measure(
-    generators: list[tuple[int, int]], xp: int, zp: int
-) -> tuple[list[tuple[int, int]], int | None]:
-    """Update `generators` for measuring Pauli (xp, zp); return (new list,
-    index of the row now holding (xp, zp)), or (unchanged list, None) if the
-    outcome was already determined (no anticommuting generator)."""
+def _measure(generators: list[tuple[int, int]], xp: int, zp: int) -> list[tuple[int, int]]:
+    """Update `generators` for measuring Pauli (xp, zp).
+
+    No anticommuting generator -> the outcome is already determined, i.e.
+    (xp, zp) is (signs ignored) already in the group: return the list
+    UNCHANGED (a valid no-op branch -- the caller's removal step never
+    assumes the observable landed in the generator list). Otherwise fold the
+    first anticommuting generator into every other anticommuting one and
+    overwrite it with (xp, zp)."""
     anticommuting = [i for i, (xg, zg) in enumerate(generators) if _anticommute(xg, zg, xp, zp)]
     if not anticommuting:
-        return list(generators), None
+        return list(generators)
     pivot_idx = anticommuting[0]
     xg0, zg0 = generators[pivot_idx]
     new_generators = list(generators)
@@ -97,7 +115,25 @@ def _measure(
         xi, zi = new_generators[i]
         new_generators[i] = (xi ^ xg0, zi ^ zg0)
     new_generators[pivot_idx] = (xp, zp)
-    return new_generators, pivot_idx
+    return new_generators
+
+
+def _reduce_vector(basis: dict[int, int], v: int) -> int:
+    """Reduce bit-vector `v` against `basis` (a reduced GF(2) basis keyed by
+    highest set bit); return the residual (0 iff v is in the span)."""
+    while v:
+        lead = v.bit_length() - 1
+        if lead not in basis:
+            return v
+        v ^= basis[lead]
+    return 0
+
+
+def _basis_insert(basis: dict[int, int], v: int) -> None:
+    """Insert `v` into the reduced basis if independent (no-op otherwise)."""
+    residual = _reduce_vector(basis, v)
+    if residual:
+        basis[residual.bit_length() - 1] = residual
 
 
 def _compact_bits(bits: int, lo: int, hi: int) -> int:
@@ -212,31 +248,66 @@ class GF2Engine:
         pa = state.active.index(a)
         pb = state.active.index(b)
 
-        gens, pivot1_idx = _measure(list(state.generators), 1 << pa, 1 << pb)
-        gens, pivot2_idx = _measure(gens, 1 << pb, 1 << pa)
-        if pivot1_idx is None or pivot2_idx is None:
-            raise AssertionError(
-                f"fusion({a}, {b}) was deterministic (Bell pair already fixed) -- "
-                "unexpected for a freshly active pair; measurement update is wrong"
+        gens = _measure(list(state.generators), 1 << pa, 1 << pb)  # B1 = X_a Z_b
+        gens = _measure(gens, 1 << pb, 1 << pa)  # B2 = Z_a X_b
+        # Either measurement may have been deterministic (no-op): B1, B2 are
+        # in the sign-free group regardless, so (a, b) is now a Bell pair
+        # disentangled from the rest -- the general elimination below removes
+        # it without assuming B1/B2 sit in the generator list.
+
+        def block(x: int, z: int) -> int:
+            return (
+                (((x >> pa) & 1) << 3)
+                | (((z >> pa) & 1) << 2)
+                | (((x >> pb) & 1) << 1)
+                | ((z >> pb) & 1)
             )
 
-        pivot1 = gens[pivot1_idx]
-        pivot2 = gens[pivot2_idx]
-
+        # Eliminate on the 4-bit (a, b)-block: up to 2 pivots with independent
+        # nonzero blocks; XOR them into everything else -> all others block-free.
+        block_pivots: dict[int, tuple[int, int, int]] = {}  # lead block bit -> (block, x, z)
         cleared: list[tuple[int, int]] = []
-        for i, (x, z) in enumerate(gens):
-            if i == pivot1_idx or i == pivot2_idx:
-                continue
-            if (x >> pa) & 1:
-                x ^= pivot1[0]
-                z ^= pivot1[1]
-            if (x >> pb) & 1:
-                x ^= pivot2[0]
-                z ^= pivot2[1]
-            assert not ((x >> pa) & 1 or (z >> pa) & 1 or (x >> pb) & 1 or (z >> pb) & 1), (
-                f"fusion({a}, {b}): Bell pair not disentangled, residual support at {pa}, {pb}"
+        for x, z in gens:
+            beta = block(x, z)
+            while beta:
+                lead = beta.bit_length() - 1
+                if lead not in block_pivots:
+                    break
+                pbeta, px, pz = block_pivots[lead]
+                beta ^= pbeta
+                x ^= px
+                z ^= pz
+            if beta:
+                if len(block_pivots) == 2:
+                    raise AssertionError(
+                        f"fusion({a}, {b}): (a, b)-block rank > 2 -- the pair is not "
+                        "disentangled; the measurement update is wrong"
+                    )
+                block_pivots[beta.bit_length() - 1] = (beta, x, z)
+            else:
+                cleared.append((x, z))
+        if len(block_pivots) != 2:
+            raise AssertionError(
+                f"fusion({a}, {b}): (a, b)-block rank {len(block_pivots)} != 2 -- "
+                "the group lacks an independent Bell-pair stabilizer pair; "
+                "the measurement update is wrong"
             )
-            cleared.append((x, z))
+
+        # The 2 pivots' support OUTSIDE {a, b} must lie in the span of the
+        # block-free generators (they equal pure Bell stabilizers times
+        # zero-block group elements) -- assert it reduces to exactly zero.
+        nbits = len(state.active)
+        outside_mask = ~((1 << pa) | (1 << pb))
+        basis: dict[int, int] = {}
+        for x, z in cleared:
+            _basis_insert(basis, x | (z << nbits))
+        for _, px, pz in block_pivots.values():
+            residual = _reduce_vector(basis, (px & outside_mask) | ((pz & outside_mask) << nbits))
+            if residual:
+                raise AssertionError(
+                    f"fusion({a}, {b}): pivot support outside the fused pair does not "
+                    "vanish -- the pair is not disentangled; the measurement update is wrong"
+                )
 
         lo, hi = (pa, pb) if pa < pb else (pb, pa)
         new_generators = tuple(

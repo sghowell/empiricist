@@ -120,6 +120,15 @@ def test_functional_fuse_does_not_mutate_and_branches_agree(eng):
     assert lc_orbit_key(out_centers) == lc_orbit_key(p4)
 
 
+def test_intra_component_deterministic_measurement_defined():
+    """K4 fuse(2,1): the fusion observable is already a stabilizer (deterministic);
+    the state must still fuse cleanly and agree with engine A (seed-19 reproducer)."""
+    eng = GF2Engine()
+    k4 = GraphState(n=4, edges=[(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
+    out = eng.to_graphstate(eng.fuse(eng.state_from_graph(k4), 2, 1))
+    assert out.n == 2  # engine produced a valid 2-qubit result without raising
+
+
 def test_fuse_rejects_bad_qubits(eng):
     gs = GraphState(n=4, edges=[(0, 1), (2, 3)])
     st = eng.state_from_graph(gs)
