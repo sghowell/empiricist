@@ -677,9 +677,62 @@ git commit -m "feat: seven role definitions with per-role effort + sampling poli
 ### Task 5: The client (`llm/client.py`)
 
 **Files:**
+- Modify: `src/empiricist/executor/runner.py` (ExecSpec: `env_passthrough` + `capture_cap`)
+- Test: `tests/test_runner.py` (two additions for the new fields)
 - Create: `src/empiricist/llm/client.py`
 - Create: `tests/stub_claude.py` (a fake `claude` binary for deterministic tests)
 - Test: `tests/test_llm_client.py`
+
+**Why the executor needs two new knobs (verified by live probe 2026-07-06):**
+`claude` on this box is a **cmux wrapper** that needs the **full inherited environment** to authenticate — under M3's `scrub_env` it returns `"Not logged in"` (and a stripped PATH gives `claude not found in PATH`). So the model call (a *trusted* CLI, the one legitimate network user) runs with **`sandbox=NONE` + `env_passthrough=True`**. And model envelopes can be large (128K output tokens), so the runner's 64 KiB stdout cap must be raised for model calls or the envelope truncates into a parse failure.
+
+- [ ] **Step 0a: Extend `ExecSpec` (runner.py)** — add two fields (both default to today's behavior, non-breaking):
+
+In `ExecSpec`, after `env_extra`, add:
+```python
+    env_passthrough: bool = False   # True: inherit the full parent env (TRUSTED
+                                    # subprocesses only, e.g. the claude CLI which
+                                    # needs real HOME/PATH/keychain for auth)
+    capture_cap: int = _CAPTURE_CAP  # per-stream stdout/stderr byte cap
+```
+
+In `execute()`, change the env line from `env = scrub_env(workdir, spec.env_extra)` to:
+```python
+    import os
+    if spec.env_passthrough:
+        env = {**os.environ, **spec.env_extra}  # trusted: full inherit + overrides
+    else:
+        env = scrub_env(workdir, spec.env_extra)
+```
+(hoist `import os` to the module top with the other imports rather than inline — keep ruff clean).
+
+Change `_decode_capped(raw)` to accept the cap: `def _decode_capped(raw: bytes, cap: int) -> tuple[str, bool]:` using `cap` instead of the module constant, and update both call sites in `execute()` to pass `spec.capture_cap`.
+
+- [ ] **Step 0b: Tests for the executor extension** — add to `tests/test_runner.py`:
+```python
+def test_env_passthrough_inherits_parent_env(monkeypatch):
+    monkeypatch.setenv("EMPIRICIST_PROBE_VAR", "leaked-through")
+    res = run(py_spec(
+        "import os; print(os.environ.get('EMPIRICIST_PROBE_VAR', 'MISSING'))",
+        env_passthrough=True,
+    ))
+    assert res.stdout.strip() == "leaked-through"
+
+
+def test_default_still_scrubs_parent_env(monkeypatch):
+    monkeypatch.setenv("EMPIRICIST_PROBE_VAR", "should-not-leak")
+    res = run(py_spec("import os; print(os.environ.get('EMPIRICIST_PROBE_VAR', 'MISSING'))"))
+    assert res.stdout.strip() == "MISSING"  # scrub is the default
+
+
+def test_capture_cap_is_configurable():
+    small = run(py_spec("print('y' * 5000)", capture_cap=1000))
+    assert small.output_truncated is True and len(small.stdout) <= 1000 + 50
+    big = run(py_spec("print('y' * 5000)", capture_cap=1_000_000))
+    assert big.output_truncated is False and "yyyy" in big.stdout
+```
+
+Run `uv run pytest tests/test_runner.py -v` → all pass (existing + 3 new). Confirm the whole M3 suite still passes (the defaults are unchanged).
 
 - [ ] **Step 1: Write the stub binary** — `tests/stub_claude.py`:
 
@@ -738,6 +791,10 @@ ClaudeCodeClient is exercised against a STUB `claude` binary (tests/stub_claude.
 so the full argv-build -> execute() -> parse path runs deterministically with no
 network and no cost. Exactly one REAL model call exists in the milestone, in the
 Task 6 live smoke — never in the unit suite.
+
+The stub reads STUB_MODE / STUB_ARGV_FILE from its environment; the client runs
+with env_passthrough=True (required by the real claude for auth), which is exactly
+what carries those monkeypatched vars through execute() to the stub subprocess.
 """
 
 import asyncio
@@ -903,8 +960,12 @@ path"), parses the envelope, and — if a ledger is given — records a single
 complete runs row with full token/cost accounting (execute() itself is run with
 ledger=None so there is exactly one row, the richer one).
 
-The model call is the sole legitimate network user, so it runs sandbox=NONE; the
-"model never gets a shell" guarantee comes from `--tools ""`, not the sandbox.
+The model call is the sole legitimate network user, so it runs sandbox=NONE with
+env_passthrough=True (the `claude` cmux wrapper needs the real HOME/PATH/keychain
+to authenticate — verified: a scrubbed env yields "Not logged in"). The "model
+never gets a shell" guarantee comes from `--tools ""`, not the sandbox. claude is
+a TRUSTED transport binary; the untrusted thing is the model's *output*, which is
+returned as JSON and only ever executed later as harness-verified code.
 
 FakeLLMClient returns scripted results for offline/deterministic downstream tests.
 AnthropicAPIClient is a documented metered-billing alternative (stub in v0).
@@ -947,10 +1008,12 @@ class ClaudeCodeClient:
     def __init__(
         self, *, claude_bin: list[str] | None = None,
         max_concurrency: int = 8, timeout_s: float = 900.0,
+        capture_cap: int = 8 * 1024 * 1024,   # model envelopes can be large
     ) -> None:
         self._bin = list(claude_bin) if claude_bin else ["claude"]
         self._sem = asyncio.Semaphore(max_concurrency)
         self._timeout_s = timeout_s
+        self._capture_cap = capture_cap
 
     def build_argv(
         self, role: Role, prompt: str, *, session_id: str,
@@ -999,7 +1062,10 @@ class ClaudeCodeClient:
                 res = await execute(
                     ExecSpec(
                         argv=argv, move="SAMPLE", role=role.name,
-                        sandbox=SandboxMode.NONE, timeout_s=self._timeout_s,
+                        sandbox=SandboxMode.NONE,     # model call = sole net user
+                        env_passthrough=True,          # trusted CLI needs real HOME/PATH/keychain
+                        capture_cap=self._capture_cap, # model envelopes can be large
+                        timeout_s=self._timeout_s,
                     ),
                     ledger=None,
                 )
