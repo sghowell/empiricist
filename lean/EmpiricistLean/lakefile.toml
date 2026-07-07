@@ -20,3 +20,15 @@ rev = "v4.31.0"
 
 [[lean_lib]]
 name = "EmpiricistLean"
+
+# Compiled axiom-audit driver: the SOLE axiom authority for the FORMALIZED trust
+# gate (M8 soundness fix). Only imports `Lean`, so it builds in seconds; the
+# untrusted mathlib-importing source is elaborated at RUNTIME via the frontend.
+[[lean_exe]]
+name = "axiom_audit"
+root = "AxiomAudit"
+# The driver runs the real Lean frontend on untrusted source at runtime, which
+# needs the interpreter to execute imported elaborators / `native_decide` /
+# `#eval`. Without this the frontend fails with "Could not find native
+# implementation" / "elaboration function ... has not been implemented".
+supportInterpreter = true

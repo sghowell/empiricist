@@ -1,4 +1,5 @@
 /.lake
-# LeanVerifier scratch files (written into EmpiricistLean/ per verify() call,
-# cleaned up in a finally; ignored so a crash mid-verify never dirties git).
-EmpiricistLean/Scratch_*.lean
+# LeanVerifier scratch files + per-run nonce files (written into EmpiricistLean/
+# per verify() call, cleaned up in a finally; ignored so a crash mid-verify never
+# dirties git). The compiled axiom_audit driver lives under .lake/build/bin.
+EmpiricistLean/Scratch_*
