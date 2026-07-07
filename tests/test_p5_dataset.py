@@ -190,14 +190,46 @@ def test_ingest_dataset_rejects_wrong_witness(small_dataset, tmp_path):
         ledger.close()
 
 
-def test_build_dataset_rejects_unmaterialized_n(small_dataset):
-    """build_dataset needs per-orbit unreachable representatives, which
-    Tier0Result only materializes for n<=7 -- a tier0 result reaching past
-    that (n_max=8) without individual open-orbit representatives must raise
-    rather than silently produce an incomplete dataset."""
+def test_build_dataset_full_range_past_n7():
+    """M5c Task 4 gap fix, end-to-end: build_dataset must succeed for a
+    Tier0Result reaching past n=7 (previously this raised ValueError, since
+    `unreachable_representatives` was only materialized for n<=7). n=7,8
+    have no Tier-1 pass here (tier1.n_max=6), so every one of their
+    non-tier0 orbits must land as an "open" row with a REAL representative
+    and lower_bound == n (Tier-0's L2 floor only -- Tier-1 never searched
+    that far, so the bound can't tighten to n+3)."""
+    tier1_6 = tier1_search(6)  # tier1_6.tier0.n_max == 6+2 == 8 (L4 transient)
+    dataset = build_dataset(tier1_6.tier0, tier1_6)
+
+    by_n = _rows_by_n(dataset)
+    for n in range(3, 9):
+        assert len(by_n[n]) == ADCOCK_TOTALS[n]
+        assert len({r["orbit_id"] for r in by_n[n]}) == ADCOCK_TOTALS[n]
+
+    for row in by_n[7] + by_n[8]:
+        assert row["tier"] in ("tier0", "open")
+        if row["tier"] == "open":
+            assert row["lower_bound"] == row["n"]
+            assert row["representative_edges"]  # a real representative, not a placeholder
+
+
+def test_build_dataset_rejects_unmaterialized_n():
+    """build_dataset's defensive check: an incompletely-materialized
+    `unreachable_representatives` list (fewer representatives than
+    `unreachable_count` for some n) must raise rather than silently produce
+    a dataset missing open rows.
+
+    Since the M5c Task 4 fix, `tier0_search` materializes representatives
+    for EVERY n <= n_max (not just n<=7), so this scenario no longer arises
+    naturally -- this test exercises build_dataset's own defensive check
+    directly by corrupting a Tier0Result's bookkeeping (Tier0Result is a
+    plain, non-frozen dataclass; this is not a mutation the public API ever
+    performs, just a way to reach the check)."""
     from empiricist.domain.p5.tablebase import Tier1Result
 
-    tier0_8 = tier0_search(8)
-    fake_tier1 = Tier1Result(n_max=6, transient_max=8, tier0=tier0_8, newly_resolved={})
+    tier0_6 = tier0_search(6)
+    assert tier0_6.unreachable_representatives[6], "sanity: n=6 must have open orbits to truncate"
+    tier0_6.unreachable_representatives[6] = tier0_6.unreachable_representatives[6][:-1]
+    fake_tier1 = Tier1Result(n_max=6, transient_max=8, tier0=tier0_6, newly_resolved={})
     with pytest.raises(ValueError):
-        build_dataset(tier0_8, fake_tier1)
+        build_dataset(tier0_6, fake_tier1)

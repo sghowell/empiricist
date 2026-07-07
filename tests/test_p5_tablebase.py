@@ -13,6 +13,7 @@ from __future__ import annotations
 import pathlib
 import tempfile
 
+import networkx as nx
 import pytest
 
 from empiricist.domain.p5.canonical import iso_certificate
@@ -171,6 +172,25 @@ def test_tier0_n8_n9():
     for n in (8, 9):
         for orbit in result.reachable[n]:
             assert orbit.depth == n - 3
+
+    # M5c Task 4 gap fix: unreachable-orbit representatives must now be
+    # materialized at n=8,9 too (build_dataset needs a real representative
+    # graph for every "open" row across the FULL n=3..9 range, not just
+    # n<=7) -- one distinct GraphState per unreachable orbit, none of which
+    # collides with a reachable orbit's root.
+    for n in (8, 9):
+        reps = result.unreachable_representatives[n]
+        assert len(reps) == result.unreachable_count[n]
+        enum_n = enumerate_connected_orbits(n)
+        reachable_roots = {enum_n.orbit_root(o.representative_cert) for o in result.reachable[n]}
+        rep_roots = set()
+        for rep in reps:
+            assert rep.n == n
+            assert nx.is_connected(rep.to_networkx())
+            root = enum_n.orbit_root(iso_certificate(rep))
+            assert root not in reachable_roots
+            rep_roots.add(root)
+        assert len(rep_roots) == len(reps)  # every representative is a DISTINCT orbit
 
     # Spot-certify a sample of n=8/n=9 witnesses (full n<=6 coverage is
     # already exhaustive in test_tier0_witnesses_certify above; this is an

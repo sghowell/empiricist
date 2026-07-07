@@ -96,9 +96,11 @@ def build_dataset(tier0: Tier0Result, tier1: Tier1Result) -> dict[str, Any]:
 
     Requires `tier0` to have MATERIALIZED unreachable-orbit representatives
     for every n <= tier0.n_max (`Tier0Result.unreachable_representatives`,
-    which `tier0_search` only fills in for n <= 7) -- open rows need an
-    actual representative graph, not just a count. Raises ValueError if
-    `tier0.n_max` exceeds that materialized range.
+    which `tier0_search` fills in for every n up to n_max, including n=8,9)
+    -- open rows need an actual representative graph, not just a count.
+    Raises ValueError if some n's representatives are missing or incomplete
+    (defensive: not reachable via `tier0_search`'s own public output, but
+    guarded here since `Tier0Result` is a plain, non-frozen dataclass).
     """
     for n in range(3, tier0.n_max + 1):
         n_unreachable = tier0.unreachable_count.get(n, 0)
@@ -107,8 +109,8 @@ def build_dataset(tier0: Tier0Result, tier1: Tier1Result) -> dict[str, Any]:
             raise ValueError(
                 f"build_dataset: tier0.unreachable_representatives is not materialized for "
                 f"n={n} ({n_unreachable} unreachable orbits, {n_materialized} representatives) "
-                "-- Tier0Result only materializes these for n <= 7; pass a tier0 result with "
-                "n_max <= 7 to build a full dataset."
+                "-- tier0_search should materialize these for every n <= n_max; this "
+                "Tier0Result's own bookkeeping is incomplete or was mutated after the fact."
             )
 
     rows: list[dict[str, Any]] = []

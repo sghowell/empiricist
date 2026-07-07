@@ -167,6 +167,24 @@ class OrbitEnumeration:
                 return g
         raise KeyError(f"no enumerated graph maps to orbit root {root.hex()}")
 
+    def representatives_by_root(self) -> dict[bytes, GraphState]:
+        """One representative GraphState per orbit root, for EVERY orbit in
+        this enumeration -- a single O(graph_count) pass (grouping by
+        union-find root, keeping the smallest iso-certificate member per
+        root) rather than `graph_count` iterations per queried root
+        (`representative_of_root` called once per root, as Tier-0 used to
+        do only for n<=7, costs O(orbit_count * graph_count); at n=9's
+        261,080 enumerated graphs and up to 336 unreachable orbits that's
+        tens of millions of comparisons for no reason). The "smallest
+        iso-certificate" tiebreak makes the choice deterministic and
+        independent of geng's/itertools's arbitrary enumeration order."""
+        best: dict[bytes, bytes] = {}
+        for c in self._reps:
+            root = self._uf.find(c)
+            if root not in best or c < best[root]:
+                best[root] = c
+        return {root: self._reps[c] for root, c in best.items()}
+
 
 @dataclass
 class Tier0Result:
@@ -175,7 +193,7 @@ class Tier0Result:
     n_max: int
     reachable: dict[int, list[ReachableOrbit]]
     unreachable_count: dict[int, int]
-    unreachable_representatives: dict[int, list[GraphState]]  # materialized only n <= 7
+    unreachable_representatives: dict[int, list[GraphState]]  # materialized for every n
     total_orbit_count: dict[int, int]  # from enumerate_connected_orbits -- the Adcock recheck
     method: dict[int, str]  # "geng" | "itertools" per n
     visited_state_count: dict[int, int]  # total distinct connected graphs visited, per size
@@ -417,13 +435,17 @@ def tier0_search(
             f"{len(reachable_roots)} distinct orbits -- the two orbit derivations disagree"
         )
         unreachable_count[n] = enum.orbit_count - len(reachable_roots)
-        if n <= 7:
-            all_roots = enum.all_orbit_roots()
-            unreachable_representatives[n] = [
-                enum.representative_of_root(root) for root in sorted(all_roots - reachable_roots)
-            ]
-        else:
-            unreachable_representatives[n] = []
+        # M5c Task 4: materialize a representative for EVERY unreachable
+        # orbit at EVERY n (not just n<=7) -- build_dataset needs a real
+        # representative graph for every "open" row across the full n=3..9
+        # range. `representatives_by_root` is a single O(graph_count) pass
+        # over the enumeration already computed above (for the A3 cross-
+        # check), so this costs nothing extra at n=8,9 scale.
+        all_roots = enum.all_orbit_roots()
+        reps_by_root = enum.representatives_by_root()
+        unreachable_representatives[n] = [
+            reps_by_root[root] for root in sorted(all_roots - reachable_roots)
+        ]
         log(
             f"n={n}: Adcock cross-check ({enum.method}) -- {enum.orbit_count} total orbits, "
             f"{len(reachable_roots)} reachable, {unreachable_count[n]} unreachable "
