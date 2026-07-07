@@ -15,9 +15,13 @@ import psutil
 
 
 def kill_process_group(pid: int) -> None:
-    """SIGKILL the process group; quiet if it is already gone."""
+    """SIGKILL the process group; quiet if gone. Only fires when `pid` is its
+    own group leader (getpgid(pid) == pid) — under start_new_session our child
+    always is, so this refuses to signal an unrelated group if the pid was
+    reaped and reused."""
     try:
-        os.killpg(os.getpgid(pid), signal.SIGKILL)
+        if os.getpgid(pid) == pid:
+            os.killpg(pid, signal.SIGKILL)
     except (ProcessLookupError, PermissionError):
         pass
 
@@ -37,10 +41,17 @@ def _rss_bytes(proc: psutil.Process) -> int:
 
 
 class RssWatchdog:
-    """Poll a process group's RSS; SIGKILL on breach; record the peak."""
+    """Poll a process group's RSS; SIGKILL on breach; record the peak.
+
+    This is a SOFT bound: a process allocating faster than poll_s can overshoot
+    the cap between samples (in testing, peak 313 MB against a 64 MB cap). It
+    protects against sustained growth, not a single fast mmap. Poll cost scales
+    with total system process count via children(recursive=True); tune poll_s
+    per-move for cheap moves.
+    """
 
     def __init__(
-        self, pid: int, rss_mb: float | None, *, poll_s: float = 0.05
+        self, pid: int, rss_mb: float | None, *, poll_s: float = 0.1
     ) -> None:
         self._pid = pid
         self._rss_mb = rss_mb
@@ -55,9 +66,11 @@ class RssWatchdog:
     async def run(self) -> None:
         try:
             proc = psutil.Process(self._pid)
-        except psutil.NoSuchProcess:
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
             return
         while not self._stopped:
+            if not proc.is_running():   # reaped (or pid reused) -> stop cleanly
+                return
             try:
                 rss = _rss_bytes(proc)
             except psutil.NoSuchProcess:
