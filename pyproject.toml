@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "blake3>=1.0",
     "psutil>=6.0",
+    "pydantic>=2.0",
 ]
 
 [dependency-groups]
