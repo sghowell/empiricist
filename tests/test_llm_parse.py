@@ -98,3 +98,24 @@ def test_parse_tolerates_missing_usage_subfields():
     })
     r = parse_envelope(env, model="claude-fable-5")
     assert r.input_tokens == 0 and r.output_tokens == 0 and r.cost_usd == 0.0
+
+
+def test_parse_null_usage_and_cost_do_not_crash():
+    env = json.dumps({
+        "is_error": False, "result": "x", "stop_reason": "end_turn",
+        "session_id": "s", "uuid": "u", "total_cost_usd": None, "duration_ms": None,
+        "usage": {"input_tokens": None, "output_tokens": None,
+                  "cache_read_input_tokens": None, "cache_creation_input_tokens": None},
+        "modelUsage": {},
+    })
+    r = parse_envelope(env, model="claude-fable-5")
+    assert r.input_tokens == 0 and r.output_tokens == 0
+    assert r.cost_usd == 0.0 and r.duration_ms == 0
+
+
+def test_parse_null_result_becomes_empty_string():
+    env = json.dumps({"is_error": False, "result": None, "stop_reason": "refusal",
+                      "session_id": "s", "uuid": "u", "total_cost_usd": 0.0,
+                      "duration_ms": 1, "usage": {}, "modelUsage": {}})
+    r = parse_envelope(env, model="claude-fable-5")
+    assert r.text == "" and r.ok is False

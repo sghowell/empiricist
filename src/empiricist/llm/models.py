@@ -41,5 +41,12 @@ class LLMResult:
 
     @property
     def ok(self) -> bool:
-        """Usable response: no error and a terminal (not refusal/max_tokens) stop."""
+        """Process-level success: no error and a terminal (not refusal/max_tokens)
+        stop. NOTE: for --json-schema calls this does NOT guarantee an artifact —
+        check `has_artifact` (or `parsed is not None`) before using `parsed`."""
         return not self.is_error and self.stop_reason in _OK_STOP_REASONS
+
+    @property
+    def has_artifact(self) -> bool:
+        """A usable structured artifact was produced (schema calls): ok AND parsed."""
+        return self.ok and self.parsed is not None

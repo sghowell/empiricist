@@ -30,7 +30,8 @@ def test_effort_matches_spec_table():
 
 
 def test_sampling_counts_match_spec():
-    assert ROLES["searcher"].k >= 16      # k=16..64 wave
+    # max wave size; concurrency is clamped down by the client semaphore
+    assert ROLES["searcher"].k >= 16
     assert ROLES["critic"].k == 2         # two independent critics
     assert ROLES["prover"].k == 1
     assert ROLES["conjecturer"].k >= 4

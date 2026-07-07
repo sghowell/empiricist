@@ -34,16 +34,16 @@ def parse_envelope(stdout: str, *, model: str) -> LLMResult:
 
     usage = env.get("usage") or {}
     return LLMResult(
-        text=env["result"],
+        text=env["result"] or "",
         parsed=env.get("structured_output"),
         stop_reason=env["stop_reason"],
         is_error=bool(env.get("is_error", False)),
-        input_tokens=int(usage.get("input_tokens", 0)),
-        output_tokens=int(usage.get("output_tokens", 0)),
-        cache_read_tokens=int(usage.get("cache_read_input_tokens", 0)),
-        cache_creation_tokens=int(usage.get("cache_creation_input_tokens", 0)),
-        cost_usd=float(env.get("total_cost_usd", 0.0)),
-        duration_ms=int(env.get("duration_ms", 0)),
+        input_tokens=int(usage.get("input_tokens") or 0),
+        output_tokens=int(usage.get("output_tokens") or 0),
+        cache_read_tokens=int(usage.get("cache_read_input_tokens") or 0),
+        cache_creation_tokens=int(usage.get("cache_creation_input_tokens") or 0),
+        cost_usd=float(env.get("total_cost_usd") or 0.0),
+        duration_ms=int(env.get("duration_ms") or 0),
         session_id=env["session_id"],
         uuid=env.get("uuid", ""),
         model=model,

@@ -21,7 +21,7 @@ class Role:
     name: str
     system_prompt: str          # the role card (spec-block prepended later)
     effort: Effort
-    k: int                      # samples per invocation (wave size)
+    k: int  # max samples per wave; the client's semaphore clamps actual concurrency to sustained-k
     active: bool                # False = deferred v0 stub (spec D11)
     model: str = _MODEL
 

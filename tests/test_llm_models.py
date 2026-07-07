@@ -60,3 +60,14 @@ def test_llm_result_is_frozen():
     )
     with pytest.raises(AttributeError):
         r.text = "x"  # type: ignore[misc]
+
+
+def test_has_artifact_requires_parsed_present():
+    base = dict(text="x", stop_reason="tool_use", is_error=False, input_tokens=1,
+                output_tokens=1, cache_read_tokens=0, cache_creation_tokens=0,
+                cost_usd=0.0, duration_ms=1, session_id="s", uuid="u",
+                model="claude-fable-5")
+    assert LLMResult(parsed={"a": 1}, **base).has_artifact is True
+    # tool_use but NO structured_output -> ok but not a usable artifact
+    assert LLMResult(parsed=None, **base).ok is True
+    assert LLMResult(parsed=None, **base).has_artifact is False
