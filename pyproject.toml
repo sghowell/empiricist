@@ -7,6 +7,10 @@ dependencies = [
     "blake3>=1.0",
     "psutil>=6.0",
     "pydantic>=2.0",
+    "stim>=1.16",
+    "networkx>=3.0",
+    "pynauty>=2.8",
+    "numpy>=2.0",
 ]
 
 [dependency-groups]
