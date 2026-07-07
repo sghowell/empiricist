@@ -70,12 +70,55 @@ def test_ghz3_chain_gives_path(eng, g):
 
 def test_intra_component_fusion_works(eng):
     """Fusing two qubits of the SAME component must not crash (needed for cycles)."""
-    # P_6, fuse the two endpoint qubits -> should yield a 4-qubit state (cycle-ish)
+    # P_6, fuse the two endpoint qubits: the Bell measurement splices the chain's
+    # ends together, folding the path into a cycle over the 4 interior qubits -> C_4.
+    # Pinning the orbit: the engine extracts exactly C_4, and C_4 is LC-equivalent
+    # to P_4 (n=4 has two connected LC orbits -- star/GHZ vs path -- and C_4's
+    # lc_orbit membership list contains 3-edge paths, verified empirically), so
+    # this pin is a real discriminator: the star/GHZ orbit would fail it.
     p6 = GraphState(n=6, edges=[(i, i + 1) for i in range(5)])
     st = eng.state_from_graph(p6)
     st = eng.fuse(st, 0, 5)
     out = eng.to_graphstate(st)
-    assert out.n == 4   # 6 - 2; exact orbit checked in the A/B fuzz + M5c
+    assert out.n == 4   # 6 - 2
+    c4 = GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3), (0, 3)])
+    assert lc_orbit_key(out) == lc_orbit_key(c4)
+
+
+def test_fuse_is_functional_input_state_reusable(eng):
+    """Branching consumers (the M5c BFS) fan out multiple fusions from ONE state:
+    fuse must not corrupt its input.
+
+    The center-center branch is the real discriminator: an in-place-mutating
+    fuse survives the leaf-leaf branches by accidental orbit collision (checked
+    against a deliberately-broken engine), but its fourth branch here yields a
+    single stray edge instead of K_{2,2}."""
+    two = GraphState(n=6, edges=[(0, 1), (0, 2), (3, 4), (3, 5)])
+    st0 = eng.state_from_graph(two)
+    out_a = eng.to_graphstate(eng.fuse(st0, 2, 4))
+    out_b = eng.to_graphstate(eng.fuse(st0, 2, 5))   # branch from the SAME st0
+    out_a2 = eng.to_graphstate(eng.fuse(st0, 2, 4))  # repeat the first branch
+    assert lc_orbit_key(out_a) == lc_orbit_key(out_a2)  # deterministic, uncorrupted
+    p4 = GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3)])
+    assert lc_orbit_key(out_a) == lc_orbit_key(p4)      # still the golden result
+    assert lc_orbit_key(out_b) == lc_orbit_key(p4)      # the sibling branch too
+    # center-center branch: N(0)={1,2}, N(3)={4,5} disjoint -> complete bipartite
+    # {1,2}x{4,5} = K_{2,2} = C_4 (LC-equivalent to P_4, same n=4 path orbit)
+    out_cc = eng.to_graphstate(eng.fuse(st0, 0, 3))
+    c4 = GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3), (0, 3)])
+    assert lc_orbit_key(out_cc) == lc_orbit_key(c4)
+
+
+def test_extraction_gf2_fallback_path(eng, monkeypatch):
+    """Force the fallback splitter and confirm a golden still holds."""
+    import empiricist.domain.p5.fusion_stim as fs
+
+    monkeypatch.setattr(fs, "_fast_split", lambda *a, **k: None)
+    two = GraphState(n=6, edges=[(0, 1), (0, 2), (3, 4), (3, 5)])
+    st = eng.fuse(eng.state_from_graph(two), 2, 4)
+    out = eng.to_graphstate(st)
+    p4 = GraphState(n=4, edges=[(0, 1), (1, 2), (2, 3)])
+    assert lc_orbit_key(out) == lc_orbit_key(p4)
 
 
 def test_fuse_rejects_bad_qubits(eng):

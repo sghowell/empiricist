@@ -100,7 +100,11 @@ class StimEngine:
         """Destructive Bell measurement {X_aZ_b, Z_aX_b} on ACTIVE qubits a,b
         (see module docstring for why this pair, not the naive {X_aX_b,
         Z_aZ_b}, is the one that reproduces the golden facts). Postselects +1
-        (falls back to -1 if forced); removes a,b from active."""
+        (falls back to -1 if forced); removes a,b from active.
+
+        Functional: the input `state` is NOT mutated -- the postselections run
+        on a copy of its simulator, so branching consumers (the M5c BFS fans
+        out multiple fusions from one state) can safely reuse `state`."""
         if a == b:
             raise ValueError(f"cannot fuse a qubit with itself: got a=b={a}")
         active_set = set(state.active)
@@ -109,11 +113,12 @@ class StimEngine:
                 f"fuse requires both qubits active; active={state.active}, "
                 f"got a={a}, b={b}"
             )
-        n_total = state.sim.num_qubits
-        _postselect_pair(state.sim, n_total, a, "X", b, "Z")
-        _postselect_pair(state.sim, n_total, a, "Z", b, "X")
+        sim = state.sim.copy()  # keep the input state valid (branch-safe)
+        n_total = sim.num_qubits
+        _postselect_pair(sim, n_total, a, "X", b, "Z")
+        _postselect_pair(sim, n_total, a, "Z", b, "X")
         new_active = tuple(q for q in state.active if q != a and q != b)
-        return StimState(sim=state.sim, active=new_active)
+        return StimState(sim=sim, active=new_active)
 
     def to_graphstate(self, state: StimState) -> GraphState:
         """LC-equivalent graph extraction over the active qubits (relabelled 0..k-1)."""
@@ -124,9 +129,10 @@ class StimEngine:
 
         n_total = state.sim.num_qubits
         stabs = state.sim.canonical_stabilizers()
-        assert len(stabs) == n_total, (
-            f"expected {n_total} canonical stabilizer generators, got {len(stabs)}"
-        )
+        if len(stabs) != n_total:  # explicit (not `assert`): must survive python -O
+            raise AssertionError(
+                f"expected {n_total} canonical stabilizer generators, got {len(stabs)}"
+            )
 
         split = _fast_split(stabs, n_total, active)
         Xk, Zk = split if split is not None else _force_split_gf2(stabs, n_total, active)
