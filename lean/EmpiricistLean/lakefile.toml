@@ -1,0 +1,22 @@
+name = "EmpiricistLean"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = ["EmpiricistLean"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+# This is a downstream MIT-licensed project, not a mathlib contribution: the
+# mathlibStandardSet header linter insists on mathlib's own Apache-2.0 copyright
+# wording, which doesn't apply here.
+weak.linter.style.header = false
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.31.0"
+
+[[lean_lib]]
+name = "EmpiricistLean"
