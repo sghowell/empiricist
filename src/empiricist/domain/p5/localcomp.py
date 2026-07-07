@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from collections import deque
 
+import numpy as np
+
 from empiricist.domain.p5.graphstate import GraphState
 
 DEFAULT_ORBIT_CAP = 200_000
@@ -55,3 +57,39 @@ def lc_orbit(gs: GraphState, *, cap: int = DEFAULT_ORBIT_CAP) -> list[GraphState
                 seen.add(h)
                 queue.append(h)
     return sorted(seen, key=lambda g: (len(g.edges), sorted(g.edges)))
+
+
+def _gf2_rank(M: np.ndarray) -> int:
+    """Rank of M over GF(2) via Gaussian elimination (row echelon, mod 2)."""
+    M = M.copy() % 2
+    rows, cols = M.shape
+    r = 0
+    for c in range(cols):
+        piv = next((i for i in range(r, rows) if M[i, c]), None)
+        if piv is None:
+            continue
+        M[[r, piv]] = M[[piv, r]]
+        for i in range(rows):
+            if i != r and M[i, c]:
+                M[i] = (M[i] + M[r]) % 2
+        r += 1
+    return r
+
+
+def cut_rank_profile(gs: GraphState) -> tuple[int, ...]:
+    """LC-invariant: sorted multiset of GF(2) cut-ranks over all bipartitions.
+
+    For a bipartition (X, V\\X), the cut-rank is the GF(2) rank of the off-diagonal
+    block A[X, V\\X]. The sorted multiset over all non-trivial bipartitions is
+    invariant under local complementation (rank-width theory): this is a one-sided
+    pre-filter -- a profile mismatch certifies NON-equivalence, but equality does
+    not certify equivalence.
+    """
+    A = gs.adjacency().astype(np.int64)
+    n = gs.n
+    ranks = []
+    for mask in range(1, (1 << n) - 1):  # non-trivial bipartitions
+        X = [i for i in range(n) if mask & (1 << i)]
+        Y = [i for i in range(n) if not (mask & (1 << i))]
+        ranks.append(_gf2_rank(A[np.ix_(X, Y)]))
+    return tuple(sorted(ranks))
