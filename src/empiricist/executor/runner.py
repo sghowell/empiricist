@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 import shlex
 import sqlite3
 import time
@@ -47,6 +48,10 @@ class ExecSpec:
     run_id: str | None = None
     cwd: Path | None = None            # default: fresh mkdtemp per run
     env_extra: dict[str, str] = field(default_factory=dict)
+    env_passthrough: bool = False   # True: inherit the full parent env (TRUSTED
+                                    # subprocesses only, e.g. the claude CLI which
+                                    # needs real HOME/PATH/keychain for auth)
+    capture_cap: int = _CAPTURE_CAP  # per-stream stdout/stderr byte cap
     # Safe-by-default ceilings (opt-out): bound a runaway leak/write without
     # breaking legit harness code. M4/M5/M6 tune per-move.
     limits: ResourceLimits = field(
@@ -89,9 +94,9 @@ def scrub_env(workdir: Path, extra: dict[str, str]) -> dict[str, str]:
     return env
 
 
-def _decode_capped(raw: bytes) -> tuple[str, bool]:
-    truncated = len(raw) > _CAPTURE_CAP
-    return raw[:_CAPTURE_CAP].decode("utf-8", errors="replace"), truncated
+def _decode_capped(raw: bytes, cap: int) -> tuple[str, bool]:
+    truncated = len(raw) > cap
+    return raw[:cap].decode("utf-8", errors="replace"), truncated
 
 
 async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult:
@@ -107,7 +112,10 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
     # model-authored code lands (D11) — both v0-acceptable: v0 executed code is
     # harness-authored.
     argv = sandbox_wrap(spec.argv, workdir=workdir, mode=spec.sandbox)
-    env = scrub_env(workdir, spec.env_extra)
+    if spec.env_passthrough:
+        env = {**os.environ, **spec.env_extra}  # trusted: full inherit + overrides
+    else:
+        env = scrub_env(workdir, spec.env_extra)
 
     if ledger is not None:
         try:
@@ -193,8 +201,8 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
 
     wall_s = time.monotonic() - t0
     exit_code = proc.returncode if proc.returncode is not None else UNKNOWN_EXIT_CODE
-    stdout, trunc_out = _decode_capped(stdout_raw)
-    stderr, trunc_err = _decode_capped(stderr_raw)
+    stdout, trunc_out = _decode_capped(stdout_raw, spec.capture_cap)
+    stderr, trunc_err = _decode_capped(stderr_raw, spec.capture_cap)
     peak = _peak()
 
     if ledger is not None:

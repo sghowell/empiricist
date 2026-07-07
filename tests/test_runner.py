@@ -210,6 +210,28 @@ def test_sandbox_exec_path_propagates_limits_env_and_workdir():
     assert cwd_is_home == "True"   # workdir applied
 
 
+def test_env_passthrough_inherits_parent_env(monkeypatch):
+    monkeypatch.setenv("EMPIRICIST_PROBE_VAR", "leaked-through")
+    res = run(py_spec(
+        "import os; print(os.environ.get('EMPIRICIST_PROBE_VAR', 'MISSING'))",
+        env_passthrough=True,
+    ))
+    assert res.stdout.strip() == "leaked-through"
+
+
+def test_default_still_scrubs_parent_env(monkeypatch):
+    monkeypatch.setenv("EMPIRICIST_PROBE_VAR", "should-not-leak")
+    res = run(py_spec("import os; print(os.environ.get('EMPIRICIST_PROBE_VAR', 'MISSING'))"))
+    assert res.stdout.strip() == "MISSING"  # scrub is the default
+
+
+def test_capture_cap_is_configurable():
+    small = run(py_spec("print('y' * 5000)", capture_cap=1000))
+    assert small.output_truncated is True and len(small.stdout) <= 1000 + 50
+    big = run(py_spec("print('y' * 5000)", capture_cap=1_000_000))
+    assert big.output_truncated is False and "yyyy" in big.stdout
+
+
 @pytest.mark.skipif(sys.platform != "darwin", reason="sandbox-exec is macOS-only")
 def test_sandboxed_execution_end_to_end():
     res = run(
