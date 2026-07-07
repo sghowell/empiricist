@@ -260,9 +260,12 @@ def test_attack_open_row_lower_bound_violation_synthetic_row(small_dataset_rows)
     assert "lower bound 10" in report.counterexample
 
 
-def test_attack_open_row_prediction_meeting_bound_survives(small_dataset_rows):
+def test_attack_open_row_prediction_meeting_bound_survives_when_grounded(small_dataset_rows):
     """The mirror case: a prediction AT/ABOVE the synthetic bound survives
-    that check (no claim of exactness is made for an open row)."""
+    that check (no claim of exactness is made for an open row). The
+    conjecture must ALSO carry exact-row grounding (n=3..6, all exact star
+    rows) -- an open-row match alone does not ground promotion (see the
+    ungrounded tests below)."""
     star7_edges = [[0, i] for i in range(1, 7)]
     synthetic_row = {
         "n": 7,
@@ -277,22 +280,118 @@ def test_attack_open_row_prediction_meeting_bound_survives(small_dataset_rows):
     rows = [*small_dataset_rows, synthetic_row]
 
     conj = ConjectureOut(
-        family="star", closed_form="N-3", predicted_values={"7": 10}, confidence=0.5,
+        family="star", closed_form="N-3 (except the open n=7 row)",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3, "7": 10}, confidence=0.5,
     )
     report = attack(conj, rows)
     assert report.survived is True
     assert report.counterexample is None
 
 
-def test_attack_n_outside_dataset_range_only_checks_invariants(small_dataset_rows):
-    """No row exists for n=100 -- the table check (3) is skipped entirely,
-    leaving only the 2 invariant checks (mod3 + floor)."""
+# -- attack: gate 0 + grounding (M6 T5 review I1/I2) --------------------------
+
+
+def test_attack_malformed_word_key_is_refuted_not_a_crash(small_dataset_rows):
+    """Reproducer for the I1 crash: a model-supplied non-integer key must
+    refute, never let int() raise out of attack()."""
+    conj = ConjectureOut(
+        family="path", closed_form="N-3", predicted_values={"eight": 8}, confidence=0.5,
+    )
+    report = attack(conj, small_dataset_rows)
+    assert report.survived is False
+    assert report.checks == 0
+    assert report.counterexample == "malformed prediction key 'eight'"
+
+
+def test_attack_malformed_empty_key_is_refuted_not_a_crash(small_dataset_rows):
+    """Second I1 reproducer: the empty-string key."""
+    conj = ConjectureOut(
+        family="path", closed_form="N-3", predicted_values={"": 5}, confidence=0.5,
+    )
+    report = attack(conj, small_dataset_rows)
+    assert report.survived is False
+    assert report.checks == 0
+    assert report.counterexample == "malformed prediction key ''"
+
+
+def test_attack_empty_predictions_refuted_as_vacuous(small_dataset_rows):
+    """A conjecture that predicts nothing can never be falsified -- and so
+    can never be promoted: checks=0 must NOT read as survival."""
+    conj = ConjectureOut(
+        family="path", closed_form="N-3", predicted_values={}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
+    assert report.survived is False
+    assert report.checks == 0
+    assert report.counterexample == "no predictions offered"
+
+
+def test_attack_unknown_family_refuted(small_dataset_rows):
+    """A family attack() has no generator for admits zero table lookups --
+    invariants-only survival would be ungrounded by construction, so it is
+    refuted up front."""
+    conj = ConjectureOut(
+        family="wheel", closed_form="N", predicted_values={"6": 6}, confidence=0.5,
+    )
+    report = attack(conj, small_dataset_rows)
+    assert report.survived is False
+    assert report.checks == 0
+    assert report.counterexample == "unknown family 'wheel'"
+
+
+def test_attack_entirely_out_of_range_is_ungrounded_not_promoted(small_dataset_rows):
+    """No row exists for n=100 -- the table check (3) is skipped, so only
+    the 2 invariant checks run and pass. Under the corrected semantics that
+    is NOT survival: nothing overlapped the exact table, so the conjecture
+    is unpromotable (ungrounded), reported as survived=False with the
+    documented non-contradiction counterexample."""
     conj = ConjectureOut(
         family="path", closed_form="N-3", predicted_values={"100": 97}, confidence=0.5,
     )
     report = attack(conj, small_dataset_rows)
+    assert report.survived is False
+    assert report.checks == 2  # mod3 + floor both ran (and passed)
+    assert report.counterexample == "no prediction overlaps the exact table (ungrounded)"
+
+
+def test_attack_open_row_overlap_alone_is_ungrounded(small_dataset_rows):
+    """Grounding means an EXACT-row comparison passed: overlapping only an
+    open row (bound met, nothing contradicted) proves consistency with
+    nothing that is actually known, so it is unpromotable too."""
+    star7_edges = [[0, i] for i in range(1, 7)]
+    synthetic_row = {
+        "n": 7,
+        "orbit_id": "synthetic-star7",
+        "representative_edges": star7_edges,
+        "F": None,
+        "lower_bound": 10,
+        "exact": False,
+        "tier": "open",
+        "witness": None,
+    }
+    rows = [*small_dataset_rows, synthetic_row]
+
+    conj = ConjectureOut(
+        family="star", closed_form="N+3", predicted_values={"7": 10}, confidence=0.5,
+    )
+    report = attack(conj, rows)
+    assert report.survived is False
+    assert report.checks == 3  # mod3 + floor + open-row bound, all ran (and passed)
+    assert report.counterexample == "no prediction overlaps the exact table (ungrounded)"
+
+
+def test_attack_mixed_range_with_exact_grounding_survives(small_dataset_rows):
+    """SOME in-range exact matches + some out-of-range predictions: the
+    exact rows ground the conjecture, the out-of-range n=100 prediction is
+    invariant-checked only, and the whole thing survives."""
+    conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3, "100": 97}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
     assert report.survived is True
-    assert report.checks == 2
+    assert report.counterexample is None
+    assert report.checks == 4 * 3 + 2  # 3 checks per in-range n, 2 for n=100
 
 
 # -- submit -----------------------------------------------------------------

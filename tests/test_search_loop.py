@@ -137,6 +137,9 @@ def test_build_prompt_contains_target_details_nonce_and_mod3_hint(env):
     for a, b in target.representative_edges:
         assert f"({a},{b})" in prompt
     assert "3*i" in prompt  # workspace layout hint (resource i = qubits 3i,3i+1,3i+2)
+    # lc hint for hard targets (from n=6 some minimal schedules REQUIRE an lc)
+    assert '"op": "lc"' in prompt
+    assert "local" in prompt and "does not count toward F" in prompt
 
 
 # -- run_generation: the full wave ------------------------------------------
@@ -206,6 +209,10 @@ def test_run_generation_full_wave_counts_population_events_and_upgrade(env):
     assert ev.details["f"] == 1
     assert ev.details["upgrade"] is True
     assert ev.details["target"]["lc_orbit_key"] == P4_KEY
+    # both certified engines' identities ride along (name@version:hash12)
+    assert ev.details["stab_fusion_id"].startswith("stab_fusion@1.0:")
+    assert ev.details["enum_fusion_id"].startswith("enum_fusion@1.0:")
+    assert len(ev.details["stab_fusion_id"].rsplit(":", 1)[1]) == 12
 
 
 def test_duplicate_exact_upgrade_resubmission_does_not_crash(env):
@@ -288,8 +295,65 @@ def test_f3_alarm_on_verifier_disagreement(env, monkeypatch):
     with pytest.raises(F3Alarm) as excinfo:
         run(loop.run_generation(1, [p4_target()], k=1))
     assert excinfo.value.args[0]["disagreement"] is True
-    assert pop.count() == 0  # nothing durable was written before the alarm
-    assert pop.events() == []  # no generation event either -- the wave never finished
+    assert pop.count() == 0  # no candidate entered the population before the alarm
+    assert pop.events(trigger="generation") == []  # the wave never finished...
+    alarms = pop.events(trigger="f3_alarm")  # ...but the alarm itself is durable
+    assert len(alarms) == 1
+    assert alarms[0].gen == 1
+    assert alarms[0].detail["candidate"] == 0
+    assert alarms[0].detail["disagreement"] is True
+    assert alarms[0].detail["stab_fusion_key"] == "a"
+    assert alarms[0].detail["enum_fusion_key"] == "b"
+    assert alarms[0].detail["counts_so_far"]["inserted"] == 0
+
+
+def test_f3_alarm_partial_wave_preserves_earlier_verified_writes(env, monkeypatch):
+    """Partial-wave semantics: a wave of [genuine PASS, disagreement] aborts
+    on the SECOND candidate -- but the first candidate's writes (population
+    row, CAS artifact, upgrade evidence) persist, because that candidate
+    individually earned a real two-engine agreement; the later machinery
+    fault says nothing about it. The f3_alarm event marks the abort."""
+    lg, st, reg, pop = env
+    scripted = [make_result(dict(P4_DICT)), make_result(dict(P4_DICT))]
+    client = FakeLLMClient(scripted)
+    loop = make_loop(client, env)
+
+    import empiricist.search.loop as loop_mod
+
+    real_verify_agreed = loop_mod.verify_agreed
+    calls = {"n": 0}
+
+    def flaky_verify_agreed(registry, construction):
+        calls["n"] += 1
+        if calls["n"] >= 2:  # candidate 1 (0-indexed): the machinery fault
+            return VerifierResult(
+                verdict=Verdict.ERROR,
+                details={"disagreement": True, "stab_fusion_key": "a",
+                         "enum_fusion_key": "b"},
+            )
+        return real_verify_agreed(registry, construction)
+
+    monkeypatch.setattr(loop_mod, "verify_agreed", flaky_verify_agreed)
+
+    with pytest.raises(F3Alarm):
+        run(loop.run_generation(1, [p4_target()], k=2))
+
+    # candidate 0's genuinely-agreed writes persist
+    row = pop.get(P4_KEY)
+    assert row is not None
+    assert row.objective_vec == [1]
+    assert st.get(row.cert_hash)  # CAS artifact retrievable
+    assert len(lg.evidence_for(row.cert_hash)) == 1  # the upgrade evidence row
+
+    # the alarm is durable and names the aborting candidate + counts so far
+    alarms = pop.events(trigger="f3_alarm")
+    assert len(alarms) == 1
+    assert alarms[0].detail["candidate"] == 1
+    assert alarms[0].detail["disagreement"] is True
+    assert alarms[0].detail["counts_so_far"]["inserted"] == 1
+
+    # but the wave never finished: no generation event
+    assert pop.events(trigger="generation") == []
 
 
 # -- round-robin + default k --------------------------------------------------

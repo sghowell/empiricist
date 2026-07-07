@@ -8,6 +8,15 @@ malformed or wrong candidate never crashes the wave -- EXCEPT engine
 disagreement (`verify_agreed`'s F3 alarm, spec §7): that is a machinery
 fault, not evidence about the candidate, and immediately aborts the whole
 generation via `F3Alarm` so a human/orchestrator can stop the world.
+Before raising, the loop writes a durable `search_events` row (trigger
+`"f3_alarm"`, detail = candidate index + both engines' keys/verdicts + the
+counts accumulated so far) so the aborted generation stays attributable
+after the process stops. Partial-wave semantics: writes made by EARLIER
+candidates in the same wave (population rows, CAS artifacts, evidence
+rows) persist -- each of those individually earned a genuine two-engine
+agreement, so they are sound regardless of the later machinery fault. Only
+the wave's final "generation" event is never written (the wave never
+finished); the "f3_alarm" event marks why.
 
 Trust discipline: no model output is ever used directly. A `ConstructionOut`
 becomes a domain `Construction` only via `to_construction`'s SCREEN gate
@@ -135,7 +144,10 @@ class SearchLoop:
             "(N - 3) mod 3 (the mod-3 ladder, N = target_n); the winning shape is "
             "usually all merge-fusions first (joining every resource into one "
             "component) followed by AT MOST ONE intra-component fusion at the end "
-            "to reach F = N.\n"
+            "to reach F = N. If pure merge schedules fail, apply local "
+            'complementations ({"op": "lc", "args": [v]}) before fusions that '
+            "consume v or its neighbors -- from n=6 some minimal schedules REQUIRE "
+            "an lc step (free operation, does not count toward F).\n"
             f"nonce: {nonce}"
         )
 
@@ -171,7 +183,7 @@ class SearchLoop:
         exact_upgrades: list[tuple[str, int]] = []
         screen_reasons: list[str] = []
 
-        for result in results:
+        for idx, result in enumerate(results):
             if not result.has_artifact:
                 no_artifact += 1
                 continue
@@ -194,6 +206,21 @@ class SearchLoop:
 
             if verdict_result.verdict is Verdict.ERROR:
                 if verdict_result.details.get("disagreement"):
+                    # Durable record BEFORE stopping the world (M6 T5 review
+                    # M3): the alarm must survive the process it halts.
+                    self._population.log_event(gen, "f3_alarm", {
+                        "candidate": idx,
+                        **verdict_result.details,
+                        "counts_so_far": {
+                            "sampled": len(prompts),
+                            "no_artifact": no_artifact,
+                            "screened_out": screened_out,
+                            "verify_fail": verify_fail,
+                            "verify_error": verify_error,
+                            "inserted": inserted,
+                            "duplicates": duplicates,
+                        },
+                    })
                     raise F3Alarm(verdict_result.details)
                 verify_error += 1
                 continue
@@ -236,6 +263,11 @@ class SearchLoop:
                         "f": f,
                         "target": asdict(target),
                         "upgrade": True,
+                        # Which certified engine pair agreed (M6 T5 review
+                        # M4): name@version:binary_hash[:12] per engine,
+                        # straight from verify_agreed's details.
+                        "stab_fusion_id": verdict_result.details["stab_fusion_id"],
+                        "enum_fusion_id": verdict_result.details["enum_fusion_id"],
                     },
                 ))
 

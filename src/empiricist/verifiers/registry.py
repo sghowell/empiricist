@@ -99,15 +99,22 @@ def verify_agreed(registry: Registry, construction: Construction) -> VerifierRes
       **ERROR**, propagating each failing sub-verifier's `details["error"]`
       message prefixed by which verifier produced it.
 
-    Details always record both verifiers' keys and verdicts.
+    Details always record both verifiers' keys and verdicts, plus each
+    engine's full identity (`stab_fusion_id`/`enum_fusion_id` =
+    "name@version:binary_hash[:12]") so downstream evidence rows can name
+    exactly WHICH certified engine pair agreed (additive; M6 T5 review M4).
     """
-    stab_res = registry.verify(StabFusionVerifier(), construction)
-    enum_res = registry.verify(EnumFusionVerifier(), construction)
+    stab = StabFusionVerifier()
+    enum_v = EnumFusionVerifier()
+    stab_res = registry.verify(stab, construction)
+    enum_res = registry.verify(enum_v, construction)
     details = {
         "stab_fusion_key": stab_res.details.get("lc_orbit_key"),
         "enum_fusion_key": enum_res.details.get("lc_orbit_key"),
         "stab_fusion_verdict": stab_res.verdict.value,
         "enum_fusion_verdict": enum_res.verdict.value,
+        "stab_fusion_id": f"{stab.name}@{stab.version}:{stab.binary_hash[:12]}",
+        "enum_fusion_id": f"{enum_v.name}@{enum_v.version}:{enum_v.binary_hash[:12]}",
     }
 
     errors = [

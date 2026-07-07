@@ -33,8 +33,13 @@ per `n` across families in one `family_table` call) rather than a second
 Trust discipline (unchanged from the plan): `attack` reads ONLY the dataset's
 own exact rows, proven lower bounds, and the mod-3/floor invariants as ground
 truth -- it never trusts `ConjectureOut.predicted_values` or any other model
-output. `submit` writes to the ledger only via `ingest_artifact` +
-`record_evidence` (the single-writer discipline), landing a survivor at
+output (malformed keys, an empty prediction set, and unknown families are
+refuted defensively rather than allowed to raise -- see `attack`'s gate 0).
+Promotion additionally requires GROUNDING: at least one prediction must have
+matched an exact table row (see `attack`'s docstring -- an unfalsifiable/
+unanchored claim is not 'consistent with a VERIFIED_N dataset' and never
+earns CONJECTURED). `submit` writes to the ledger only via `ingest_artifact`
++ `record_evidence` (the single-writer discipline), landing a survivor at
 `CONJECTURED` and a falsified claim at `REFUTED` with the exact
 counterexample recorded as evidence.
 """
@@ -245,8 +250,19 @@ def attack(conj: ConjectureOut, dataset_rows: list[dict]) -> AttackReport:
     """The deterministic falsifier (never trusts `conj`; ground truth is
     ONLY the dataset's own exact rows/bounds and the two hard invariants).
 
-    For each predicted `(n, F_pred)` pair, in ascending n order, run checks
-    in this fixed sequence and stop at the FIRST failure:
+    Gate 0 -- shape sanity (all model-supplied, all refuted rather than
+    raised; no exception ever escapes the falsifier):
+
+    - empty `predicted_values` -> refuted, "no predictions offered" (a
+      conjecture that predicts nothing can never be falsified, so it can
+      never be promoted either).
+    - any key that is not an integer literal (`int()` fails, e.g.
+      `"eight"` or `""`) -> refuted, "malformed prediction key ...".
+    - a family not in `FAMILIES` -> refuted, "unknown family ..." (zero
+      table lookups are possible for it, so nothing could ever ground it).
+
+    Then, for each predicted `(n, F_pred)` pair, in ascending n order, run
+    checks in this fixed sequence and stop at the FIRST failure:
 
     1. mod-3 ladder: `F_pred === n-3 (mod 3)`.
     2. floor: `F_pred >= n-3`.
@@ -255,16 +271,50 @@ def attack(conj: ConjectureOut, dataset_rows: list[dict]) -> AttackReport:
        "lower_bound"]` if the row is open (a prediction below a PROVEN bound
        is refuted just as surely as a wrong exact value).
 
-    `checks` counts every comparison actually performed (the falsification
-    effort) -- 1 or 2 for a value refuted early, up to 3 per n for a value
-    that survives all the way through the table check (or 2 per n if that
-    n has no matching row in the dataset, e.g. n outside the dataset's
-    range). Survivors get `counterexample=None`.
-    """
-    checks = 0
-    for n_str, f_pred in sorted(conj.predicted_values.items(), key=lambda kv: int(kv[0])):
-        n = int(n_str)
+    **Grounding requirement (M6 T5 review I2):** surviving every check is
+    NOT enough -- promotion to CONJECTURED requires at least one GROUNDED
+    check: an exact-row comparison that ran and passed. A conjecture whose
+    every prediction falls outside the dataset's exact rows (out-of-range
+    n, or overlap only with open rows) contradicts nothing but is also
+    consistent-with nothing -- and spec §9's bar for CONJECTURED is
+    'consistent with a VERIFIED_N dataset', which an ungrounded claim
+    cannot meet. Such a conjecture reports `survived=False` with
+    counterexample "no prediction overlaps the exact table (ungrounded)"
+    (kept binary per the AttackReport API; the string documents that this
+    is a non-promotion, not a contradiction).
 
+    `checks` counts every comparison actually performed (the falsification
+    effort) -- 0 for a gate-0 refutation, 1 or 2 for a value refuted early,
+    up to 3 per n for a value that survives all the way through the table
+    check (or 2 per n if that n has no matching row in the dataset, e.g. n
+    outside the dataset's range). Survivors get `counterexample=None`.
+    """
+    if not conj.predicted_values:
+        return AttackReport(
+            survived=False, checks=0, counterexample="no predictions offered"
+        )
+
+    predictions: list[tuple[int, int]] = []
+    for n_str, f_pred in conj.predicted_values.items():
+        try:
+            n_parsed = int(n_str)
+        except ValueError:
+            return AttackReport(
+                survived=False,
+                checks=0,
+                counterexample=f"malformed prediction key {n_str!r}",
+            )
+        predictions.append((n_parsed, f_pred))
+    predictions.sort()
+
+    if conj.family not in FAMILIES:
+        return AttackReport(
+            survived=False, checks=0, counterexample=f"unknown family {conj.family!r}"
+        )
+
+    checks = 0
+    grounded = 0  # exact-row comparisons that ran AND passed
+    for n, f_pred in predictions:
         checks += 1
         if f_pred % 3 != (n - 3) % 3:
             return AttackReport(
@@ -298,6 +348,7 @@ def attack(conj: ConjectureOut, dataset_rows: list[dict]) -> AttackReport:
                         f"n={n}: predicted F={f_pred}, actual (exact) F={row['F']}"
                     ),
                 )
+            grounded += 1
         else:
             if f_pred < row["lower_bound"]:
                 return AttackReport(
@@ -309,6 +360,12 @@ def attack(conj: ConjectureOut, dataset_rows: list[dict]) -> AttackReport:
                     ),
                 )
 
+    if grounded == 0:
+        return AttackReport(
+            survived=False,
+            checks=checks,
+            counterexample="no prediction overlaps the exact table (ungrounded)",
+        )
     return AttackReport(survived=True, checks=checks, counterexample=None)
 
 
