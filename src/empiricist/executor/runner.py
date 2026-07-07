@@ -31,6 +31,9 @@ _CAPTURE_CAP = 64 * 1024  # bytes kept per stream; full logs go to CAS later
 # marks a run whose subprocess never actually started (spawn raised).
 SPAWN_FAILED_EXIT_CODE = -998
 
+# Returned when a subprocess's returncode is somehow unavailable after reaping.
+UNKNOWN_EXIT_CODE = -997
+
 
 class DuplicateRunError(Exception):
     """A run_id already exists in the ledger (caller-supplied collision)."""
@@ -51,6 +54,7 @@ class ExecSpec:
     )
     rss_mb: float | None = 4096.0
     timeout_s: float = 600.0
+    drain_grace_s: float = 10.0  # max wait for post-kill pipe EOF before abandoning
     sandbox: SandboxMode = SandboxMode.SANDBOX_EXEC
     seed: int | None = None
     config_hash: str | None = None
@@ -68,6 +72,7 @@ class ExecResult:
     rss_killed: bool
     output_truncated: bool
     workdir: Path
+    drain_abandoned: bool = False
 
 
 def scrub_env(workdir: Path, extra: dict[str, str]) -> dict[str, str]:
@@ -135,6 +140,7 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
         comm_task = asyncio.create_task(proc.communicate())
 
         timed_out = False
+        drain_abandoned = False
         try:
             # shield keeps comm_task alive across a wait_for timeout, so the bytes
             # it already read are NOT discarded (a plain double-communicate loses them).
@@ -150,7 +156,21 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
             watchdog.stop()
             await watch_task
             kill_process_group(proc.pid)
-            stdout_raw, stderr_raw = await comm_task
+            try:
+                # Bounded: the normal case (group killed -> EOF) completes fast and
+                # preserves the pre-timeout bytes (FIX A). But a descendant that
+                # setsid()/daemonized while holding our stdout escapes the group
+                # kill, so EOF never comes -> we must NOT wait forever. The
+                # wall-clock bound has to hold even against a pipe-holding escapee.
+                stdout_raw, stderr_raw = await asyncio.wait_for(
+                    comm_task, timeout=spec.drain_grace_s
+                )
+            except TimeoutError:
+                drain_abandoned = True
+                comm_task.cancel()
+                with contextlib.suppress(BaseException):
+                    await comm_task
+                stdout_raw, stderr_raw = b"", b""
     except BaseException:
         # Spawn failure or any mid-flight error: contain the child, close the run
         # row with a real failure code (never leave it open -> ORPHANED), re-raise.
@@ -172,7 +192,7 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
         raise
 
     wall_s = time.monotonic() - t0
-    exit_code = proc.returncode if proc.returncode is not None else -1
+    exit_code = proc.returncode if proc.returncode is not None else UNKNOWN_EXIT_CODE
     stdout, trunc_out = _decode_capped(stdout_raw)
     stderr, trunc_err = _decode_capped(stderr_raw)
     peak = _peak()
@@ -187,5 +207,5 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
         run_id=run_id, exit_code=exit_code, stdout=stdout, stderr=stderr,
         wall_s=wall_s, peak_rss_mb=peak, timed_out=timed_out,
         rss_killed=watchdog.killed, output_truncated=trunc_out or trunc_err,
-        workdir=workdir,
+        workdir=workdir, drain_abandoned=drain_abandoned,
     )

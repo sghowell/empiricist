@@ -157,6 +157,59 @@ def test_duplicate_run_id_raises_typed(tmp_path):
     lg.close()
 
 
+def test_timeout_hard_bounds_even_if_child_escapes_group():
+    # A child double-forks a setsid() grandchild that inherits stdout and sleeps
+    # holding the pipe open. The group kill can't reach it, so the drain would
+    # hang forever without the bound. drain_grace_s=1.0 forces abandonment.
+    import time
+    code = (
+        "import os, sys, time\n"
+        "if os.fork() == 0:\n"
+        "    os.setsid()\n"           # grandchild escapes the process group
+        "    time.sleep(120)\n"       # ...holding the inherited stdout fd
+        "else:\n"
+        "    print('PARENT', flush=True)\n"
+        "    time.sleep(120)\n"
+    )
+    t0 = time.monotonic()
+    res = run(py_spec(code, timeout_s=1.0, drain_grace_s=1.0))
+    elapsed = time.monotonic() - t0
+    assert res.timed_out is True
+    assert res.drain_abandoned is True
+    assert elapsed < 15.0  # bounded: ~timeout_s + drain_grace_s, NOT forever
+    # best-effort: kill the escaped grandchild so it doesn't linger for the suite
+    import subprocess
+    subprocess.run(["pkill", "-f", "os.setsid"], capture_output=True)
+
+
+def test_normal_timeout_still_preserves_output_and_does_not_abandon():
+    res = run(py_spec(
+        "import time\nprint('KEPT', flush=True)\ntime.sleep(60)\n",
+        timeout_s=1.0, drain_grace_s=10.0,
+    ))
+    assert res.timed_out is True and res.drain_abandoned is False
+    assert "KEPT" in res.stdout   # FIX A intact for the common (group-killed) case
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="sandbox-exec is macOS-only")
+def test_sandbox_exec_path_propagates_limits_env_and_workdir():
+    from empiricist.executor.limits import ResourceLimits
+    res = run(ExecSpec(
+        argv=[sys.executable, "-I", "-S", "-c",
+              "import os, resource\n"
+              "print(resource.getrlimit(resource.RLIMIT_NOFILE)[0])\n"
+              "print('ANTHROPIC_API_KEY' in os.environ)\n"
+              "print(os.getcwd() == os.environ['HOME'])\n"],
+        move="TEST", sandbox=SandboxMode.SANDBOX_EXEC,
+        limits=ResourceLimits(nofile=48), timeout_s=30.0,
+    ))
+    assert res.exit_code == 0, res.stderr
+    nofile, leaked, cwd_is_home = res.stdout.split()
+    assert nofile == "48"          # rlimit propagated THROUGH sandbox-exec
+    assert leaked == "False"       # env scrubbed
+    assert cwd_is_home == "True"   # workdir applied
+
+
 @pytest.mark.skipif(sys.platform != "darwin", reason="sandbox-exec is macOS-only")
 def test_sandboxed_execution_end_to_end():
     res = run(
