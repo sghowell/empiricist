@@ -2,9 +2,16 @@
 """A fake `claude` binary for deterministic client tests — no network, no cost.
 
 Emits a canned result envelope on stdout. Behavior is controlled by env vars:
-  STUB_MODE = success | schema | refusal | crash   (default: success)
+  STUB_MODE = success | schema | construction | refusal | crash   (default: success)
 It also echoes its argv to STUB_ARGV_FILE (if set) so tests can assert how the
 client invoked it. This exercises the full execute() -> parse path.
+
+STUB_MODE=construction emits a canned VALID ConstructionOut (M6 T5 end-to-end
+integration test): the same P4 fixture used in tests/test_search_loop.py --
+resources=2 GHZ3 stars (qubits 0,1,2 and 3,4,5), fuse leaf 2 with leaf 4,
+claiming the resulting 4-path {(0,1),(1,2),(2,3)}. Kept as its own mode (not
+folded into STUB_MODE=schema, whose canned payload is a ConjectureOut shape)
+so the existing M4 client tests stay green untouched.
 """
 
 import json
@@ -50,6 +57,15 @@ if __name__ == "__main__":
                 "stop_reason": "tool_use",
                 "structured_output": {"family": "path", "closed_form": "N-3",
                                       "predicted_values": {"3": 0}, "confidence": 0.9}}
+    elif mode == "construction":
+        construction_out = {
+            "resources": 2,
+            "steps": [{"op": "fuse", "args": [2, 4]}],
+            "target_n": 4,
+            "target_edges": [[0, 1], [1, 2], [2, 3]],
+        }
+        env |= {"result": json.dumps(construction_out), "stop_reason": "tool_use",
+                "structured_output": construction_out}
     elif mode == "refusal":
         env |= {"result": "", "stop_reason": "refusal"}
 
