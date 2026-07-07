@@ -10,7 +10,7 @@
 
 **L1 (Commutation / single-blob WLOG).** Every fusion destructively measures a commuting Pauli pair on two qubits, each qubit measured at most once in a schedule; hence all fusion measurements in a schedule have disjoint supports and **commute** — the final state is independent of fusion order. Consequently any schedule can be reordered as: pick one resource as the seed **blob**; traverse the merge-tree blob-first (each merge fuses the current blob with one fresh GHZ₃); insert intra-component fusions anywhere (order-free). **Therefore a BFS over single-component states with two move types — (M1) fuse a blob qubit with a fresh GHZ₃ qubit, (M2) fuse two blob qubits intra-component — explores a superset-equivalent of all schedules.** No multiset-of-components state is needed. *(Empirical check in Task 1: both engines, two disjoint fusions applied in both orders → identical LC-orbit key, randomized.)*
 
-**L2 (The mod-3 ladder).** For a schedule with `g` GHZ₃ resources, `f_m` merge fusions and `f_i` intra fusions producing one connected component of size `N`: merges reduce component count by exactly 1, so `f_m = g − 1`; qubit counting gives `N = 3g − 2(f_m + f_i)`. Eliminating `g`: **`f = f_m + f_i = N − 3 + 3·f_i`.** So every achievable fusion count satisfies `F ≡ N (mod 3)`... precisely: `F(G) ∈ {N−3, N, N+3, …}`. Corollaries: the folklore floor `F ≥ N−3`; `F = N−3` ⟺ an all-merge (`f_i = 0`) schedule exists; **the dataset invariant `F(G) ≡ N−3 (mod 3)` must hold for every entry** (a free mutation-resistant check).
+**L2 (The mod-3 ladder — REVIEW-REPAIRED derivation).** Qubit conservation alone gives `N = 3g − 2f` ⟹ **`f ≡ N (mod 3)`** for every schedule — this is the robust invariant (adversarially verified over 2000 random schedules). The floor: connecting `g` resources into one component needs at least `g−1` component-reducing fusions, so `f ≥ g−1` (NOT the exact identity `f_m = g−1`, which fails for degenerate/wasteful schedules — e.g. fusing two singletons reduces count by 2); substituting `g = (N+2f)/3` yields **`F ≥ N−3`**. A *minimal* schedule wastes nothing (removing a wasted resource/fusion strictly reduces `f`), and for waste-free schedules `f = N−3+3f_i` holds exactly. Ladder: `F(G) ∈ {N−3, N, N+3, …}`; dataset invariant `F ≡ N−3 (mod 3)` per entry.
 
 **L3 (All-merge schedules are cap-free and depth-fixed).** In blob order, an all-merge schedule's component size grows monotonically 3 → 4 → … → N (each merge: k + 3 − 2 = k+1). So **every all-merge schedule has exactly N−3 fusions and never exceeds component size N.** Tier-0 is therefore pure *reachability*: which size-N orbits does the (M1)-only BFS reach? Reached ⟺ `F = N−3` (exact, unconditional); unreached ⟺ `F ≥ N` (by L2).
 
@@ -22,9 +22,16 @@
 
 **Branch:** `feat/m5c-tablebase` off `feat/m5b-fusion-verifiers` (stacked).
 
+**PRE-IMPLEMENTATION REVIEW AMENDMENTS (adversarial lemma review, 2026-07-07 — all four lemma CONCLUSIONS held; these fixes are mandatory):**
+- **A1 (the blocker): `Construction` must gain LocalClifford steps.** The M5b premise "LocalClifford steps are no-ops up to LC" is FALSE for qubits that are subsequently fused: a free τ_v on an about-to-be-fused qubit changes the fusion outcome and the reachable orbit. Verified: from n=6 up, some true `F=N−3` orbits are NOT expressible as pure-FusionOp Constructions on the star workspace (n=6: 1 orbit, n=7: 2). Fix in Task 1: add `LocalComplement(v)` as a Construction step type; `apply_construction` replays it (via each engine's graph-level τ or equivalent) before subsequent fusions; `witness()` must emit the LC 0-edge steps its BFS path used. Update construction.py's docstring (the false premise) and keep target-size validation (LC steps don't change qubit counts).
+- **A2: the LC 0-edges in the BFS are CORRECTNESS-critical, not an optimization** — a pure-fusion enumeration undercounts reachable orbits from n=6 (7 vs 8) — document in tablebase.py and never prune them.
+- **A3: the Adcock cross-check at n=8,9 must be real**: independently enumerate ALL connected graphs up to iso at n=8,9 (nauty-free iso-dedup or geng) and union-find them into orbits; `unreachable := enumerated − reachable`, never `total − reachable` by subtraction alone (tautological).
+- **A4: guard `OrbitTooLarge`** anywhere `lc_orbit_key` is called at n≥9 (witness certification / labeling): raise the cap explicitly or use the BFS's iso-cert orbit ids end-to-end.
+- Review preview of the science (to cross-check first runs): Tier-0 reachable/unreachable splits — n=5: 3/1, n=6: 8/3, n=7: 15/11; Tier-1: n=5: the 1 open orbit → F=5; n=6: 2 orbits → F=6, 1 orbit → F ≥ 9.
+
 ---
 
-### Task 1: The move kernel — closed-form rewrites, validated against both engines
+### Task 1: The move kernel + Construction LC-steps — validated against both engines
 
 **Files:**
 - Create: `src/empiricist/domain/p5/moves.py`
