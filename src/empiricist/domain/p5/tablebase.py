@@ -76,7 +76,7 @@ from empiricist.domain.p5.canonical import iso_certificate
 from empiricist.domain.p5.construction import Construction, FusionOp, LocalComplement
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.domain.p5.localcomp import local_complement
-from empiricist.domain.p5.moves import merge_fresh_ghz3
+from empiricist.domain.p5.moves import intra_fuse, merge_fresh_ghz3
 from empiricist.executor.runner import ExecSpec, execute
 
 # geng's stdout at n=9 is ~2.1MB (261080 graph6 lines); give real headroom
@@ -188,9 +188,20 @@ class Tier0Result:
     def reachable_count(self, n: int) -> int:
         return len(self.reachable.get(n, []))
 
-    def witness(self, cert: bytes) -> Construction:
-        """Walk the BFS parent chain from the seed to `cert` and translate it
-        into a Construction in `build_workspace` coordinates.
+    def _witness_prefix(
+        self, cert: bytes
+    ) -> tuple[list[FusionOp | LocalComplement], dict[int, int], int]:
+        """Walk the BFS parent chain from the seed to `cert`, returning the
+        Construction steps built so far, the id_map (BFS-local id in
+        `cert`'s OWN graph -> original build_workspace id), and the
+        resource_counter -- i.e. everything `witness()` needs to finish
+        building a Construction, AND everything `tier1_search` needs to
+        append ONE more step (an intra fusion at `cert`'s own BFS-local
+        qubit ids) after reaching a Tier-0 all-merge state. Extracted from
+        `witness()` so both can share this bookkeeping exactly (a second,
+        drifted copy of this logic would be a correctness risk, not an
+        independence feature -- Tier-1 lives in this same module, so there's
+        no F3 boundary to preserve here, unlike tablebase_check.py).
 
         THE FIDDLY PART: the BFS relabels qubits at every merge
         (`merge_fresh_ghz3`'s compacting relabel), but `apply_construction`'s
@@ -273,6 +284,19 @@ class Tier0Result:
                 id_map = new_id_map
                 resource_counter += 1
 
+        return steps, id_map, resource_counter
+
+    def witness(self, cert: bytes) -> Construction:
+        """The full Construction witnessing `cert`'s reachability: `_witness_
+        prefix`'s steps as-is, targeting `cert`'s own graph.
+
+        Acceptance criterion (per the plan): this method's ONLY warrant is
+        that its output PASSES `verify_agreed` -- both independent engines
+        replaying these exact steps must land in `cert`'s LC orbit. Any
+        bookkeeping bug in `_witness_prefix` is caught by that check, not by
+        inspection.
+        """
+        steps, _id_map, resource_counter = self._witness_prefix(cert)
         target = self._visited[cert]
         return Construction(resources=resource_counter, steps=tuple(steps), target=target)
 
@@ -544,4 +568,141 @@ def enumerate_connected_orbits(n: int) -> OrbitEnumeration:
         orbit_count=orbit_count,
         _uf=uf,
         _reps=reps,
+    )
+
+
+@dataclass(frozen=True)
+class Tier1Orbit:
+    """One orbit Tier-1 resolves EXACTLY at F = N: reached via an all-merge
+    (f_i=0) schedule to size N+2 followed by ONE intra fusion (f_i=1) landing
+    back at size N -- and confirmed NOT already reachable at Tier-0 (F = N-3)."""
+
+    orbit_id: str  # hex root, in the enumerate_connected_orbits(n) root space
+    size: int
+    f_value: int  # == size, exact (L2 + L4)
+    representative_cert: bytes
+    representative: GraphState
+    # Everything witness() needs to rebuild the schedule: the size-(n+2)
+    # all-merge state this orbit was reached FROM, and the intra-fusion pair
+    # (in that source graph's own BFS-local coordinates).
+    _source_cert: bytes = field(repr=False)
+    _a: int = field(repr=False)
+    _b: int = field(repr=False)
+
+
+@dataclass
+class Tier1Result:
+    """The Tier-1 (f_i <= 1) resolution: per-n orbits with F = N exactly that
+    Tier-0's all-merge-only search (f_i = 0) did not reach."""
+
+    n_max: int
+    transient_max: int  # n_max + 2 -- L4's bounded transient for f_i <= 1
+    tier0: Tier0Result  # the underlying all-merge search, extended to transient_max
+    newly_resolved: dict[int, list[Tier1Orbit]]
+
+    def resolved_count(self, n: int) -> int:
+        return len(self.newly_resolved.get(n, []))
+
+    def witness(self, orbit: Tier1Orbit) -> Construction:
+        """merges -> one intra: replay Tier-0's own path to `orbit`'s size-
+        (n+2) source state (via the SAME `_witness_prefix` bookkeeping
+        `Tier0Result.witness` uses -- see that method's docstring for the
+        id_map mechanics), then append ONE more FusionOp for the intra pair
+        that reached this orbit. Resources are unchanged by an intra fusion
+        (it consumes no new GHZ3 star); fusion_count increases by 1, giving
+        exactly F = (m - 3) + 1 = (n + 2 - 3) + 1 = n, per L2/L4.
+        """
+        steps, id_map, resource_counter = self.tier0._witness_prefix(orbit._source_cert)
+        steps = [*steps, FusionOp(a=id_map[orbit._a], b=id_map[orbit._b])]
+        return Construction(
+            resources=resource_counter, steps=tuple(steps), target=orbit.representative
+        )
+
+
+def tier1_search(
+    n_max: int = 7,
+    *,
+    on_progress: Callable[[str], None] | None = None,
+) -> Tier1Result:
+    """L4 (bounded transient for f_i <= 1): grow purely by merges (f_i = 0)
+    to size <= n_max + 2, then apply EXACTLY ONE intra fusion (f_i = 1) from
+    EVERY visited graph of size m = n + 2, over every qubit pair, landing
+    back at size n. Depth bookkeeping: (m - 3) merges + 1 intra = (n + 2 - 3)
+    + 1 = n fusions total -- so any size-n orbit reached this way that
+    Tier-0 (f_i = 0, F = n - 3) did NOT reach has F = n EXACTLY (L2 + L4:
+    the ladder is {n-3, n, n+3, ...}, and this witnesses n directly).
+
+    A2's analogue for Tier-1: intra-fusing from every visited size-m graph
+    (not just one representative per orbit) is CORRECTNESS-critical, not
+    exhaustive-for-safety's-sake -- a tau applied to a qubit that is
+    subsequently intra-fused changes the fusion's observable (the same A1/A2
+    fact from Task 1/Tier-0), so skipping members of the size-m tau-closure
+    would silently undercount which size-n orbits Tier-1 can reach.
+
+    Orbit identity for "already reached at Tier-0?" and "which orbit did
+    this land in?" is arbitrated by `enumerate_connected_orbits(n)` (the SAME
+    independent, geng/itertools-backed full-population union-find Tier-0's
+    own A3 cross-check uses) -- never by comparing Tier-0's BFS union-find
+    roots to a separately-computed Tier-1 union-find (two different
+    union-find structures are not comparable by root value alone).
+
+    `n_max` defaults to 7 (transient <= 9, matching Tier-0's own validated
+    range); n <= 6 is fast, n = 7's transient (m = 9) is the same scale as
+    Tier-0's own @slow n=9 case.
+    """
+    if n_max < 3:
+        raise ValueError(f"n_max must be >= 3, got {n_max}")
+    transient_max = n_max + 2
+
+    def log(msg: str) -> None:
+        if on_progress is not None:
+            on_progress(msg)
+
+    t0 = tier0_search(transient_max, on_progress=on_progress)
+
+    by_size: dict[int, list[tuple[bytes, GraphState]]] = {}
+    for cert, g in t0._visited.items():
+        by_size.setdefault(g.n, []).append((cert, g))
+
+    newly_resolved: dict[int, list[Tier1Orbit]] = {}
+    for n in range(3, n_max + 1):
+        m = n + 2
+        t_start = time.monotonic()
+        enum_n = enumerate_connected_orbits(n)
+        t0_roots = {enum_n.orbit_root(o.representative_cert) for o in t0.reachable[n]}
+
+        found: dict[bytes, Tier1Orbit] = {}
+        for g_cert, g in by_size.get(m, []):
+            for a in range(g.n):
+                for b in range(a + 1, g.n):
+                    h = intra_fuse(g, a, b)
+                    assert h.n == n, (
+                        f"intra_fuse must remove exactly 2 qubits: m={m} a={a} b={b} "
+                        f"produced n={h.n}, expected {n}"
+                    )
+                    if not nx.is_connected(h.to_networkx()):
+                        continue  # a disconnected/product result witnesses no connected orbit
+                    hc = iso_certificate(h)
+                    root = enum_n.orbit_root(hc)
+                    if root in t0_roots or root in found:
+                        continue
+                    found[root] = Tier1Orbit(
+                        orbit_id=root.hex(),
+                        size=n,
+                        f_value=n,
+                        representative_cert=hc,
+                        representative=h,
+                        _source_cert=g_cert,
+                        _a=a,
+                        _b=b,
+                    )
+        newly_resolved[n] = list(found.values())
+        still_open = enum_n.orbit_count - len(t0_roots) - len(found)
+        log(
+            f"n={n}: Tier-1 (f_i=1, transient m={m}) resolves {len(found)} new orbit(s) "
+            f"at F={n} ({still_open} still open) ({time.monotonic() - t_start:.2f}s)"
+        )
+
+    return Tier1Result(
+        n_max=n_max, transient_max=transient_max, tier0=t0, newly_resolved=newly_resolved
     )
