@@ -62,3 +62,26 @@ def test_no_rlimit_as_is_set():
 def test_ok_process_unaffected():
     res = run_py("print('fine')", ResourceLimits(cpu_s=5, fsize_mb=1))
     assert res.returncode == 0 and res.stdout.strip() == b"fine"
+
+
+def test_preexec_closure_is_precomputed():
+    """Fork-safety: the child-side closure must hold only prebuilt constants
+    (no arithmetic/allocation between fork and exec)."""
+    fn = make_preexec(ResourceLimits(cpu_s=2, fsize_mb=3, nofile=128))
+    cells = {
+        v: c.cell_contents
+        for v, c in zip(fn.__code__.co_freevars, fn.__closure__, strict=True)
+    }
+    assert cells["core"] == (0, 0)
+    assert cells["nofile"][0] <= 128
+    assert cells["cpu"] == (2, 2)
+    assert cells["fsize"] == (3 * 1024 * 1024, 3 * 1024 * 1024)
+
+
+def test_nofile_clamps_to_inherited_hard_limit():
+    """An absurd request must clamp to the host's hard limit, not kill the spawn."""
+    res = run_py(
+        "import resource; print(resource.getrlimit(resource.RLIMIT_NOFILE)[0] > 0)",
+        ResourceLimits(nofile=10**9),
+    )
+    assert res.returncode == 0 and res.stdout.strip() == b"True"
