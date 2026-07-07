@@ -26,8 +26,9 @@ from empiricist.store import Store
 from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.lean import (
     LeanVerifier,
+    audit_axiom_lines,
     ingest_lean_artifact,
-    parse_axiom_line,
+    parse_axiom_data,
     parse_diagnostics,
 )
 from empiricist.verifiers.lean_goldens import LEAN_GOLDEN_SUITE, certify_lean, lean_suite_hash
@@ -72,7 +73,10 @@ def store(tmp_path):
 @pytest.mark.parametrize(
     "source,decl,expected_pass",
     LEAN_GOLDEN_SUITE,
-    ids=["sorry_free_true", "sorry_trap", "native_decide", "type_error"],
+    ids=[
+        "sorry_free_true", "sorry_trap", "native_decide", "type_error",
+        "spoof_io_println", "spoof_run_cmd",
+    ],
 )
 def test_golden_case_matches_expected_verdict(verifier, source, decl, expected_pass):
     result = verifier.verify(source, decl=decl, timeout_s=120)
@@ -116,6 +120,47 @@ def test_type_error_golden_fails_diagnostics_gate(verifier):
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.FAIL
     assert result.details["gate"] == "diagnostics"
+
+
+@slow_lean
+@requires_lake
+@pytest.mark.parametrize("case_index", [4, 5], ids=["spoof_io_println", "spoof_run_cmd"])
+def test_print_axioms_spoofing_fails_at_axiom_tamper(verifier, case_index):
+    """Security review C1: a 1=2 proof backed by `axiom evil : False` that
+    ALSO prints a fake clean `#print axioms` line must FAIL at the
+    axiom_tamper gate -- NOT PASS with the fabricated clean axioms. The
+    run_cmd/logInfo vector (case 5) genuinely PASSed before the nonce-anchor
+    hardening."""
+    source, decl, expected_pass = LEAN_GOLDEN_SUITE[case_index]
+    assert expected_pass is False
+    result = verifier.verify(source, decl=decl, timeout_s=120)
+    assert result.verdict == Verdict.FAIL, result.details
+    assert result.details["gate"] == "axiom_tamper"
+    # The fake line + the real #print both parse as decl-axiom-lines -> 2.
+    assert result.details["count"] == 2
+    assert result.details["nonce_found"] is True
+
+
+@slow_lean
+@requires_lake
+def test_secret_env_var_not_visible_to_compile_time_eval(verifier, monkeypatch):
+    """I1: the untrusted source runs IO at elaboration. A secret set in the
+    PARENT env must NOT reach a Lean `#eval IO.getEnv` (the reviewer's exfil
+    probe). The probe compiles clean IFF the var is absent from the child
+    (throws -> gate-1 error IFF visible), so a PASS here proves the scrub."""
+    monkeypatch.setenv("EMPIRICIST_EXFIL_PROBE", "leaked-secret-value")
+    source = (
+        "namespace Empiricist\n"
+        "theorem scaffold_true : 1 + 1 = 2 := rfl\n"
+        "end Empiricist\n\n"
+        "#eval (do\n"
+        '  let v ← IO.getEnv "EMPIRICIST_EXFIL_PROBE"\n'
+        '  if v.isSome then throw (IO.userError "SECRET_VISIBLE") '
+        "else pure () : IO Unit)\n"
+    )
+    result = verifier.verify(source, decl="Empiricist.scaffold_true", timeout_s=120)
+    # PASS => the #eval did NOT see the secret (it would have thrown -> error).
+    assert result.verdict == Verdict.PASS, result.details
 
 
 @slow_lean
@@ -184,14 +229,18 @@ def test_scratch_files_cleaned_up_across_pass_fail(verifier):
 @slow_lean
 @requires_lake
 def test_scratch_cleanup_on_error_path(monkeypatch, verifier):
-    """finally-cleanup must fire even when the body returns ERROR."""
+    """finally-cleanup must fire even when the body raises -> ERROR."""
     import empiricist.verifiers.lean as lean_mod
 
-    monkeypatch.setattr(lean_mod, "parse_axiom_line", lambda diags, decl: None)
+    def boom(*a, **k):
+        raise RuntimeError("parser exploded")
+
+    monkeypatch.setattr(lean_mod, "parse_diagnostics", boom)
     before = set(_MODULE_DIR.glob("Scratch_*"))
     source, decl, _ = LEAN_GOLDEN_SUITE[0]
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.ERROR
+    assert "parser exploded" in result.details["error"]
     after = set(_MODULE_DIR.glob("Scratch_*"))
     assert after == before
 
@@ -284,6 +333,46 @@ def test_binary_hash_changes_when_toolchain_bytes_differ(monkeypatch):
     assert tampered != baseline
 
 
+def test_binary_hash_changes_when_lakefile_bytes_differ(monkeypatch):
+    """lakefile.toml's leanOptions govern elaboration, so they're part of the
+    verifier's contract: editing them must mint a new identity (review minor)."""
+    v = LeanVerifier()
+    baseline = v.binary_hash
+
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(self):
+        data = original_read_bytes(self)
+        if self.name == "lakefile.toml":
+            return data + b"\n# tampered leanOption for test\n"
+        return data
+
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+    assert v.binary_hash != baseline
+
+
+def test_lean_env_scrubs_secrets_but_keeps_path_home_elan(monkeypatch):
+    """I1: the minimal env handed to the untrusted Lean subprocess must carry
+    PATH/HOME/ELAN_* (elan needs them) but NOT the parent's secrets."""
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.setenv("HOME", "/Users/tester")
+    monkeypatch.setenv("ELAN_HOME", "/Users/tester/.elan")
+    monkeypatch.setenv("ELAN_TOOLCHAIN", "leanprover/lean4:v4.31.0")
+    for secret in ("ANTHROPIC_API_KEY", "AWS_SECRET_ACCESS_KEY", "GH_TOKEN",
+                   "SOME_API_KEY", "SSH_AUTH_SOCK"):
+        monkeypatch.setenv(secret, "SECRET")
+
+    env = LeanVerifier._lean_env()
+
+    assert env["HOME"] == "/Users/tester"
+    assert "/Users/tester/.elan/bin" in env["PATH"]  # elan bin ensured on PATH
+    assert env["ELAN_HOME"] == "/Users/tester/.elan"
+    assert env["ELAN_TOOLCHAIN"] == "leanprover/lean4:v4.31.0"
+    for secret in ("ANTHROPIC_API_KEY", "AWS_SECRET_ACCESS_KEY", "GH_TOKEN",
+                   "SOME_API_KEY", "SSH_AUTH_SOCK"):
+        assert secret not in env
+
+
 # -- fast, offline: parsers against REAL captured Lean 4.31.0 output --------
 #
 # Every line below was captured live (M8 Task 2) via `lake env lean --json`
@@ -331,6 +420,40 @@ _REAL_AXIOM_SORRY_AX_LINE = (
     '"severity":"information"}'
 )
 
+# Custom `axiom evil : False` case -- the REAL #print axioms output for the
+# spoofed `one_eq_two` (captured live): the honest audit reveals `evil`.
+_REAL_AXIOM_EVIL_LINE = (
+    '{"caption":"","data":"\'Empiricist.one_eq_two\' depends on axioms: [Empiricist.evil]",'
+    '"endPos":{"column":6,"line":16},"fileName":"EmpiricistLean/Scratch_x.lean",'
+    '"isSilent":false,"keepFullRange":false,"kind":"[anonymous]","pos":{"column":0,"line":16},'
+    '"severity":"information"}'
+)
+
+# The FAKE axiom line forged by `#eval IO.println` -- captured live. Note the
+# trailing "\n" inside `data` (IO.println appends it); the run_cmd/logInfo
+# vector's fake line has NO trailing newline. parse_axiom_data strips both so
+# audit_axiom_lines counts them (security: an attacker can't dodge the count
+# with whitespace).
+_REAL_FAKE_IO_PRINTLN_LINE = (
+    '{"caption":"","data":"\'Empiricist.one_eq_two\' depends on axioms: '
+    '[propext, Classical.choice, Quot.sound]\\n","endPos":{"column":5,"line":9},'
+    '"fileName":"EmpiricistLean/Scratch_x.lean","isSilent":false,"keepFullRange":false,'
+    '"kind":"[anonymous]","pos":{"column":0,"line":9},"severity":"information"}'
+)
+
+# The harness nonce marker `#eval IO.println "AXIOM_PROBE_<hex>"` -- captured
+# live (data carries the trailing "\n").
+_REAL_NONCE_LINE = (
+    '{"caption":"","data":"AXIOM_PROBE_deadbeefcafe1234\\n","endPos":{"column":5,"line":14},'
+    '"fileName":"EmpiricistLean/Scratch_x.lean","isSilent":false,"keepFullRange":false,'
+    '"kind":"[anonymous]","pos":{"column":0,"line":14},"severity":"information"}'
+)
+_NONCE = "AXIOM_PROBE_deadbeefcafe1234"
+
+
+def _data(line: str) -> str:
+    return parse_diagnostics(line)[0]["data"]
+
 
 def test_parse_diagnostics_empty_stdout_is_clean():
     """Confirmed live: a clean file's `lake env lean --json` stdout is
@@ -358,40 +481,93 @@ def test_parse_diagnostics_error_severity():
     assert diags[0]["severity"] == "error"
 
 
-def test_parse_axiom_line_does_not_depend_on_any_axioms_shape():
-    diags = parse_diagnostics(_REAL_AXIOM_NONE_LINE)
-    assert parse_axiom_line(diags, "Empiricist.scaffold_true") == []
+# -- parse_axiom_data: the axiom-line regex against real `data` strings ------
 
 
-def test_parse_axiom_line_whitelisted_shape():
-    diags = parse_diagnostics(_REAL_AXIOM_WHITELISTED_LINE)
-    axioms = parse_axiom_line(diags, "Empiricist.connected_edge_bound")
+def test_parse_axiom_data_does_not_depend_on_any_axioms_shape():
+    assert parse_axiom_data(_data(_REAL_AXIOM_NONE_LINE), "Empiricist.scaffold_true") == []
+
+
+def test_parse_axiom_data_whitelisted_shape():
+    axioms = parse_axiom_data(
+        _data(_REAL_AXIOM_WHITELISTED_LINE), "Empiricist.connected_edge_bound"
+    )
     assert axioms == ["propext", "Classical.choice", "Quot.sound"]
 
 
-def test_parse_axiom_line_native_decide_synthesized_axiom_shape():
-    diags = parse_diagnostics(_REAL_AXIOM_NATIVE_DECIDE_LINE)
-    axioms = parse_axiom_line(diags, "Empiricist.nd")
+def test_parse_axiom_data_native_decide_synthesized_axiom_shape():
+    axioms = parse_axiom_data(_data(_REAL_AXIOM_NATIVE_DECIDE_LINE), "Empiricist.nd")
     assert axioms == ["Empiricist.nd._native.native_decide.ax_1_1"]
 
 
-def test_parse_axiom_line_sorry_ax_shape():
-    diags = parse_diagnostics(_REAL_AXIOM_SORRY_AX_LINE)
-    assert parse_axiom_line(diags, "Empiricist.scaffold_true") == ["sorryAx"]
+def test_parse_axiom_data_sorry_ax_shape():
+    assert parse_axiom_data(_data(_REAL_AXIOM_SORRY_AX_LINE), "Empiricist.scaffold_true") == [
+        "sorryAx"
+    ]
 
 
-def test_parse_axiom_line_none_when_decl_not_present():
-    diags = parse_diagnostics(_REAL_AXIOM_WHITELISTED_LINE)
-    assert parse_axiom_line(diags, "Empiricist.some_other_decl") is None
+def test_parse_axiom_data_none_when_decl_not_present():
+    assert parse_axiom_data(_data(_REAL_AXIOM_WHITELISTED_LINE), "Empiricist.other") is None
 
 
-def test_parse_axiom_line_handles_bracketed_empty_list_shape():
+def test_parse_axiom_data_strips_trailing_newline_from_forged_line():
+    """The IO.println-forged fake line has a trailing newline in `data`;
+    parse_axiom_data must STILL recognize it (stripping) so the audit can
+    count it -- otherwise an attacker dodges the tamper count with whitespace."""
+    data = _data(_REAL_FAKE_IO_PRINTLN_LINE)
+    assert data.endswith("\n")  # confirm the real captured line has the newline
+    assert parse_axiom_data(data, "Empiricist.one_eq_two") == [
+        "propext", "Classical.choice", "Quot.sound"
+    ]
+
+
+def test_parse_axiom_data_handles_bracketed_empty_list_shape():
     """Defensive: the plan explicitly calls out `depends on axioms: []` as a
-    shape to handle even though it wasn't observed for any real decl here
-    (mathlib decls always route through the `does not depend` phrasing when
-    axiom-free)."""
-    line = (
-        '{"data":"\'Empiricist.foo\' depends on axioms: []","severity":"information"}'
+    shape to handle even though it wasn't observed for any real decl here."""
+    assert parse_axiom_data("'Empiricist.foo' depends on axioms: []", "Empiricist.foo") == []
+
+
+# -- audit_axiom_lines: the nonce-anchored spoofing defense (offline) --------
+
+
+def test_audit_accepts_single_post_nonce_axiom_line():
+    """Honest case: exactly one axiom line, after the nonce marker -> accepted."""
+    diags = parse_diagnostics(f"{_REAL_NONCE_LINE}\n{_REAL_AXIOM_WHITELISTED_LINE}")
+    axioms, info = audit_axiom_lines(diags, "Empiricist.connected_edge_bound", _NONCE)
+    assert axioms == ["propext", "Classical.choice", "Quot.sound"]
+    assert info["nonce_found"] is True and info["count"] == 1
+
+
+def test_audit_rejects_injection_two_lines_io_println():
+    """The IO.println spoof: forged clean line (pre-nonce) + real evil line
+    (post-nonce) = 2 decl-axiom-lines -> tamper (None), never the fake list."""
+    diags = parse_diagnostics(
+        f"{_REAL_FAKE_IO_PRINTLN_LINE}\n{_REAL_NONCE_LINE}\n{_REAL_AXIOM_EVIL_LINE}"
     )
-    diags = parse_diagnostics(line)
-    assert parse_axiom_line(diags, "Empiricist.foo") == []
+    axioms, info = audit_axiom_lines(diags, "Empiricist.one_eq_two", _NONCE)
+    assert axioms is None
+    assert info["count"] == 2 and info["nonce_found"] is True
+
+
+def test_audit_rejects_forged_clean_line_before_nonce_when_real_absent():
+    """If only the forged clean line exists and it's BEFORE the nonce (the
+    attacker can't get past the marker), the position check rejects it."""
+    diags = parse_diagnostics(f"{_REAL_FAKE_IO_PRINTLN_LINE}\n{_REAL_NONCE_LINE}")
+    axioms, _ = audit_axiom_lines(diags, "Empiricist.one_eq_two", _NONCE)
+    assert axioms is None
+
+
+def test_audit_rejects_when_nonce_marker_absent():
+    """Nonce probe suppressed (e.g. source `#exit`s before it) -> fail closed."""
+    diags = parse_diagnostics(_REAL_AXIOM_WHITELISTED_LINE)
+    axioms, info = audit_axiom_lines(diags, "Empiricist.connected_edge_bound", _NONCE)
+    assert axioms is None and info["nonce_found"] is False
+
+
+def test_audit_wrong_nonce_never_matches():
+    """A stream carrying a DIFFERENT nonce (attacker guessing) is not anchored."""
+    diags = parse_diagnostics(f"{_REAL_NONCE_LINE}\n{_REAL_AXIOM_WHITELISTED_LINE}")
+    axioms, info = audit_axiom_lines(
+        diags, "Empiricist.connected_edge_bound", "AXIOM_PROBE_0000000000000000"
+    )
+    assert axioms is None and info["nonce_found"] is False

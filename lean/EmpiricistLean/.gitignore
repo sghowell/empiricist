@@ -1,1 +1,4 @@
 /.lake
+# LeanVerifier scratch files (written into EmpiricistLean/ per verify() call,
+# cleaned up in a finally; ignored so a crash mid-verify never dirties git).
+EmpiricistLean/Scratch_*.lean
