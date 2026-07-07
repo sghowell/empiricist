@@ -13,6 +13,9 @@ dependencies = [
     "numpy>=2.0",
 ]
 
+[project.scripts]
+empiricist = "empiricist.cli:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",

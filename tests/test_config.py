@@ -14,6 +14,13 @@ def test_defaults_match_spec_section_3():
     assert cfg.diversity_window == 64
     assert cfg.verify_timeout_s == 30.0
     assert cfg.transient_cap == 4
+    assert cfg.tier0_n == 9
+    assert cfg.tier1_n == 7
+    assert cfg.search_target_n == 8
+    assert cfg.targets_per_gen == 8
+    assert cfg.conjecture_every == 3
+    assert cfg.max_generations is None
+    assert cfg.max_cost_usd is None
 
 
 def test_config_is_frozen_and_hashable():

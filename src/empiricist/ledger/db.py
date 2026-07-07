@@ -95,6 +95,40 @@ class Ledger:
         ).fetchone()
         if row is None:
             raise KeyError(artifact_id)
+        return self._artifact_from_row(row)
+
+    def find_artifacts(
+        self,
+        *,
+        kind: str | None = None,
+        problem: str | None = None,
+        status: Status | str | None = None,
+    ) -> list[Artifact]:
+        """Query artifacts by any combination of (kind, problem, status) --
+        every filter is optional (None = unconstrained). Ordered oldest to
+        newest (created_at, rowid tiebreak); a caller wanting the single
+        newest match (e.g. campaign.moves.ensure_enumerate's idempotent
+        VERIFIED_N dataset lookup) takes the last element."""
+        q = "SELECT * FROM artifacts"
+        clauses: list[str] = []
+        params: list[str] = []
+        if kind is not None:
+            clauses.append("kind = ?")
+            params.append(kind)
+        if problem is not None:
+            clauses.append("problem = ?")
+            params.append(problem)
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status.value if isinstance(status, Status) else status)
+        if clauses:
+            q += " WHERE " + " AND ".join(clauses)
+        q += " ORDER BY created_at, rowid"
+        rows = self.conn.execute(q, params).fetchall()
+        return [self._artifact_from_row(r) for r in rows]
+
+    @staticmethod
+    def _artifact_from_row(row: sqlite3.Row) -> Artifact:
         return Artifact(
             id=row["id"], kind=row["kind"], problem=row["problem"], title=row["title"],
             content_path=row["content_path"], status=Status(row["status"]),
@@ -334,9 +368,43 @@ class Ledger:
         ).fetchone()
         return Spent(cost_usd=r["cost"], tokens_in=r["tin"], tokens_out=r["tout"])
 
+    def run_aggregates(self) -> list[RoleAggregate]:
+        """Per-role cost/token/run-count aggregates over `runs` (M7 T3: the
+        report's per-role header line). `role` is nullable in the schema (a
+        non-model subprocess run, e.g. an ENUMERATE-tier verifier call, has
+        no role) -- that bucket is reported as `role=None` rather than
+        dropped, so `SUM(runs.cost_usd)` always equals the sum across every
+        returned row's `cost_usd`, same total-accounting discipline as
+        `spent()`. Ordered by role (SQLite sorts NULL first) for a stable,
+        deterministic report rendering.
+        """
+        rows = self.conn.execute(
+            "SELECT role, COALESCE(SUM(cost_usd), 0.0) AS cost,"
+            " COALESCE(SUM(tokens_in), 0) AS tin,"
+            " COALESCE(SUM(tokens_out), 0) AS tout,"
+            " COUNT(*) AS n"
+            " FROM runs GROUP BY role ORDER BY role"
+        ).fetchall()
+        return [
+            RoleAggregate(
+                role=r["role"], cost_usd=r["cost"], tokens_in=r["tin"],
+                tokens_out=r["tout"], run_count=r["n"],
+            )
+            for r in rows
+        ]
+
 
 @dataclass(frozen=True)
 class Spent:
     cost_usd: float
     tokens_in: int
     tokens_out: int
+
+
+@dataclass(frozen=True)
+class RoleAggregate:
+    role: str | None
+    cost_usd: float
+    tokens_in: int
+    tokens_out: int
+    run_count: int
