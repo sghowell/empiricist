@@ -36,6 +36,9 @@ class RunConfig:
     conjecture_every: int = 3        # scheduler: CONJECTURE cadence (every N gens)
     max_generations: int | None = None   # scheduler stop condition (None = unbounded)
     max_cost_usd: float | None = None    # scheduler stop condition (None = unbounded)
+    scheduler_patience: int = 3      # scheduler: consecutive no-progress records at a
+                                      # move's floor weight (1) before it counts as
+                                      # exhausted for the 'stalled_out' stop condition
 
     def config_hash(self) -> str:
         """Stable blake3 hash of this config's fields and values.
