@@ -317,3 +317,65 @@ def test_conjecture_move_false_conjecture_lands_refuted(campaign):
     assert len(artifacts) == 1
     fetched = state.ledger.get_artifact(artifacts[0].id)
     assert fetched.status == Status.REFUTED
+
+
+def test_conjecture_move_duplicates_yield_one_artifact_one_evidence_row(campaign):
+    """C1: byte-identical conjectures -- twice in the SAME wave, then again
+    in a SECOND wave -- must produce exactly one artifact with exactly one
+    evidence row, no sqlite3.IntegrityError, and the duplicates excluded
+    from the returned (progress-counted) list."""
+    state, cfg = campaign
+    conj_dict = {
+        "family": "path", "closed_form": "N-3",
+        "predicted_values": {"3": 0, "4": 1, "5": 2}, "confidence": 0.9,
+    }
+
+    # Wave 1: the same conjecture mined twice in one wave.
+    client1 = FakeLLMClient([make_result(conj_dict), make_result(conj_dict)])
+    artifacts1 = run(conjecture_move(state, cfg, client1))
+    assert len(artifacts1) == 1
+
+    # Wave 2 (the resume case): the same conjecture re-mined -- must not crash.
+    client2 = FakeLLMClient([make_result(conj_dict)])
+    artifacts2 = run(conjecture_move(state, cfg, client2))
+    assert artifacts2 == []  # duplicate skipped -> reads as no progress
+
+    n_statements = state.ledger.conn.execute(
+        "SELECT COUNT(*) FROM artifacts WHERE kind='statement'"
+    ).fetchone()[0]
+    assert n_statements == 1
+    assert state.ledger.get_artifact(artifacts1[0].id).status == Status.CONJECTURED
+    assert len(state.ledger.evidence_for(artifacts1[0].id)) == 1  # one attack, ever
+
+
+# -- open_targets: solved-orbit filtering (I3) ---------------------------------
+
+
+def test_open_targets_drops_orbit_solved_in_population(campaign):
+    state, cfg = campaign
+    art = ensure_enumerate(state, cfg)
+    rows = dataset_rows(state, art)
+    [target] = open_targets(rows, 5, 8)
+
+    # A certified witness at exactly target_f (F=5): solved.
+    state.population.consider(target.lc_orbit_key, 0, "n5", [5.0], "c" * 64)
+
+    assert open_targets(rows, 5, 8, population=state.population) == []
+    # Without the population handle, behavior is unchanged (dataset-only view).
+    assert len(open_targets(rows, 5, 8)) == 1
+
+
+def test_open_targets_keeps_orbit_whose_witness_is_above_target_f(campaign):
+    """A population elite ABOVE target_f (e.g. an F=8 construction for an
+    orbit whose F=5 question is still open, mod-3 ladder) does NOT drop the
+    target -- the bound the campaign is after has not been reached."""
+    state, cfg = campaign
+    art = ensure_enumerate(state, cfg)
+    rows = dataset_rows(state, art)
+    [target] = open_targets(rows, 5, 8)
+
+    state.population.consider(target.lc_orbit_key, 0, "n5", [8.0], "c" * 64)
+
+    filtered = open_targets(rows, 5, 8, population=state.population)
+    assert len(filtered) == 1
+    assert filtered[0].lc_orbit_key == target.lc_orbit_key

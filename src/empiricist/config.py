@@ -39,6 +39,9 @@ class RunConfig:
     scheduler_patience: int = 3      # scheduler: consecutive no-progress records at a
                                       # move's floor weight (1) before it counts as
                                       # exhausted for the 'stalled_out' stop condition
+    max_consecutive_move_errors: int = 3  # orchestrator circuit breaker: consecutive
+                                      # isolated move exceptions (transport faults etc.)
+                                      # before the campaign stops with 'move_errors'
 
     def config_hash(self) -> str:
         """Stable blake3 hash of this config's fields and values.

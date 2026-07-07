@@ -47,10 +47,12 @@ counterexample recorded as evidence.
 from __future__ import annotations
 
 import json
+import sqlite3
 import sys
 import uuid
 from dataclasses import dataclass
 
+from blake3 import blake3
 from pydantic import ValidationError
 
 from empiricist.domain.p5.canonical import lc_orbit_key
@@ -375,6 +377,16 @@ def _canonical_conjecture_json(conj: ConjectureOut) -> bytes:
     ).encode("utf-8")
 
 
+def conjecture_artifact_id(conj: ConjectureOut) -> str:
+    """The blake3 content digest a submitted `conj` would receive as its
+    artifact id (identity == canonical content, spec §4.2 rule 1) -- the
+    same digest `Store.put`/`ingest_artifact` compute, WITHOUT any CAS or
+    ledger write. Callers (`campaign.moves.conjecture_move`) use this to
+    detect an already-submitted conjecture before spending an attack on it.
+    """
+    return blake3(_canonical_conjecture_json(conj)).hexdigest()
+
+
 def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackReport) -> Artifact:
     """Ingest `conj` as a `statement` artifact at `HEURISTIC`, then record
     `report` as `auto_attack` evidence -- promoting to `CONJECTURED` on
@@ -382,17 +394,42 @@ def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackRepo
     Returns the artifact as ingested (its `.status` is the pre-evidence
     HEURISTIC snapshot; re-read via `ledger.get_artifact` for the post-
     evidence status, same convention as `search.loop`'s exact-upgrade path).
+
+    **Idempotent on duplicates.** A byte-identical conjecture canonicalizes
+    to the same content, hence the same blake3 digest, hence the SAME
+    artifact id -- so a model that re-mines yesterday's conjecture (the
+    common case after `resume`) must not crash the campaign on the
+    artifacts PRIMARY KEY. If the artifact already exists, submit
+    SHORT-CIRCUITS: it returns the existing artifact AS STORED (its
+    `.status` is the current post-evidence status, e.g. CONJECTURED or
+    REFUTED, not a fresh HEURISTIC snapshot) and records NO second evidence
+    row -- the original falsification effort stands; re-deriving the same
+    statement is not new evidence about it. Belt-and-braces: a concurrent
+    insert between the existence check and the ingest still collides on the
+    PRIMARY KEY, so `sqlite3.IntegrityError` is additionally caught and
+    resolved to the existing row.
     """
     content = _canonical_conjecture_json(conj)
-    art = ingest_artifact(
-        ledger,
-        store,
-        content=content,
-        kind="statement",
-        problem="P5",
-        title=f"Conjecture: {conj.family} F(N) = {conj.closed_form}",
-        status=Status.HEURISTIC,
-    )
+    digest = blake3(content).hexdigest()  # == the would-be artifact id
+    try:
+        return ledger.get_artifact(digest)  # duplicate: short-circuit, no new evidence
+    except KeyError:
+        pass
+
+    try:
+        art = ingest_artifact(
+            ledger,
+            store,
+            content=content,
+            kind="statement",
+            problem="P5",
+            title=f"Conjecture: {conj.family} F(N) = {conj.closed_form}",
+            status=Status.HEURISTIC,
+        )
+    except sqlite3.IntegrityError:
+        # Raced with another insert of the identical statement -- the row
+        # that won is byte-identical content, so it IS this conjecture.
+        return ledger.get_artifact(digest)
     ledger.record_evidence(
         EvidenceRow(
             artifact_id=art.id,

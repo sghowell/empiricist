@@ -44,7 +44,8 @@ from empiricist.domain.p5.localcomp import OrbitTooLarge
 from empiricist.domain.p5.tablebase import tier0_search, tier1_search
 from empiricist.ledger.models import Artifact, Status
 from empiricist.llm.client import LLMClient
-from empiricist.search.conjecture import attack, mine, submit
+from empiricist.search.conjecture import attack, conjecture_artifact_id, mine, submit
+from empiricist.search.database import Population
 from empiricist.search.loop import GenerationReport, SearchLoop, TargetSpec
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
@@ -113,7 +114,9 @@ def dataset_rows(state: CampaignState, artifact: Artifact) -> list[dict]:
     return json.loads(content)["rows"]
 
 
-def open_targets(rows: list[dict], n: int, cap: int) -> list[TargetSpec]:
+def open_targets(
+    rows: list[dict], n: int, cap: int, population: Population | None = None
+) -> list[TargetSpec]:
     """Up to `cap` `TargetSpec`s for the open (unresolved, `exact=False`)
     orbits at size `n`, sorted by `(n, orbit_id)` for determinism.
 
@@ -126,6 +129,19 @@ def open_targets(rows: list[dict], n: int, cap: int) -> list[TargetSpec]:
     every OTHER open orbit at this n is still a legitimate target. Empirically
     verified at n=8 (the campaign's default `search_target_n`): all 59 open
     rows compute a key without hitting the default cap.
+
+    **Solved-orbit filtering (overnight-safety review I3).** When
+    `population` is given, an orbit whose `lc_orbit_key` already holds a
+    population elite with `objective_vec[0] <= target_f` is DROPPED: a
+    certified witness at (or below) the target fusion count already exists,
+    so re-targeting it every generation is pure wasted spend. This is also
+    what makes the orchestrator's targets-exhausted path genuinely
+    reachable -- once every open orbit at `n` is solved, the filtered list
+    is empty and the scheduler drops SEARCH from rotation. A witness ABOVE
+    `target_f` (e.g. an F=n+3 construction for an orbit whose F=n question
+    is still open, mod-3 ladder) does NOT drop the target: the bound the
+    campaign is after has not been reached. Solved orbits do not consume
+    `cap` slots.
     """
     open_rows = sorted(
         (r for r in rows if r["n"] == n and not r["exact"]),
@@ -146,6 +162,19 @@ def open_targets(rows: list[dict], n: int, cap: int) -> list[TargetSpec]:
                 row["orbit_id"], n,
             )
             continue
+        if population is not None:
+            elite = population.get(key)
+            if (
+                elite is not None
+                and elite.objective_vec
+                and elite.objective_vec[0] <= row["n"]  # target_f = n for open rows
+            ):
+                logger.info(
+                    "open_targets: orbit %s at n=%d already solved "
+                    "(population elite F=%s <= target %d) -- dropped",
+                    row["orbit_id"], n, elite.objective_vec[0], row["n"],
+                )
+                continue
         targets.append(
             TargetSpec(
                 n=row["n"],
@@ -162,17 +191,21 @@ async def search_move(
     state: CampaignState, cfg: RunConfig, client: LLMClient, gen: int
 ) -> GenerationReport:
     """One SEARCH generation: targets = the open orbits at `cfg.search_
-    target_n`, capped at `cfg.targets_per_gen`; run `SearchLoop.run_
-    generation` against them. Ensures ENUMERATE has run (idempotent) so this
-    is safe to call as the campaign's very first move."""
+    target_n` still unsolved in the population (see `open_targets`'s
+    solved-orbit filtering), capped at `cfg.targets_per_gen`; run
+    `SearchLoop.run_generation` against them. Ensures ENUMERATE has run
+    (idempotent) so this is safe to call as the campaign's very first move."""
     artifact = ensure_enumerate(state, cfg)
     rows = dataset_rows(state, artifact)
-    targets = open_targets(rows, cfg.search_target_n, cfg.targets_per_gen)
+    targets = open_targets(
+        rows, cfg.search_target_n, cfg.targets_per_gen, population=state.population
+    )
     if not targets:
         raise ValueError(
             f"search_move: no open targets at n={cfg.search_target_n} -- "
-            "either every orbit at that n is already resolved, or every "
-            "open orbit there exceeded the LC-orbit cap (see open_targets)"
+            "every orbit at that n is already resolved (dataset-exact or "
+            "population-solved), or every open orbit there exceeded the "
+            "LC-orbit cap (see open_targets)"
         )
     loop = SearchLoop(client, state.ledger, state.store, state.registry, state.population)
     return await loop.run_generation(gen, targets)
@@ -185,12 +218,34 @@ async def conjecture_move(
     each, and submit every one (survivors land CONJECTURED, falsified ones
     land REFUTED -- both are progress events; the scheduler decides what
     counts toward the exit criterion). Ensures ENUMERATE has run (idempotent)
-    so this is safe to call as the campaign's very first move too."""
+    so this is safe to call as the campaign's very first move too.
+
+    **Duplicate conjectures are skipped, not resubmitted (overnight-safety
+    review C1).** A re-mined byte-identical conjecture (the common case
+    after `resume`: the model rediscovers yesterday's closed form) already
+    has its artifact + evidence in the ledger; it is detected up front via
+    `conjecture_artifact_id` (before spending an attack on it), logged, and
+    EXCLUDED from the returned list -- so the orchestrator's per-wave
+    progress count sees only genuinely NEW artifacts and a wave of pure
+    re-discoveries correctly reads as no progress. (`submit` itself is also
+    duplicate-safe -- see its docstring -- this check just avoids the
+    wasted attack and keeps the return-list semantics honest.)"""
     artifact = ensure_enumerate(state, cfg)
     rows = dataset_rows(state, artifact)
     conjectures = await mine(client, rows)
     artifacts: list[Artifact] = []
     for conj in conjectures:
+        art_id = conjecture_artifact_id(conj)
+        try:
+            existing = state.ledger.get_artifact(art_id)
+        except KeyError:
+            existing = None
+        if existing is not None:
+            logger.info(
+                "conjecture_move: duplicate conjecture (artifact %s already %s) -- skipped",
+                art_id[:12], existing.status.value,
+            )
+            continue
         report = attack(conj, rows)
         artifacts.append(submit(state.ledger, state.store, conj, report))
     return artifacts

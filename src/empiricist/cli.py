@@ -18,9 +18,10 @@ injection seam below (a `FakeLLMClient` stand-in) -- `--live` against a REAL
 Exit codes: `0` success; `1` an expected operational failure (preflight
 unhealthy, unknown gate id, an already-resolved gate); `2` a CLI usage/
 validation error this module itself catches (an unsupported problem
-positional). Malformed argv (missing `--run-dir`, an unknown subcommand,
-...) is argparse's own `SystemExit(2)` -- standard argparse behavior, left
-alone.
+positional; `--live` without an explicit `--max-cost`/`--max-gen` budget
+ceiling -- fail-closed, review I1). Malformed argv (missing `--run-dir`,
+an unknown subcommand, ...) is argparse's own `SystemExit(2)` -- standard
+argparse behavior, left alone.
 """
 
 from __future__ import annotations
@@ -135,6 +136,21 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
             "No model moves ran -- pass --live to run SEARCH/CONJECTURE."
         )
         return 0
+
+    # Fail-closed budget posture (overnight-safety review I1): an unattended
+    # --live campaign bills real money against the subscription, so it must
+    # carry an EXPLICIT ceiling. There is deliberately no "no limit"
+    # spelling -- an operator who truly wants an effectively unbounded run
+    # sets a deliberately large ceiling and owns that number.
+    if cfg.max_cost_usd is None and cfg.max_generations is None:
+        print(
+            "error: unattended live campaigns require an explicit budget "
+            "ceiling -- pass --max-cost and/or --max-gen (fail-closed). "
+            "There is no 'no limit' flag; set a deliberately large ceiling "
+            "if that is what you want.",
+            file=sys.stderr,
+        )
+        return 2
 
     client = client_factory()
     try:

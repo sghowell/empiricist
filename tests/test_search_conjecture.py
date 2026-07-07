@@ -30,6 +30,7 @@ from empiricist.llm.roles import ROLES
 from empiricist.llm.schemas import ConjectureOut
 from empiricist.search.conjecture import (
     attack,
+    conjecture_artifact_id,
     dataset_summary,
     family_graph,
     family_table,
@@ -463,6 +464,64 @@ def test_submit_refuted_artifact_is_terminal(env, small_dataset_rows):
             ),
             new_status=Status.CONJECTURED,
         )
+
+
+def test_submit_duplicate_short_circuits_same_artifact_no_second_evidence(
+    env, small_dataset_rows
+):
+    """C1 (the resume wedge): a byte-identical conjecture re-submitted must
+    return the EXISTING artifact (as stored, post-evidence status) and must
+    NOT crash on the artifacts PRIMARY KEY or append a duplicate evidence
+    row -- the original falsification effort stands."""
+    lg, st = env
+    conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
+    first = submit(lg, st, conj, report)
+    assert conjecture_artifact_id(conj) == first.id
+
+    second = submit(lg, st, conj, report)  # must not raise sqlite3.IntegrityError
+    assert second.id == first.id
+    assert second.status == Status.CONJECTURED  # as stored, not a fresh HEURISTIC
+
+    assert len(lg.evidence_for(first.id)) == 1  # no duplicate evidence row
+    n_statements = lg.conn.execute(
+        "SELECT COUNT(*) FROM artifacts WHERE kind='statement'"
+    ).fetchone()[0]
+    assert n_statements == 1
+
+
+def test_submit_integrity_error_race_resolves_to_existing_artifact(
+    env, small_dataset_rows, monkeypatch
+):
+    """Belt-and-braces path: if the artifact appears between submit's
+    existence check and its ingest (simulated by blinding get_artifact on
+    the first lookup only), the PRIMARY KEY collision is caught and
+    resolved to the existing row."""
+    lg, st = env
+    conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
+    first = submit(lg, st, conj, report)
+
+    real_get = lg.get_artifact
+    calls = {"n": 0}
+
+    def get_blind_once(artifact_id):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise KeyError(artifact_id)  # pretend the row isn't there yet
+        return real_get(artifact_id)
+
+    monkeypatch.setattr(lg, "get_artifact", get_blind_once)
+
+    second = submit(lg, st, conj, report)  # ingest collides -> caught -> loaded
+    assert second.id == first.id
+    assert len(lg.evidence_for(first.id)) == 1
 
 
 # -- mine: FakeLLMClient round trip ------------------------------------------

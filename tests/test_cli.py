@@ -102,8 +102,9 @@ def test_run_live_uses_injected_client_and_writes_report(tmp_path):
         "predicted_values": {"3": 0, "4": 1, "5": 2}, "confidence": 0.9,
     }
     # preflight's one call + a generous tail of scripted responses covering
-    # whatever SEARCH/CONJECTURE waves the scheduler drives before the
-    # (tiny, since no --max-gen is set) target set + patience exhaust it.
+    # whatever SEARCH/CONJECTURE waves the scheduler drives before the (tiny)
+    # target set + patience exhaust it. --max-cost satisfies the fail-closed
+    # budget guard without ever tripping (FakeLLMClient records no cost).
     scripted = [make_result(None)] * 400 + [make_result(TRUE_CONJECTURE)] * 20
 
     calls = []
@@ -113,7 +114,7 @@ def test_run_live_uses_injected_client_and_writes_report(tmp_path):
         return FakeLLMClient(scripted)
 
     rc = main(
-        ["run", "P5", "--run-dir", str(run_dir), "--live", *FAST_FLAGS],
+        ["run", "P5", "--run-dir", str(run_dir), "--live", "--max-cost", "100", *FAST_FLAGS],
         _client_factory=factory,
     )
     assert rc == 0
@@ -121,6 +122,40 @@ def test_run_live_uses_injected_client_and_writes_report(tmp_path):
     assert (run_dir / "report.md").exists()
     text = (run_dir / "report.md").read_text()
     assert "# Empiricist Campaign Report" in text
+
+
+def test_run_live_without_budget_ceiling_refuses_exit_2(tmp_path, capsys):
+    """I1 fail-closed posture: --live with NEITHER --max-cost NOR --max-gen
+    must refuse to start -- before building a client, before any preflight
+    call, before touching the run directory's ledger."""
+    run_dir = tmp_path / "run"
+
+    def factory():
+        raise AssertionError("client must never be constructed on refusal")
+
+    rc = main(
+        ["run", "P5", "--run-dir", str(run_dir), "--live", *FAST_FLAGS],
+        _client_factory=factory,
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "--max-cost" in err and "--max-gen" in err
+    assert not (run_dir / "ledger.db").exists()
+
+
+@pytest.mark.parametrize("budget_flags", [["--max-cost", "100"], ["--max-gen", "1"]])
+def test_run_live_with_either_budget_flag_proceeds(tmp_path, budget_flags):
+    """Either ceiling alone satisfies the guard; the campaign runs and the
+    report is written."""
+    run_dir = tmp_path / "run"
+    scripted = [make_result(None)] * 500  # preflight ok + all-refusal waves
+
+    rc = main(
+        ["run", "P5", "--run-dir", str(run_dir), "--live", *budget_flags, *FAST_FLAGS],
+        _client_factory=lambda: FakeLLMClient(scripted),
+    )
+    assert rc == 0
+    assert (run_dir / "report.md").exists()
 
 
 def test_run_live_preflight_failure_returns_1(tmp_path, capsys):
@@ -134,7 +169,7 @@ def test_run_live_preflight_failure_returns_1(tmp_path, capsys):
             return []
 
     rc = main(
-        ["run", "P5", "--run-dir", str(run_dir), "--live", *FAST_FLAGS],
+        ["run", "P5", "--run-dir", str(run_dir), "--live", "--max-gen", "3", *FAST_FLAGS],
         _client_factory=lambda: RefusingClient(),
     )
     assert rc == 1

@@ -34,6 +34,7 @@ resume.
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -62,6 +63,7 @@ class CampaignSummary:
     conjectured: int = 0
     refuted: int = 0
     exact_upgrades: int = 0
+    move_errors: int = 0
     spent_cost_usd: float = 0.0
     stop_reason: str | None = None
     f3_alarm: bool = False
@@ -82,6 +84,30 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
         prior_gens = [e.gen for e in state.population.events(trigger="generation")]
         gen = 1 + max(prior_gens, default=0)
 
+        # Move-error isolation (overnight-safety review I2): a transport
+        # blip (claude subprocess dies, network hiccup, a malformed envelope
+        # crashing a parser edge) must NOT kill an unattended campaign -- it
+        # is logged durably (`move_error` search_event), counted as
+        # no-progress for the scheduler, and the loop continues. But a
+        # PERSISTENTLY broken transport must not spin forever either: the
+        # circuit breaker stops the campaign after
+        # `cfg.max_consecutive_move_errors` consecutive failed moves
+        # (stop_reason='move_errors'). Any successfully completed move
+        # resets the streak. Only `Exception` is isolated: F3Alarm keeps
+        # its dedicated stop-the-world handling below, and
+        # KeyboardInterrupt/SystemExit (BaseException) propagate.
+        consecutive_errors = 0
+
+        def note_move_error(move: str, exc: Exception) -> bool:
+            """Log + count an isolated move failure; True = breaker tripped."""
+            nonlocal consecutive_errors
+            consecutive_errors += 1
+            summary.move_errors += 1
+            logger.warning("campaign: %s move failed (isolated): %r", move, exc)
+            state.population.log_event(gen, "move_error", {"move": move, "error": repr(exc)})
+            scheduler.record(move, False)
+            return consecutive_errors >= cfg.max_consecutive_move_errors
+
         while True:
             spent = state.ledger.spent()
             summary.spent_cost_usd = spent.cost_usd
@@ -93,7 +119,10 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
             move = scheduler.next_move()
 
             if move == "search":
-                targets = open_targets(rows, cfg.search_target_n, cfg.targets_per_gen)
+                targets = open_targets(
+                    rows, cfg.search_target_n, cfg.targets_per_gen,
+                    population=state.population,
+                )
                 if not targets:
                     scheduler.note_targets_exhausted()
                     continue
@@ -105,7 +134,13 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
                     summary.stop_reason = "f3_alarm"
                     summary.spent_cost_usd = state.ledger.spent().cost_usd
                     break
+                except Exception as exc:
+                    if note_move_error("search", exc):
+                        summary.stop_reason = "move_errors"
+                        break
+                    continue
 
+                consecutive_errors = 0
                 stall.feed(report)
                 scheduler.note_stall("search", stall.assess())
                 scheduler.record("search", report.inserted > 0)
@@ -114,7 +149,15 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
                 gen += 1
 
             else:  # "conjecture"
-                arts = await conjecture_move(state, cfg, client)
+                try:
+                    arts = await conjecture_move(state, cfg, client)
+                except Exception as exc:
+                    if note_move_error("conjecture", exc):
+                        summary.stop_reason = "move_errors"
+                        break
+                    continue
+
+                consecutive_errors = 0
                 new_conjectured = 0
                 new_refuted = 0
                 for art in arts:
@@ -132,7 +175,18 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
 
         summary.spent_cost_usd = state.ledger.spent().cost_usd
     finally:
-        state.population.log_event(-1, "campaign_end", asdict(summary))
-        state.close()
+        # The end-marker write must never mask the exception that got us
+        # here (review M3): a failing log_event (e.g. the ledger connection
+        # itself is what broke) is reported to stderr, not raised over the
+        # original error. state.close() is still guaranteed to run.
+        try:
+            state.population.log_event(-1, "campaign_end", asdict(summary))
+        except Exception as log_exc:
+            print(
+                f"empiricist: failed to log campaign_end event: {log_exc!r}",
+                file=sys.stderr,
+            )
+        finally:
+            state.close()
 
     return summary
