@@ -368,9 +368,43 @@ class Ledger:
         ).fetchone()
         return Spent(cost_usd=r["cost"], tokens_in=r["tin"], tokens_out=r["tout"])
 
+    def run_aggregates(self) -> list[RoleAggregate]:
+        """Per-role cost/token/run-count aggregates over `runs` (M7 T3: the
+        report's per-role header line). `role` is nullable in the schema (a
+        non-model subprocess run, e.g. an ENUMERATE-tier verifier call, has
+        no role) -- that bucket is reported as `role=None` rather than
+        dropped, so `SUM(runs.cost_usd)` always equals the sum across every
+        returned row's `cost_usd`, same total-accounting discipline as
+        `spent()`. Ordered by role (SQLite sorts NULL first) for a stable,
+        deterministic report rendering.
+        """
+        rows = self.conn.execute(
+            "SELECT role, COALESCE(SUM(cost_usd), 0.0) AS cost,"
+            " COALESCE(SUM(tokens_in), 0) AS tin,"
+            " COALESCE(SUM(tokens_out), 0) AS tout,"
+            " COUNT(*) AS n"
+            " FROM runs GROUP BY role ORDER BY role"
+        ).fetchall()
+        return [
+            RoleAggregate(
+                role=r["role"], cost_usd=r["cost"], tokens_in=r["tin"],
+                tokens_out=r["tout"], run_count=r["n"],
+            )
+            for r in rows
+        ]
+
 
 @dataclass(frozen=True)
 class Spent:
     cost_usd: float
     tokens_in: int
     tokens_out: int
+
+
+@dataclass(frozen=True)
+class RoleAggregate:
+    role: str | None
+    cost_usd: float
+    tokens_in: int
+    tokens_out: int
+    run_count: int

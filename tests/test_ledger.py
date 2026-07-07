@@ -4,8 +4,8 @@ import sqlite3
 
 import pytest
 
-from empiricist.ledger.db import Ledger, TerminalStatusError
-from empiricist.ledger.models import Artifact, EvidenceRow, Status, Verdict
+from empiricist.ledger.db import Ledger, RoleAggregate, TerminalStatusError
+from empiricist.ledger.models import Artifact, EvidenceRow, Run, Status, Verdict
 from empiricist.store import Store
 
 
@@ -214,3 +214,40 @@ def test_status_n_clears_when_leaving_verified_n(ledger, store):
     got = ledger.get_artifact(art.id)
     assert got.status == Status.CERTIFIED
     assert got.status_n is None and got.coverage is None
+
+
+def test_run_aggregates_empty_ledger(ledger):
+    assert ledger.run_aggregates() == []
+
+
+def test_run_aggregates_groups_by_role_and_sums_cost_and_tokens(ledger):
+    ledger.start_run(Run(run_id="r1", move="SAMPLE", role="searcher"))
+    ledger.finish_run("r1", exit_code=0, wall_s=1.0, tokens_in=100, tokens_out=50, cost_usd=0.1)
+    ledger.start_run(Run(run_id="r2", move="SAMPLE", role="searcher"))
+    ledger.finish_run("r2", exit_code=0, wall_s=1.0, tokens_in=200, tokens_out=75, cost_usd=0.2)
+    ledger.start_run(Run(run_id="r3", move="SAMPLE", role="conjecturer"))
+    ledger.finish_run("r3", exit_code=0, wall_s=1.0, tokens_in=10, tokens_out=5, cost_usd=0.05)
+
+    aggs = {a.role: a for a in ledger.run_aggregates()}
+    assert set(aggs) == {"searcher", "conjecturer"}
+    assert aggs["searcher"] == RoleAggregate(
+        role="searcher", cost_usd=pytest.approx(0.3), tokens_in=300, tokens_out=125, run_count=2
+    )
+    assert aggs["conjecturer"] == RoleAggregate(
+        role="conjecturer", cost_usd=pytest.approx(0.05), tokens_in=10, tokens_out=5, run_count=1
+    )
+
+
+def test_run_aggregates_buckets_null_role_separately(ledger):
+    """A non-model subprocess run (e.g. an ENUMERATE-tier verifier call) has
+    no role -- it must still be counted (role=None bucket), never dropped,
+    so the aggregate total always reconciles with spent()."""
+    ledger.start_run(Run(run_id="r1", move="ENUMERATE", role=None))
+    ledger.finish_run("r1", exit_code=0, wall_s=1.0, tokens_in=0, tokens_out=0, cost_usd=0.0)
+    ledger.start_run(Run(run_id="r2", move="SAMPLE", role="searcher"))
+    ledger.finish_run("r2", exit_code=0, wall_s=1.0, tokens_in=5, tokens_out=5, cost_usd=0.01)
+
+    aggs = ledger.run_aggregates()
+    assert {a.role for a in aggs} == {None, "searcher"}
+    total_cost = sum(a.cost_usd for a in aggs)
+    assert total_cost == pytest.approx(ledger.spent().cost_usd)
