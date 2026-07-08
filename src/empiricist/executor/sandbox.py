@@ -43,6 +43,32 @@ _PROFILE = """\
   (literal "/dev/null"))
 """
 
+# Hardened variant for running UNTRUSTED elaboration (the Lean compile gate): the
+# same net/signal/write posture PLUS a full fork/exec lockdown. `(deny
+# process-fork)` and `(deny process-exec*)` stop the untrusted process from
+# spawning ANY child (the M8 5th break: a compile-time `#eval`/`run_cmd` spawned a
+# DETACHED child that outlived the gate and, via a rename-swap TOCTOU, poisoned the
+# checked olean). The one exception is the initial exec of the gate's OWN binary --
+# sandbox-exec applies the profile then execs the target, and that exec is itself
+# governed by process-exec*, so the target binary path must be explicitly allowed.
+# Legitimate Lean elaboration (our scaffold + `import Mathlib`) never shells out,
+# so nothing legitimate is lost (verified empirically). `{exec_path}` is the single
+# allowed exec target (argv[0] of the wrapped command).
+_PROFILE_NO_SUBPROCESS = """\
+(version 1)
+(allow default)
+(deny network*)
+(deny signal)
+(allow signal (target same-sandbox))
+(deny process-fork)
+(deny process-exec*)
+(allow process-exec* (literal "{exec_path}"))
+(deny file-write*)
+(allow file-write*
+  (subpath "{workdir}")
+  (literal "/dev/null"))
+"""
+
 
 class SandboxMode(StrEnum):
     NONE = "none"                  # trusted harness code / tests only
@@ -50,24 +76,40 @@ class SandboxMode(StrEnum):
     CONTAINER = "container"        # v0.1: Apple container microVM (flagged)
 
 
-def profile_for(workdir: Path) -> str:
+def profile_for(workdir: Path, *, exec_only: Path | None = None) -> str:
     # resolve() BEFORE the regex is load-bearing: it collapses ../ and symlinks
     # (so no `..` reaches the subpath literal) and canonicalizes /var -> /private/var
     # (so in-workdir writes match). Do not reorder.
     resolved = str(workdir.resolve())
     if not _SAFE_PATH.fullmatch(resolved):
         raise ValueError(f"workdir path unsafe for SBPL literal: {resolved!r}")
-    return _PROFILE.format(workdir=resolved)
+    if exec_only is None:
+        return _PROFILE.format(workdir=resolved)
+    # Fork/exec-locked profile: only `exec_only` (resolved to the real binary, so
+    # it matches the path the kernel sees when sandbox-exec execs it) may be exec'd.
+    exec_path = str(Path(exec_only).resolve())
+    if not _SAFE_PATH.fullmatch(exec_path):
+        raise ValueError(f"exec path unsafe for SBPL literal: {exec_path!r}")
+    return _PROFILE_NO_SUBPROCESS.format(workdir=resolved, exec_path=exec_path)
 
 
 def sandbox_wrap(
-    argv: list[str], *, workdir: Path, mode: SandboxMode
+    argv: list[str], *, workdir: Path, mode: SandboxMode, deny_subprocess: bool = False
 ) -> list[str]:
-    """Wrap argv for execution under the chosen isolation mode."""
+    """Wrap argv for execution under the chosen isolation mode.
+
+    `deny_subprocess` (SANDBOX_EXEC only) adds the fork/exec lockdown profile,
+    permitting only the exec of `argv[0]` (the gate's own binary) — so untrusted
+    elaboration cannot spawn a persistent child. Ignored under NONE (trusted)."""
     if mode is SandboxMode.NONE:
         return list(argv)
     if mode is SandboxMode.SANDBOX_EXEC:
-        return ["/usr/bin/sandbox-exec", "-p", profile_for(workdir), *argv]
+        if deny_subprocess and not argv:
+            raise ValueError(
+                "deny_subprocess requires a non-empty argv (argv[0] is the exec target)"
+            )
+        exec_only = Path(argv[0]) if deny_subprocess else None
+        return ["/usr/bin/sandbox-exec", "-p", profile_for(workdir, exec_only=exec_only), *argv]
     raise NotImplementedError(
         "container isolation is the flagged v0.1 upgrade path (spec D8)"
     )

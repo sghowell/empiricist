@@ -7,19 +7,45 @@ toolchain since v4.28.0 and version-matched to our pinned v4.31.0), over a
 compile that runs untrusted metaprogramming INSIDE AN OS SANDBOX with a
 pinned-trusted import path. The gate is a pipeline over ONE compiled artifact:
 
-    (b)  COMPILE   `lean --root <work> --json -o <olean> <scratch>`  [SANDBOXED]
-                   severity=="error" -> FAIL(diagnostics); `sorry` -> FAIL(sorry)
+    (b)  COMPILE   `lean --root <work> --json -o <olean> <scratch>`  [SANDBOXED,
+                   fork/exec DENIED] severity=="error" -> FAIL(diagnostics);
+                   `sorry` -> FAIL(sorry)
+    (F)  FREEZE    atomic READ-ONLY snapshot of <olean> -> <frozen>/<tok>.olean,
+                   OUTSIDE every sandbox-writable workdir. Gates (c)/(d) read the
+                   scratch module from THIS frozen file, never from `work`.
     (b2) IMPORTS   `lean --deps <scratch>`   [SANDBOXED, Lever 2 import-trust]
                    any resolved import olean NOT under a pinned-trusted root
                    (and != the trusted EmpiricistLean.Basic) -> FAIL(import_trust)
-    (c)  KERNEL    `leanchecker <Module>`     [SANDBOXED] [THE TRUST ANCHOR]
+    (c)  KERNEL    `leanchecker <Module>`  [SANDBOXED, LEAN_PATH->FROZEN] [ANCHOR]
                    nonzero exit / kernel-mismatch output -> FAIL(kernel_soundness)
-    (d)  AXIOMS    compiled `axiom_audit` driver over the SAME olean [SANDBOXED]
-                   axiom outside whitelist -> FAIL(axioms); the driver also reports
-                   the module's TRANSITIVE import closure (Lever 2 backstop:
-                   unknown root / non-Basic EmpiricistLean import -> FAIL(import_trust))
-                   and emits the decl's resolved STATEMENT.
+    (d)  AXIOMS    compiled `axiom_audit` driver over the FROZEN olean [SANDBOXED,
+                   LEAN_PATH->FROZEN] axiom outside whitelist -> FAIL(axioms); the
+                   driver also reports the module's TRANSITIVE import closure with
+                   RESOLVED PATHS (Lever 2/4 backstop: unknown root, non-Basic
+                   EmpiricistLean import, or any import olean path not under a pinned
+                   root -> FAIL(import_trust)) and emits the decl's resolved STATEMENT.
     (e)  PASS      records the decl's resolved statement + statement_hash
+
+**Root cause of the 5th break (this fix).** The kernel-checked olean lived INSIDE
+the writable ephemeral `work` jail, and BOTH gate (c) and gate (d) re-read
+`work/<tok>.olean` off a LEAN_PATH that included `work` -- nothing bound the bytes
+across the two gates. A compile-time `#eval`/`run_cmd` spawned a DETACHED child
+(stdio -> /dev/null, so the parent's `communicate()` still EOFed) that survived
+gate (b) -- `executor/runner.py` only killed the process group on the
+timeout/exception branches, not on normal completion. After leanchecker (c) read
+the HONEST olean, the child `mv`'d a poison olean over `work/<tok>.olean` before the
+axiom_audit driver (d) imported it: (c) kernel-checks honest -> passes; (d) audits
+the swapped poison -> PASS on `2 = 3`, axioms=[]. **The fix (load-bearing = FREEZE):**
+after (b) compiles the olean, atomically snapshot it into a READ-ONLY dir OUTSIDE
+every sandbox-writable workdir and run BOTH (c) and (d) with LEAN_PATH pointed at
+that frozen dir. The two gates now read the ONE frozen artifact, so they cannot
+diverge -- snapshot honest -> (d) finds no evil, the honest result; snapshot poison
+-> (c) kernel-rejects; no split -> no PASS-on-false. A surviving child rewriting
+`work/<tok>.olean` is INERT. Defense-in-depth: (i) the untrusted compile runs under
+a fork/exec-DENIED sandbox profile so no persistent child can spawn at all;
+(ii) `executor/runner.py` reaps the whole process group on NORMAL completion too;
+(iii) gate (d)'s import-closure check is PATH-based (each resolved import olean must
+sit under a pinned root), not name-based.
 
 **Root cause of the 4th break (this fix).** The predecessor ran the untrusted
 compile at `SandboxMode.NONE` in the shared, writable, non-sandboxed project with
@@ -99,6 +125,7 @@ path (`registry.certify_with_suite`, additive).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import json
 import os
@@ -235,7 +262,7 @@ class LeanVerifier:
     model."""
 
     name = "lean"
-    version = "3.1"
+    version = "3.2"
 
     def __init__(self, project_dir: Path | None = None) -> None:
         self._project_dir = project_dir or _DEFAULT_PROJECT_DIR
@@ -249,6 +276,12 @@ class LeanVerifier:
         # Read-only trusted lib (Basic.olean copy), under .lake (gitignored) but NOT
         # the build lib and NOT any sandbox workdir -> untamperable by the sandbox.
         self._trusted_lib_dir = self._project_dir / ".lake" / "empiricist-trusted-lib"
+        # Parent of the per-call READ-ONLY frozen-olean snapshot dirs (M8 v5): under
+        # .lake (gitignored), NOT the build lib and NOT any sandbox workdir. The
+        # kernel-checked olean is atomically snapshotted into a per-call subdir here,
+        # made read-only, and BOTH gate (c) and gate (d) read the scratch module from
+        # it -- so a surviving compile-time child rewriting `work/<tok>.olean` is inert.
+        self._frozen_lib_dir = self._project_dir / ".lake" / "empiricist-frozen-lib"
         self._pin_manifest = self._project_dir.parent / "lean4checker.pin.json"
         self._cfg: _ToolchainConfig | None = None
 
@@ -310,6 +343,10 @@ class LeanVerifier:
         scratch_path = work / f"{tok}.lean"
         nonce_path = work / f"{tok}.nonce"
         olean_path = work / f"{tok}.olean"
+        # Per-call READ-ONLY frozen-snapshot dir, OUTSIDE `work` (so a sandbox child
+        # confined to `work` cannot reach it). Holds the one kernel-input olean both
+        # gate (c) and gate (d) read; removed (write bits restored) in `finally`.
+        frozen_dir = self._frozen_lib_dir / tok
         # Fresh per call: the attacker cannot predict or read it (the driver deletes
         # the nonce file before importing), so cannot forge a result line.
         nonce = f"AXIOM_AUDIT_{uuid.uuid4().hex}"
@@ -319,7 +356,7 @@ class LeanVerifier:
                     module_source, decl=decl, timeout_s=timeout_s,
                     module_name=module_name, work=work, scratch_path=scratch_path,
                     nonce=nonce, nonce_path=nonce_path, olean_path=olean_path,
-                    source_hash=source_hash,
+                    frozen_dir=frozen_dir, source_hash=source_hash,
                 )
             )
         except Exception as exc:
@@ -329,13 +366,15 @@ class LeanVerifier:
             )
         finally:
             # Lever 3: remove the whole ephemeral workdir (source, olean, nonce, and
-            # any compile-time residue confined there), unconditionally.
+            # any compile-time residue confined there), unconditionally, plus the
+            # read-only frozen-snapshot dir (write bits restored first).
             shutil.rmtree(work, ignore_errors=True)
+            self._force_rmtree(frozen_dir)
 
     async def _verify_async(
         self, module_source: str, *, decl: str, timeout_s: float,
         module_name: str, work: Path, scratch_path: Path, nonce: str,
-        nonce_path: Path, olean_path: Path, source_hash: str,
+        nonce_path: Path, olean_path: Path, frozen_dir: Path, source_hash: str,
     ) -> VerifierResult:
         build_err = await self._ensure_ready_async()
         if build_err is not None:
@@ -356,17 +395,26 @@ class LeanVerifier:
         # The scratch file is the UNMODIFIED source -- the harness appends NOTHING.
         scratch_path.write_text(module_source, encoding="utf-8")
         nonce_path.write_text(nonce, encoding="utf-8")
-        lean_path = self._restricted_lean_path(work, cfg)
-        env_extra = {**self._lean_env(), "LEAN_PATH": lean_path, "LEAN_SYSROOT": cfg.sysroot}
+        # Two LEAN_PATHs: `work_env` (writable scratch dir on path) for the untrusted
+        # compile/deps over the SOURCE; `frozen_env` (the READ-ONLY snapshot dir on
+        # path, NOT `work`) for the two kernel gates over the frozen OLEAN. Both
+        # exclude the writable project build lib (Lever 2).
+        work_env = {
+            **self._lean_env(),
+            "LEAN_PATH": self._restricted_lean_path(work, cfg),
+            "LEAN_SYSROOT": cfg.sysroot,
+        }
 
-        def sandboxed(argv: list[str], move: str) -> ExecSpec:
+        def sandboxed(argv: list[str], move: str, env: dict[str, str]) -> ExecSpec:
             # cwd=work makes `work` the sandbox write jail (executor resolves cwd to
             # the SBPL subpath). env_passthrough=False + SANDBOX_EXEC: no secrets, no
-            # network, writes confined to `work`.
+            # network, writes confined to `work`. deny_subprocess: fork/exec DENIED
+            # (except this binary), so untrusted elaboration cannot spawn a persistent
+            # child (the 5th break's detached olean-swapper).
             return ExecSpec(
                 argv=argv, move=move, cwd=work,
-                sandbox=SandboxMode.SANDBOX_EXEC,
-                env_passthrough=False, env_extra=env_extra,
+                sandbox=SandboxMode.SANDBOX_EXEC, deny_subprocess=True,
+                env_passthrough=False, env_extra=env,
                 capture_cap=_CAPTURE_CAP, timeout_s=timeout_s,
             )
 
@@ -375,7 +423,7 @@ class LeanVerifier:
             sandboxed(
                 [str(cfg.lean_bin), "--root", str(work), "--json",
                  "-o", str(olean_path), scratch_path.name],
-                "LEAN_COMPILE",
+                "LEAN_COMPILE", work_env,
             ),
             ledger=None,
         )
@@ -401,11 +449,23 @@ class LeanVerifier:
                 },
             )
 
+        # -- Gate (F): FREEZE the kernel-input olean (LOAD-BEARING, closes the TOCTOU
+        # class). Atomic READ-ONLY snapshot OUTSIDE every sandbox-writable workdir;
+        # both kernel gates below read the scratch module from it, so a surviving
+        # compile-time child rewriting `work/<tok>.olean` cannot make (c) and (d)
+        # diverge. `frozen_env` points LEAN_PATH at the frozen dir (never `work`).
+        frozen_olean = self._freeze_olean(olean_path, frozen_dir, module_name)
+        frozen_env = {
+            **self._lean_env(),
+            "LEAN_PATH": self._frozen_lean_path(frozen_dir, cfg),
+            "LEAN_SYSROOT": cfg.sysroot,
+        }
+
         # -- Gate (b2): IMPORT-TRUST over DIRECT imports (Lever 2, early). ----------
         deps_res = await execute(
             sandboxed(
                 [str(cfg.lean_bin), "--root", str(work), "--deps", scratch_path.name],
-                "LEAN_IMPORT_DEPS",
+                "LEAN_IMPORT_DEPS", work_env,
             ),
             ledger=None,
         )
@@ -419,9 +479,10 @@ class LeanVerifier:
                 details={"gate": "import_trust", "untrusted_imports": untrusted[:8]},
             )
 
-        # -- Gate (c): KERNEL re-check via leanchecker (THE TRUST ANCHOR). ---------
+        # -- Gate (c): KERNEL re-check via leanchecker over the FROZEN olean. -------
         lc_res = await execute(
-            sandboxed([str(cfg.leanchecker_bin), module_name], "LEAN_KERNEL_CHECK"),
+            sandboxed([str(cfg.leanchecker_bin), module_name], "LEAN_KERNEL_CHECK",
+                      frozen_env),
             ledger=None,
         )
         early = self._exec_guard(lc_res, "leanchecker")
@@ -442,11 +503,11 @@ class LeanVerifier:
                 },
             )
 
-        # -- Gate (d): AXIOM SET + IMPORT CLOSURE + STATEMENT over the SAME olean. --
+        # -- Gate (d): AXIOM SET + IMPORT CLOSURE + STATEMENT over the FROZEN olean. -
         audit_res = await execute(
             sandboxed(
                 [str(self._driver_bin), module_name, decl, str(nonce_path)],
-                "LEAN_AXIOM_AUDIT",
+                "LEAN_AXIOM_AUDIT", frozen_env,
             ),
             ledger=None,
         )
@@ -474,8 +535,11 @@ class LeanVerifier:
                 details={"gate": "diagnostics", "errors": driver_errors[:3]},
             )
 
-        # Lever 2 backstop: the driver's TRANSITIVE import closure must be pinned.
-        import_bad = self._untrusted_transitive_imports(result, module_name, cfg)
+        # Lever 2/4 backstop: the driver's TRANSITIVE import closure must be pinned,
+        # by NAME (root) and by RESOLVED PATH (each import olean under a pinned root).
+        import_bad = self._untrusted_transitive_imports(
+            result, module_name, cfg, frozen_olean
+        )
         if import_bad:
             return VerifierResult(
                 verdict=Verdict.FAIL,
@@ -522,11 +586,53 @@ class LeanVerifier:
         )
 
     def _restricted_lean_path(self, work: Path, cfg: _ToolchainConfig) -> str:
-        """LEAN_PATH = pinned read-only roots + the trusted Basic lib + the ephemeral
-        scratch dir. The WRITABLE project build lib is EXCLUDED, so a sibling poison
-        olean planted there is unreachable (Lever 2)."""
+        """LEAN_PATH for the untrusted compile/deps gates = pinned read-only roots +
+        the trusted Basic lib + the ephemeral scratch dir. The WRITABLE project build
+        lib is EXCLUDED, so a sibling poison olean planted there is unreachable
+        (Lever 2)."""
         roots = [*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir), str(work)]
         return os.pathsep.join(roots)
+
+    def _frozen_lean_path(self, frozen_dir: Path, cfg: _ToolchainConfig) -> str:
+        """LEAN_PATH for the two KERNEL gates (c)/(d) = pinned read-only roots + the
+        trusted Basic lib + the READ-ONLY FROZEN snapshot dir (NOT the writable
+        `work`). Both gates resolve the scratch module <tok> from the frozen snapshot,
+        so a compile-time child rewriting `work/<tok>.olean` cannot reach what they
+        check -- the load-bearing half of the 5th-break fix."""
+        roots = [*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir), str(frozen_dir)]
+        return os.pathsep.join(roots)
+
+    def _freeze_olean(self, olean_path: Path, frozen_dir: Path, module_name: str) -> Path:
+        """Atomically snapshot the just-compiled, about-to-be-kernel-checked olean
+        into a READ-ONLY location OUTSIDE every sandbox-writable workdir -- the SAME
+        untamperable-copy pattern used for the trusted Basic.olean (temp + chmod +
+        os.replace). Copy to a temp sibling, make it read-only, atomically publish it
+        as `<module_name>.olean`, then make the snapshot dir itself non-writable (DiD
+        atop the sandbox, which already denies writes outside `work`). Gates (c)/(d)
+        read the module from the returned frozen path; a child confined to `work`
+        cannot reach it. Returns the resolved frozen olean path."""
+        frozen_dir.mkdir(parents=True, exist_ok=True)
+        frozen_olean = (frozen_dir / f"{module_name}.olean").resolve()
+        tmp = frozen_dir / f".{module_name}.olean.{uuid.uuid4().hex}.tmp"
+        shutil.copyfile(olean_path, tmp)
+        os.chmod(tmp, 0o444)
+        os.replace(tmp, frozen_olean)
+        os.chmod(frozen_dir, 0o555)
+        return frozen_olean
+
+    @staticmethod
+    def _force_rmtree(path: Path) -> None:
+        """Remove a tree that may have been made READ-ONLY (the frozen snapshot dir
+        and its 0o444 olean): restore write bits on the dir + its entries first so
+        removal cannot fail on the read-only file/dir, then remove unconditionally.
+        A no-op (suppressed) if the path never materialized."""
+        with contextlib.suppress(OSError):
+            os.chmod(path, 0o755)
+        with contextlib.suppress(OSError):
+            for child in path.iterdir():
+                with contextlib.suppress(OSError):
+                    os.chmod(child, 0o644)
+        shutil.rmtree(path, ignore_errors=True)
 
     def _untrusted_import_paths(
         self, deps_stdout: str, cfg: _ToolchainConfig, work: Path
@@ -554,22 +660,44 @@ class LeanVerifier:
         return untrusted
 
     def _untrusted_transitive_imports(
-        self, result: dict[str, Any], module_name: str, cfg: _ToolchainConfig
+        self, result: dict[str, Any], module_name: str, cfg: _ToolchainConfig,
+        frozen_olean: Path,
     ) -> dict[str, Any] | None:
-        """Gate (d) backstop: over the driver's TRANSITIVE import closure, reject any
-        top-level ROOT that is not pinned-trusted (allowing the scratch's own module
-        root) and any `EmpiricistLean.*` import other than `EmpiricistLean.Basic`.
-        Returns a details dict on violation, else None."""
+        """Gate (d) backstop: over the driver's TRANSITIVE import closure, reject
+        (a) any top-level ROOT that is not pinned-trusted (allowing the scratch's own
+        module root), (b) any `EmpiricistLean.*` import other than
+        `EmpiricistLean.Basic`, and (c) [Lever 4] any resolved import olean whose PATH
+        is not under a pinned-trusted root (mirroring gate b2). The PATH check is the
+        one that catches a planted `Mathlib/Fake.olean` a name-only root check would
+        wave through on the `Mathlib` root alone. Returns a details dict on violation,
+        else None."""
         roots = result.get("importRoots") or []
         allowed = cfg.allowed_roots | {module_name}
         bad_roots = [r for r in roots if r not in allowed]
         emp = result.get("empiricistImports") or []
         bad_emp = [m for m in emp if m != _TRUSTED_EMPIRICIST_MODULE]
-        if bad_roots or bad_emp:
+        # Lever 4: every RESOLVED import olean path must sit under a pinned-trusted
+        # root, or be the trusted Basic copy, or the frozen scratch olean itself.
+        bad_paths: list[str] = []
+        for raw in result.get("importPaths") or []:
+            if not raw:
+                continue  # unresolvable name: the name-based root check still applies
+            try:
+                p = Path(raw).resolve()
+            except OSError:
+                bad_paths.append(raw)
+                continue
+            if p == cfg.basic_olean or p == frozen_olean:
+                continue
+            if any(self._is_under(p, root) for root in cfg.trusted_roots):
+                continue
+            bad_paths.append(str(p))
+        if bad_roots or bad_emp or bad_paths:
             return {
                 "reason": "transitive import closure includes non-pinned modules",
                 "unexpected_roots": bad_roots[:8],
                 "unexpected_empiricist_imports": bad_emp[:8],
+                "unexpected_import_paths": bad_paths[:8],
             }
         return None
 

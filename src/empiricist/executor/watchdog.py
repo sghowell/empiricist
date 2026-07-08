@@ -26,6 +26,24 @@ def kill_process_group(pid: int) -> None:
         pass
 
 
+def reap_process_group(pgid: int) -> None:
+    """SIGKILL every process still in group `pgid`, EVEN IF the group leader has
+    already exited. This is the normal-completion straggler case: `communicate()`
+    reaps the leader, but a detached same-group child (spawned by untrusted
+    compile-time code, no `setsid`) can outlive it — the M8 5th break relied on
+    exactly such a survivor to swap an olean after the gate returned.
+    `kill_process_group` cannot handle this (its `getpgid(leader)==leader` guard
+    fails once the leader is reaped), so this signals the pgid directly. Quiet if
+    the group is already empty (ESRCH). The small pid-reuse window is bounded by
+    calling this immediately after the reap; a reused pid would have to become a
+    group leader (pgid==pid) in that window to be mis-hit, which a normal fork
+    (inheriting its parent's pgid) does not do."""
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
 def _rss_bytes(proc: psutil.Process) -> int:
     total = 0
     try:

@@ -58,7 +58,7 @@ _GOLDEN_IDS = [
     "spoof_io_println", "spoof_run_cmd", "override_elab", "override_macro",
     "inject_driver_result", "inject_skip_kernel_tc", "inject_add_decl_core",
     "inject_replay", "true_statement", "poison_import", "unexpected_import",
-    "compile_time_olean_write",
+    "compile_time_olean_write", "toctou_olean_swap",
 ]
 
 # Exploit sources for the Lever 1/2/3 integration tests. `__POISON__` is replaced
@@ -322,7 +322,7 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     ev = ledger.evidence_for(art.id)
     assert len(ev) == 1
     assert ev[0].verifier == "lean"
-    assert ev[0].verifier_version == "3.1"
+    assert ev[0].verifier_version == "3.2"
     assert ev[0].verdict == Verdict.PASS
     assert ev[0].details["decl"] == decl
     assert ev[0].details["mathlib_commit"]
@@ -411,6 +411,60 @@ def test_poison_plant_then_harvest_exploit_fails(verifier):
         assert r2.verdict != Verdict.PASS, r2.details  # a false 2=3 must NEVER PASS
     finally:
         shared_poison.unlink(missing_ok=True)
+
+
+@slow_lean
+@requires_lake
+def test_toctou_olean_swap_detached_child_cannot_pass(verifier):
+    """THE 5th break, end-to-end through the real verify(). An HONEST module whose
+    compile-time `run_cmd` spawns a DETACHED child that swaps a `2 = 3` poison olean
+    over `work/<tok>.olean` between leanchecker (gate c) and the audit driver
+    (gate d). Under the old code this returned PASS on `statement == '2 = 3'` with
+    `axioms == []`. It must now NEVER PASS on the false claim: the kernel-input olean
+    is FROZEN read-only outside `work` (both gates read the honest snapshot), the
+    compile is fork/exec-denied (the spawn is refused), and the executor reaps the
+    process group on normal completion. Swept across swap-delays to be sure there is
+    no residual window."""
+    from empiricist.verifiers.lean_goldens import _TOCTOU_OLEAN_SWAP_SOURCE
+
+    def _delayed_variant(delay: float) -> str:
+        # A fixed-delay worker (the reviewer's t2e sweep) rather than the nonce-watch
+        # default -- probes the whole gate-c-end -> gate-d-read window directly.
+        worker = (
+            "t=; while [ x$t = x ]; do "
+            "t=$(ls *.olean 2>/dev/null | grep -v poison_stage | head -1); done; "
+            "cp poison_stage.olean READY.olean; "
+            f"sleep {delay}; mv READY.olean $t"
+        )
+        return (
+            "import Lean\nopen Lean Elab Command Term Meta\n\n"
+            "namespace Empiricist\ntheorem honest : True := trivial\nend Empiricist\n\n"
+            "run_cmd liftTermElabM do\n"
+            "  let ty ← instantiateMVars (← elabTerm (← `((2:Nat)=3)) none)\n"
+            "  let vl ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 2)) none)\n"
+            "  let d : Declaration := .thmDecl "
+            "{ name := `Empiricist.evil_claim, levelParams := [], type := ty, value := vl }\n"
+            "  let env ← getEnv\n"
+            "  match env.addDeclCore (0 : USize) d none (doCheck := false) with\n"
+            "  | .ok env' =>\n"
+            "      Lean.writeModule env' \"poison_stage.olean\"\n"
+            "      let worker := \"" + worker + "\"\n"
+            "      let _ ← IO.Process.spawn "
+            "{ cmd := \"sh\", args := #[\"-c\", worker], "
+            "stdout := .null, stderr := .null, stdin := .null }\n"
+            "      pure ()\n  | .error _ => pure ()\n"
+        )
+
+    # The suite golden (nonce-watch, delay-free) first.
+    r = verifier.verify(_TOCTOU_OLEAN_SWAP_SOURCE, decl="Empiricist.evil_claim", timeout_s=120)
+    assert r.verdict != Verdict.PASS, r.details
+    assert (r.details.get("statement") or "").replace(" ", "") != "2=3", r.details
+
+    # Then a swap-delay sweep across the gate-c -> gate-d window.
+    for delay in (0.0, 1.0, 2.0, 3.0, 4.0, 5.0):
+        rd = verifier.verify(_delayed_variant(delay), decl="Empiricist.evil_claim", timeout_s=120)
+        assert rd.verdict != Verdict.PASS, (delay, rd.details)
+        assert (rd.details.get("statement") or "").replace(" ", "") != "2=3", (delay, rd.details)
 
 
 @slow_lean
@@ -557,7 +611,7 @@ def test_verify_error_verdict_on_bad_project_dir():
 
 def test_identity():
     assert LeanVerifier.name == "lean"
-    assert LeanVerifier.version == "3.1"
+    assert LeanVerifier.version == "3.2"
 
 
 def test_applicable():
@@ -614,6 +668,22 @@ def test_lean_golden_suite_covers_the_poison_import_vectors():
     # all three are must-FAIL
     for decl in ("Empiricist.grandclaim", "Empiricist.one_eq_two"):
         assert decl in cases and cases[decl][1] is False
+
+
+def test_lean_golden_suite_covers_the_toctou_olean_swap_vector():
+    """The gate-c/d TOCTOU olean-swap fix (M8 v5) must be pinned by a must-FAIL
+    golden: an honest module whose compile-time `run_cmd` spawns a detached child to
+    swap a `2 = 3` poison olean over `work/<tok>.olean` between the kernel gates. A
+    regression that dropped the frozen snapshot / fork-exec deny / group-reap could
+    otherwise reopen the hole and still earn a certification stamp."""
+    cases = {decl: (src, exp) for src, decl, exp in LEAN_GOLDEN_SUITE}
+    joined = "\n".join(src for src, _, _ in LEAN_GOLDEN_SUITE)
+    # a detached-child spawn that swaps a staged poison olean over the scratch olean
+    assert "IO.Process.spawn" in joined
+    assert "poison_stage.olean" in joined
+    assert "mv READY.olean" in joined
+    assert "evil_claim" in joined
+    assert "Empiricist.evil_claim" in cases and cases["Empiricist.evil_claim"][1] is False
 
 
 def test_binary_hash_changes_when_manifest_bytes_differ(monkeypatch):

@@ -81,6 +81,7 @@ structure Result where
   statement : String
   importRoots : Array String
   empiricistImports : Array String
+  importPaths : Array String
 
 def Result.toJson (r : Result) : Json :=
   Json.mkObj
@@ -89,7 +90,24 @@ def Result.toJson (r : Result) : Json :=
     , ("axioms", Json.arr (r.axioms.map Json.str))
     , ("statement", Json.str r.statement)
     , ("importRoots", Json.arr (r.importRoots.map Json.str))
-    , ("empiricistImports", Json.arr (r.empiricistImports.map Json.str)) ]
+    , ("empiricistImports", Json.arr (r.empiricistImports.map Json.str))
+    , ("importPaths", Json.arr (r.importPaths.map Json.str)) ]
+
+/-- Resolve every transitively-imported module to the olean PATH it loads from,
+via the SAME search path (`searchPathRef`, populated from `LEAN_PATH` +
+sysroot) that `importModules` used — so `findOLean n` returns the exact file the
+import resolved. The harness cross-checks each resolved PATH against its
+pinned-trusted roots (M8 soundness fix v5, Lever 4): a name-only root check
+(`Mathlib` allowed) would miss a planted `Mathlib/Fake.olean` resolved from a
+non-pinned dir, so gate d reports PATHS and the harness rejects any not under a
+pinned root. Unresolvable names map to `""` (the harness treats those under the
+name-based root check). -/
+def resolveImportPaths (names : Array Name) : IO (Array String) :=
+  names.mapM fun n => do
+    try
+      let p ← Lean.findOLean n
+      pure p.toString
+    catch _ => pure ""
 
 /-- The transitive import closure of `env`, summarized for the harness's
 import-trust gate: the DISTINCT top-level root components of every imported
@@ -121,14 +139,15 @@ unsafe def auditModule (modName declName : Name) : IO (String × Result) :=
   IO.FS.withIsolatedStreams do
     let env ← importModules #[{ module := modName }] {} (loadExts := true)
     let (importRoots, empiricistImports) := importSummary env
+    let importPaths ← resolveImportPaths env.allImportedModuleNames
     match env.find? declName with
     | none => pure { declFound := false, errors := #[], axioms := #[], statement := "",
-                     importRoots, empiricistImports }
+                     importRoots, empiricistImports, importPaths }
     | some ci =>
       let names ← runCoreM env (Lean.collectAxioms declName)
       let fmt ← runCoreM env (Lean.Meta.ppExpr ci.type).run'
       pure { declFound := true, errors := #[], axioms := names.map (·.toString),
-             statement := fmt.pretty, importRoots, empiricistImports }
+             statement := fmt.pretty, importRoots, empiricistImports, importPaths }
 
 unsafe def mainUnsafe (args : List String) : IO UInt32 := do
   match args with
@@ -150,7 +169,7 @@ unsafe def mainUnsafe (args : List String) : IO UInt32 := do
       pure (0 : UInt32)
     catch e =>
       emit nonce { declFound := false, errors := #[toString e], axioms := #[], statement := "",
-                   importRoots := #[], empiricistImports := #[] }
+                   importRoots := #[], empiricistImports := #[], importPaths := #[] }
       pure (1 : UInt32)
   | _ =>
     IO.eprintln "usage: axiom_audit <module-name> <fully-qualified-decl> <nonce-file>"

@@ -51,6 +51,14 @@ Untrusted.Evil`) must FAIL -- the scratch may build only on pinned mathlib + the
 trusted `EmpiricistLean.Basic`; (16) a compile-time-olean-WRITE attempt (a `#eval`
 that tries to plant `Poison.olean` in the shared build lib) must FAIL -- the
 sandbox denies the write and its in-band `axiom evil : False` fails the axiom gate.
+
+Case 17 is the teeth for the gate-c/d TOCTOU olean-swap fix (M8 v5, the 5th break):
+an HONEST module whose compile-time `run_cmd` spawns a DETACHED child that swaps a
+`2 = 3` poison olean over `work/<tok>.olean` between leanchecker (c) and the audit
+driver (d). It must FAIL -- the compile is fork/exec-DENIED so the spawn is refused,
+the kernel-input olean is FROZEN read-only outside `work` so both gates read the one
+honest artifact (the swap is inert -> gate=decl_missing), and the executor reaps the
+process group on normal completion so no child survives the compile gate.
 """
 
 from __future__ import annotations
@@ -338,6 +346,52 @@ end Empiricist
   : IO Unit)
 """
 
+# -- M8 soundness fix v5: the gate-c/d TOCTOU olean-swap CLASS (the 5th break). --
+# The compiled olean lives in the writable `work` jail, and gates (c) leanchecker
+# and (d) axiom_audit both re-read `work/<tok>.olean`. This source compiles an
+# HONEST module (`honest : True`), builds a POISON env asserting `2 = 3` via
+# `addDeclCore (doCheck := false)` and writes it to `poison_stage.olean`, then
+# spawns a DETACHED child (stdio -> /dev/null so the parent still EOFs) that waits
+# for the harness nonce file to vanish (gate d's start) and atomically `mv`s the
+# poison over `work/<tok>.olean` -- so leanchecker (c) checks the HONEST olean while
+# the driver (d) audits the SWAPPED poison, yielding PASS on `2 = 3`, axioms=[].
+# Must FAIL, on THREE independent levers: the untrusted compile runs fork/exec-DENIED
+# (the spawn is refused at compile -> gate=diagnostics); the kernel-input olean is
+# FROZEN read-only outside `work` and BOTH gates read the frozen copy (the swap is
+# inert -> the honest olean has no `evil_claim` -> gate=decl_missing); and the
+# executor reaps the process group on normal completion (no child survives gate b).
+# The detached-child shell worker (no `"`/`\` so it nests in the Lean string):
+# busy-wait for the scratch olean to appear, stage the poison, then the instant the
+# harness nonce file vanishes (gate d's start) atomically `mv` the poison into place.
+_TOCTOU_WORKER = (
+    "t=; while [ x$t = x ]; do t=$(ls *.olean 2>/dev/null | grep -v poison_stage | head -1); done; "
+    "cp poison_stage.olean READY.olean; "
+    "nf=$(ls *.nonce); while [ -e $nf ]; do :; done; "
+    "mv READY.olean $t"
+)
+_TOCTOU_OLEAN_SWAP_SOURCE = (
+    "import Lean\n"
+    "open Lean Elab Command Term Meta\n\n"
+    "namespace Empiricist\n"
+    "theorem honest : True := trivial\n"
+    "end Empiricist\n\n"
+    "run_cmd liftTermElabM do\n"
+    "  let ty ← instantiateMVars (← elabTerm (← `((2:Nat)=3)) none)\n"
+    "  let vl ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 2)) none)\n"
+    "  let d : Declaration := .thmDecl "
+    "{ name := `Empiricist.evil_claim, levelParams := [], type := ty, value := vl }\n"
+    "  let env ← getEnv\n"
+    "  match env.addDeclCore (0 : USize) d none (doCheck := false) with\n"
+    "  | .ok env' =>\n"
+    "      Lean.writeModule env' \"poison_stage.olean\"\n"
+    '      let worker := "' + _TOCTOU_WORKER + '"\n'
+    "      let _ ← IO.Process.spawn "
+    "{ cmd := \"sh\", args := #[\"-c\", worker], "
+    "stdout := .null, stderr := .null, stdin := .null }\n"
+    "      pure ()\n"
+    "  | .error _ => pure ()\n"
+)
+
 LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_TRUE_SOURCE, "Empiricist.scaffold_true", True),
     (_SORRY_SOURCE, "Empiricist.scaffold_true", False),
@@ -355,6 +409,7 @@ LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_POISON_IMPORT_SOURCE, "Empiricist.grandclaim", False),
     (_UNEXPECTED_IMPORT_SOURCE, "Empiricist.t", False),
     (_COMPILE_TIME_WRITE_SOURCE, "Empiricist.one_eq_two", False),
+    (_TOCTOU_OLEAN_SWAP_SOURCE, "Empiricist.evil_claim", False),
 ]
 
 
