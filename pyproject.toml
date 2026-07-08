@@ -34,6 +34,7 @@ testpaths = ["tests"]
 addopts = "-q"
 markers = [
     "slow: exhaustive/long-running tests (deselect with -m 'not slow')",
+    "slow_lean: invokes real lake/lean on the pinned EmpiricistLean project (deselect with -m 'not slow_lean'; skipped automatically if the project isn't built)",
 ]
 
 [tool.ruff]

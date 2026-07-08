@@ -1,0 +1,7 @@
+/.lake
+# LeanVerifier scratch/nonce/olean files now live in an EPHEMERAL per-call workdir
+# under the system tempdir (the SANDBOX write jail), removed in a finally and swept
+# for residue -- they no longer touch the source tree. This entry is a defensive
+# net for legacy/interrupted runs; the residue sweep FAILs closed on any stray here.
+# The compiled axiom_audit driver + the read-only trusted Basic copy live under .lake.
+EmpiricistLean/Scratch_*

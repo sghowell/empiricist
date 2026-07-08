@@ -233,5 +233,4 @@ runs/
 uv.lock.bak
 
 # Lean build artifacts (the pinned project's oleans/cache are fetched, not versioned)
-empiricist/verifiers/lean_project/.lake/
-empiricist/verifiers/lean_project/lake-packages/
+lean/EmpiricistLean/.lake/

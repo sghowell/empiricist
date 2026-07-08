@@ -1,0 +1,25 @@
+{
+  "_comment": "Durable pin for the FORMALIZED trust anchor: the Lean kernel re-checker. This file's bytes are folded into LeanVerifier.binary_hash, so changing the checker pin mints a new verifier identity and drops prior certification stamps.",
+  "tool": "leanchecker",
+  "distribution": "builtin-toolchain",
+  "toolchain": "leanprover/lean4:v4.31.0",
+  "lean_version": "4.31.0",
+  "lean_commit": "68218e876d2a38b1985b8590fff244a83c321783",
+  "binary_relpath": "bin/leanchecker",
+  "binary_sha256_arm64_darwin": "1e0b5eaed660a8f2c61d9bd0f03c57e2aeb6d287f36e0c3e384ea9345db3483e",
+  "invocation": "lake env leanchecker <Module>",
+  "mode": "default (trusts imported oleans; replays the target module's OWN added declarations through the real kernel starting from the environment provided by its imports)",
+  "rationale": [
+    "The FORMALIZED gate must KERNEL-RE-CHECK the compiled module, not merely audit which axioms a term cites. `Lean.collectAxioms` over an attacker-mutated Environment is the wrong instrument: a source can inject a constant with a FALSE type but a clean, axiom-free value via `(getEnv).addDeclCore (doCheck := false)`, `Environment.add`, or `set_option debug.skipKernelTC true; addDecl`, so collectAxioms reports `axioms: []` for a proof of False.",
+    "`lean4checker` (github.com/leanprover/lean4checker) is the standard external tool that re-checks an olean's environment through the real kernel, detecting exactly these environment-hacking injections. It is what mathlib CI uses.",
+    "As of Lean v4.28.0 the tool was MERGED INTO the Lean toolchain and is now distributed with every toolchain as `leanchecker` (the standalone leanprover/lean4checker repo is DEPRECATED and pending archival). See its README.",
+    "Because the checker is version-locked to the olean binary format, the version-matched instrument for our pinned v4.31.0 project is the `leanchecker` shipped IN the v4.31.0 toolchain. Building the deprecated external repo would be UNSOUND here: its newest ref is master @ v4.29.0-rc8 (no v4.30/v4.31 tag or branch exists upstream), and a v4.29 checker cannot load a v4.31 olean.",
+    "Thus the pin is the toolchain itself (already pinned by lean/EmpiricistLean/lean-toolchain), and the checker is `$(lake env which leanchecker)` resolved from that toolchain."
+  ],
+  "deprecated_external_repo": {
+    "url": "https://github.com/leanprover/lean4checker",
+    "status": "deprecated; merged into Lean toolchain as `leanchecker` since v4.28.0",
+    "closest_upstream_ref_observed": "master @ 91a7f0e8e9dffe927089f5a6edcfeeb8a0e07709 (lean-toolchain v4.29.0-rc8)",
+    "not_used_reason": "version mismatch with our v4.31.0 oleans; superseded by the built-in leanchecker"
+  }
+}

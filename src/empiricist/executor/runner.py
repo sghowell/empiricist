@@ -22,7 +22,11 @@ from tempfile import mkdtemp
 from empiricist.config import env_fingerprint
 from empiricist.executor.limits import ResourceLimits, make_preexec
 from empiricist.executor.sandbox import SandboxMode, sandbox_wrap
-from empiricist.executor.watchdog import RssWatchdog, kill_process_group
+from empiricist.executor.watchdog import (
+    RssWatchdog,
+    kill_process_group,
+    reap_process_group,
+)
 from empiricist.ledger.db import Ledger, RunAlreadyFinishedError
 from empiricist.ledger.models import Run
 
@@ -61,6 +65,10 @@ class ExecSpec:
     timeout_s: float = 600.0
     drain_grace_s: float = 10.0  # max wait for post-kill pipe EOF before abandoning
     sandbox: SandboxMode = SandboxMode.SANDBOX_EXEC
+    # SANDBOX_EXEC only: deny process-fork/exec* (except this spec's own argv[0]),
+    # so an untrusted subprocess cannot spawn a persistent child. Used by the Lean
+    # compile gate (closes the M8 5th-break detached-child TOCTOU at the source).
+    deny_subprocess: bool = False
     seed: int | None = None
     config_hash: str | None = None
 
@@ -111,7 +119,10 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
     # reads the whole stream before _decode_capped) is deferred until
     # model-authored code lands (D11) — both v0-acceptable: v0 executed code is
     # harness-authored.
-    argv = sandbox_wrap(spec.argv, workdir=workdir, mode=spec.sandbox)
+    argv = sandbox_wrap(
+        spec.argv, workdir=workdir, mode=spec.sandbox,
+        deny_subprocess=spec.deny_subprocess,
+    )
     if spec.env_passthrough and spec.sandbox is not SandboxMode.NONE:
         raise ValueError(
             "env_passthrough=True requires sandbox=NONE: the full parent env "
@@ -162,6 +173,12 @@ async def execute(spec: ExecSpec, *, ledger: Ledger | None = None) -> ExecResult
             )
             watchdog.stop()
             await watch_task
+            # Normal completion: communicate() reaped the group LEADER, but a
+            # detached same-group child (untrusted compile-time spawn, no setsid)
+            # can outlive it and keep acting after execute() returns — the M8
+            # 5th-break olean-swap TOCTOU depended on exactly such a survivor. Reap
+            # the whole group by pgid so NO straggler survives any execute() call.
+            reap_process_group(proc.pid)
         except TimeoutError:
             timed_out = True
             # stop+await the watchdog BEFORE kill+reap (PID-reuse interlock),
