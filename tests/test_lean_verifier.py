@@ -1,11 +1,14 @@
-"""LeanVerifier tests (M8): the KERNEL-re-check trust gate against REAL Lean
-4.31.0. The gate is a four-stage pipeline over one compiled olean -- compile
-(`--json` diagnostics), KERNEL re-check (`leanchecker`, the trust anchor), axiom
-whitelist + statement (the compiled `axiom_audit` driver, importing the same
-olean), then PASS. These tests exercise the honest PASS (with recorded statement),
-every must-FAIL golden -- including the kernel-unchecked ENVIRONMENT-INJECTION
-PoCs (`skipKernelTC`, `addDeclCore (doCheck := false)`, `Environment.replay`) and
-the earlier axiom-forgery / command-override vectors -- the FORMALIZED ingestion
+"""LeanVerifier tests (M8): the SANDBOXED KERNEL-re-check trust gate against REAL
+Lean 4.31.0. The gate is a pipeline over one compiled olean, every untrusted step
+run under sandbox-exec with a pinned-trusted LEAN_PATH -- compile (`--json`
+diagnostics), import-trust (`--deps`, Lever 2), KERNEL re-check (`leanchecker`, the
+trust anchor), axiom whitelist + import-closure + statement (the compiled
+`axiom_audit` driver over the same olean), then PASS. These tests exercise the
+honest PASS (with recorded statement), every must-FAIL golden -- the kernel-unchecked
+ENVIRONMENT-INJECTION PoCs (`skipKernelTC`, `addDeclCore (doCheck := false)`,
+`Environment.replay`), the earlier axiom-forgery / command-override vectors, and the
+4th break's COMPILE-TIME POISON-IMPORT class (plant->harvest end-to-end, sandboxed
+write denial, reachable-import rejection, residue sweep) -- the FORMALIZED ingestion
 path, the env-scrub exfil regression, per-invocation isolation, and offline
 `parse_driver_result` / `parse_compile_diagnostics` tests.
 
@@ -54,8 +57,55 @@ _GOLDEN_IDS = [
     "sorry_free_true", "sorry_trap", "native_decide", "type_error",
     "spoof_io_println", "spoof_run_cmd", "override_elab", "override_macro",
     "inject_driver_result", "inject_skip_kernel_tc", "inject_add_decl_core",
-    "inject_replay", "true_statement",
+    "inject_replay", "true_statement", "poison_import", "unexpected_import",
+    "compile_time_olean_write",
 ]
+
+# Exploit sources for the Lever 1/2/3 integration tests. `__POISON__` is replaced
+# with the absolute shared-build-lib poison path at call time. Single braces are
+# Lean record literals; the embedded sh script contains no `"`/`\` so it nests
+# cleanly inside the Lean string. (Substituted via str.replace, NOT .format, so the
+# Lean `{ … }` record literals are left intact.)
+_COMPILE_TIME_WRITE_EXPLOIT = """\
+namespace Empiricist
+theorem plant_ok : True := trivial
+end Empiricist
+
+#eval (do
+  let direct := "__POISON__"
+  try IO.FS.writeFile direct "poison" catch _ => pure ()
+  let sh := "echo poison > __POISON__"
+  try
+    (do let _ ← IO.Process.output { cmd := "sh", args := #["-c", sh] }; pure ())
+  catch _ => pure ()
+  : IO Unit)
+"""
+
+_POISON_PLANT_CALL1 = """\
+namespace Empiricist
+theorem plant_ok : True := trivial
+end Empiricist
+
+#eval (do
+  let _ ← IO.Process.output { cmd := "sh", args := #["-c", "set -e
+cat > /tmp/EmpPoisonPlant.lean <<'LEOF'
+import Lean
+open Lean Elab Command Term Meta
+run_cmd liftTermElabM do
+  let type  ← instantiateMVars (← elabTerm (← `(False)) none)
+  let value ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 0)) none)
+  let decl : Declaration := .thmDecl
+    { name := `EmpiricistLean.Poison.boom, levelParams := [],
+      type := type, value := value }
+  match (← getEnv).addDeclCore (0 : USize) decl none (doCheck := false) with
+  | .ok env' => setEnv env'
+  | .error _ => pure ()
+LEOF
+lean -o __POISON__ /tmp/EmpPoisonPlant.lean
+"] }
+  pure ()
+  : IO Unit)
+"""
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -69,7 +119,7 @@ def _warm_lean_toolchain():
         return
     import asyncio
 
-    asyncio.run(LeanVerifier()._ensure_driver_async())
+    asyncio.run(LeanVerifier()._ensure_ready_async())
     yield
 
 
@@ -272,7 +322,7 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     ev = ledger.evidence_for(art.id)
     assert len(ev) == 1
     assert ev[0].verifier == "lean"
-    assert ev[0].verifier_version == "3.0"
+    assert ev[0].verifier_version == "3.1"
     assert ev[0].verdict == Verdict.PASS
     assert ev[0].details["decl"] == decl
     assert ev[0].details["mathlib_commit"]
@@ -297,16 +347,142 @@ def test_ingest_lean_artifact_rejects_non_pass(ledger, store, verifier):
 
 @slow_lean
 @requires_lake
-def test_scratch_nonce_and_olean_files_cleaned_up_across_pass_fail(verifier):
-    """Per-invocation scratch (.lean), nonce, AND compiled olean are all removed in
-    finally -- across PASS and every FAIL gate."""
+def test_ephemeral_workdirs_cleaned_and_shared_dirs_residue_free(verifier):
+    """Lever 3 cleanup: each verify() runs in a UNIQUE ephemeral workdir (system
+    tempdir) removed in finally -- no `empiricist-lean-*` dir leaks -- and the SHARED
+    project source/build dirs are never written to (no Scratch_*/poison residue),
+    across PASS and every FAIL gate in the suite."""
+    import tempfile
+
+    tmp_root = Path(tempfile.gettempdir())
+    before_tmp = set(tmp_root.glob("empiricist-lean-*"))
     before_src = set(_MODULE_DIR.glob("Scratch_*"))
     before_olean = set(_OLEAN_DIR.glob("Scratch_*")) if _OLEAN_DIR.exists() else set()
     for source, decl, _ in LEAN_GOLDEN_SUITE:
         verifier.verify(source, decl=decl, timeout_s=120)
-    assert set(_MODULE_DIR.glob("Scratch_*")) == before_src
+    assert set(tmp_root.glob("empiricist-lean-*")) == before_tmp  # workdirs removed
+    assert set(_MODULE_DIR.glob("Scratch_*")) == before_src  # shared source untouched
     after_olean = set(_OLEAN_DIR.glob("Scratch_*")) if _OLEAN_DIR.exists() else set()
-    assert after_olean == before_olean
+    assert after_olean == before_olean  # shared build lib untouched
+    # A clean subsequent verify must not trip the residue gate.
+    ok = verifier.verify(
+        "namespace Empiricist\ntheorem t : True := trivial\nend Empiricist\n",
+        decl="Empiricist.t", timeout_s=120,
+    )
+    assert ok.verdict == Verdict.PASS, ok.details
+
+
+@slow_lean
+@requires_lake
+def test_compile_time_poison_plant_write_is_denied_by_sandbox(verifier):
+    """LEVER 1, RAW: the 4th exploit's plant half. A compile-time `#eval` (both a
+    direct `IO.FS.writeFile` and a spawned `sh -c`) tries to write a POISON olean
+    into the shared build lib. The sandbox DENIES the write (writes confined to the
+    ephemeral workdir); the theorem itself is `True`, so verify() legitimately
+    PASSes, but the poison file must NEVER materialize."""
+    shared_poison = _OLEAN_DIR / "Poison.olean"
+    shared_poison.unlink(missing_ok=True)
+    src = _COMPILE_TIME_WRITE_EXPLOIT.replace("__POISON__", str(shared_poison))
+    result = verifier.verify(src, decl="Empiricist.plant_ok", timeout_s=120)
+    assert result.verdict == Verdict.PASS, result.details  # True is true
+    assert not shared_poison.exists(), "sandbox failed to deny the compile-time poison write"
+
+
+@slow_lean
+@requires_lake
+def test_poison_plant_then_harvest_exploit_fails(verifier):
+    """THE 4th break, end-to-end through the real verify(). Call 1 plants a poison
+    olean via a compile-time `#eval` sh-spawn; call 2 imports it to harvest a false
+    `2 = 3`. With the fix, call 1's write is DENIED (no poison persists) and call 2's
+    import is unresolvable/untrusted -> call 2 must NOT PASS. Two calls on ONE
+    persistent verifier -- exactly how the harness reuses it."""
+    shared_poison = _OLEAN_DIR / "Poison.olean"
+    shared_poison.unlink(missing_ok=True)
+    call1 = _POISON_PLANT_CALL1.replace("__POISON__", str(shared_poison))
+    call2 = (
+        "import EmpiricistLean.Poison\nnamespace Empiricist\n"
+        "theorem grandclaim : (2 : Nat) = 3 := (EmpiricistLean.Poison.boom).elim\n"
+        "end Empiricist\n"
+    )
+    try:
+        verifier.verify(call1, decl="Empiricist.plant_ok", timeout_s=120)
+        assert not shared_poison.exists(), "poison persisted across calls (sandbox breach)"
+        r2 = verifier.verify(call2, decl="Empiricist.grandclaim", timeout_s=120)
+        assert r2.verdict != Verdict.PASS, r2.details  # a false 2=3 must NEVER PASS
+    finally:
+        shared_poison.unlink(missing_ok=True)
+
+
+@slow_lean
+@requires_lake
+def test_reachable_nonpinned_import_rejected_by_import_trust(verifier):
+    """LEVER 2 in isolation (defense-in-depth even if Lever 1 had a gap). Plant a
+    poison olean on a TRUSTED root (the read-only Basic lib) so the import RESOLVES,
+    then verify a scratch importing it. The import-trust gate rejects a non-`Basic`
+    EmpiricistLean import -> FAIL(import_trust), never a PASS on the false claim."""
+    import subprocess
+
+    # Force readiness so the toolchain cfg + trusted lib dir exist.
+    verifier.verify(
+        "namespace Empiricist\ntheorem t : True := trivial\nend Empiricist\n",
+        decl="Empiricist.t", timeout_s=120,
+    )
+    cfg = verifier._cfg
+    assert cfg is not None
+    poison_src = Path("/tmp/EmpPoisonL2.lean")
+    poison_src.write_text(
+        "import Lean\nopen Lean Elab Command Term Meta\n"
+        "run_cmd liftTermElabM do\n"
+        "  let t ← instantiateMVars (← elabTerm (← `(False)) none)\n"
+        "  let v ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 0)) none)\n"
+        "  let d : Declaration := .thmDecl { name := `EmpiricistLean.Poison.boom,"
+        " levelParams := [], type := t, value := v }\n"
+        "  match (← getEnv).addDeclCore (0:USize) d none (doCheck := false) with\n"
+        "  | .ok e => setEnv e | .error _ => pure ()\n"
+    )
+    poison_olean = cfg.trusted_lib_dir / "EmpiricistLean" / "Poison.olean"
+    import os as _os
+
+    lp = _os.pathsep.join([*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir)])
+    try:
+        subprocess.run(
+            [str(cfg.lean_bin), "-o", str(poison_olean), "--root", "/tmp", str(poison_src)],
+            env={**_os.environ, "LEAN_PATH": lp, "LEAN_SYSROOT": cfg.sysroot},
+            check=True, capture_output=True,
+        )
+        assert poison_olean.exists()
+        harvest = (
+            "import EmpiricistLean.Poison\nnamespace Empiricist\n"
+            "theorem grandclaim : (2 : Nat) = 3 := (EmpiricistLean.Poison.boom).elim\n"
+            "end Empiricist\n"
+        )
+        r = verifier.verify(harvest, decl="Empiricist.grandclaim", timeout_s=120)
+        assert r.verdict == Verdict.FAIL, r.details
+        assert r.details["gate"] == "import_trust", r.details
+        assert r.details["untrusted_imports"], r.details
+    finally:
+        poison_olean.unlink(missing_ok=True)
+        poison_src.unlink(missing_ok=True)
+
+
+@slow_lean
+@requires_lake
+def test_residue_sweep_fails_closed_on_stray_shared_file(verifier):
+    """LEVER 3: a stray, non-pinned olean in the shared build lib (a prior/concurrent
+    call that escaped its jail) makes the NEXT verify() FAIL closed at gate=residue,
+    rather than trust a possibly-poisoned environment."""
+    stray = _OLEAN_DIR / "Stray.olean"
+    stray.write_text("junk")
+    try:
+        r = verifier.verify(
+            "namespace Empiricist\ntheorem t : True := trivial\nend Empiricist\n",
+            decl="Empiricist.t", timeout_s=120,
+        )
+        assert r.verdict == Verdict.FAIL, r.details
+        assert r.details["gate"] == "residue", r.details
+        assert any("Stray.olean" in f for f in r.details["unexpected_files"]), r.details
+    finally:
+        stray.unlink(missing_ok=True)
 
 
 @slow_lean
@@ -381,7 +557,7 @@ def test_verify_error_verdict_on_bad_project_dir():
 
 def test_identity():
     assert LeanVerifier.name == "lean"
-    assert LeanVerifier.version == "3.0"
+    assert LeanVerifier.version == "3.1"
 
 
 def test_applicable():
@@ -419,6 +595,25 @@ def test_lean_golden_suite_covers_the_kernel_injection_vectors():
     assert "Environment.replay" in joined  # PoC-3: replay hand-built constant
     # each injects a false `1 = 2` and derives a proof of False from it
     assert "theorem boom : False" in joined
+
+
+def test_lean_golden_suite_covers_the_poison_import_vectors():
+    """The COMPILE-TIME POISON-IMPORT fix (M8 v4) must be pinned by must-FAIL
+    goldens: the poison-import harvest, an unexpected (non-pinned) import, and a
+    compile-time-olean-write attempt -- so a regression that dropped the sandbox or
+    the import-trust gate could no longer earn a certification stamp."""
+    cases = {decl: (src, exp) for src, decl, exp in LEAN_GOLDEN_SUITE}
+    joined = "\n".join(src for src, _, _ in LEAN_GOLDEN_SUITE)
+    # poison-import HARVEST: imports the planted sibling + derives a false 2 = 3
+    assert "import EmpiricistLean.Poison" in joined
+    assert "EmpiricistLean.Poison.boom" in joined
+    # UNEXPECTED import (a non-pinned module) must be present and must-FAIL
+    assert "import Untrusted.Evil" in joined
+    # compile-time-olean-WRITE attempt into the shared build lib
+    assert "Poison.olean" in joined and "IO.FS.writeFile" in joined
+    # all three are must-FAIL
+    for decl in ("Empiricist.grandclaim", "Empiricist.one_eq_two"):
+        assert decl in cases and cases[decl][1] is False
 
 
 def test_binary_hash_changes_when_manifest_bytes_differ(monkeypatch):

@@ -40,6 +40,17 @@ real Lean kernel); cases 10-11 (`debug.skipKernelTC`, `addDeclCore (doCheck :=
 false)`) compile clean and are caught at `gate=kernel_soundness`; case 12
 (`Environment.replay`) is rejected by the kernel already at compile
 (`gate=diagnostics`) -- replay is itself a kernel-checking mechanism.
+
+Cases 14-16 are the teeth for the COMPILE-TIME POISON-IMPORT fix (M8 v4). The 4th
+break planted a poison olean via a compile-time `#eval` write and harvested it
+across a second call's `import`. (14) the poison-import HARVEST (`import
+EmpiricistLean.Poison; … := Poison.boom.elim`) must FAIL -- the restricted,
+pinned-trusted LEAN_PATH makes it unresolvable, and the import-trust gate rejects
+any non-`Basic` EmpiricistLean import; (15) an UNEXPECTED-import scratch (`import
+Untrusted.Evil`) must FAIL -- the scratch may build only on pinned mathlib + the
+trusted `EmpiricistLean.Basic`; (16) a compile-time-olean-WRITE attempt (a `#eval`
+that tries to plant `Poison.olean` in the shared build lib) must FAIL -- the
+sandbox denies the write and its in-band `axiom evil : False` fails the axiom gate.
 """
 
 from __future__ import annotations
@@ -271,6 +282,62 @@ theorem t : True := trivial
 end Empiricist
 """
 
+# -- M8 soundness fix v4: the compile-time poison-import CLASS (Levers 1-3). ----
+# These pin the fix that closed the 4th break: untrusted compile-time IO planting a
+# POISON olean, then a second call importing it to harvest a false claim. All three
+# must FAIL.
+
+# Poison-import HARVEST: a scratch that imports a sibling `EmpiricistLean.Poison`
+# (the module the 4th exploit planted) and derives a false `2 = 3` from its
+# kernel-unchecked `boom : False`. The compile/checker LEAN_PATH is restricted to
+# pinned-trusted roots (the writable build lib is OFF the path), so the import
+# cannot resolve -> FAIL(diagnostics); and were it somehow reachable, the
+# import-trust gate rejects a non-`Basic` EmpiricistLean import -> FAIL(import_trust).
+_POISON_IMPORT_SOURCE = """\
+import EmpiricistLean.Poison
+
+namespace Empiricist
+
+theorem grandclaim : (2 : Nat) = 3 := (EmpiricistLean.Poison.boom).elim
+
+end Empiricist
+"""
+
+# Unexpected-import scratch: importing ANY module outside the pinned-trusted set
+# (here a fabricated `Untrusted.Evil`) must FAIL -- the scratch may build only on
+# pinned mathlib + the trusted `EmpiricistLean.Basic`, never an unpinned sibling.
+_UNEXPECTED_IMPORT_SOURCE = """\
+import Untrusted.Evil
+
+namespace Empiricist
+
+theorem t : True := trivial
+
+end Empiricist
+"""
+
+# Compile-time-olean-WRITE attempt: a compile-time `#eval` tries to plant a poison
+# olean into the shared build lib (denied by the sandbox: writes are confined to the
+# ephemeral per-call workdir). The scratch ALSO carries a genuine `axiom evil : False`
+# backing a false `1 = 2`, so it is verdict-FALSE regardless (gate=axioms) while
+# exercising the compile-time write path. The planted file must never materialize
+# (asserted by a dedicated integration test); the axiom gate makes this a must-FAIL
+# golden.
+_COMPILE_TIME_WRITE_SOURCE = """\
+namespace Empiricist
+
+axiom evil : False
+
+theorem one_eq_two : (1 : Nat) = 2 := evil.elim
+
+end Empiricist
+
+#eval (do
+  let path := "./.lake/build/lib/lean/EmpiricistLean/Poison.olean"
+  try IO.FS.writeFile path "poison" catch _ => pure ()
+  : IO Unit)
+"""
+
 LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_TRUE_SOURCE, "Empiricist.scaffold_true", True),
     (_SORRY_SOURCE, "Empiricist.scaffold_true", False),
@@ -285,6 +352,9 @@ LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_INJECT_ADD_DECL_CORE, "Empiricist.boom", False),
     (_INJECT_REPLAY, "Empiricist.boom", False),
     (_TRUE_STATEMENT_SOURCE, "Empiricist.t", True),
+    (_POISON_IMPORT_SOURCE, "Empiricist.grandclaim", False),
+    (_UNEXPECTED_IMPORT_SOURCE, "Empiricist.t", False),
+    (_COMPILE_TIME_WRITE_SOURCE, "Empiricist.one_eq_two", False),
 ]
 
 

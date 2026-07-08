@@ -63,19 +63,46 @@ def runCoreM {α : Type} (env : Environment) (x : CoreM α) : IO α := do
   Prod.fst <$> x.toIO ctx { env }
 
 /-- The audit result, serialized as the driver's single JSON output line.
-`statement` is the decl's resolved, pretty-printed type (empty when not found). -/
+`statement` is the decl's resolved, pretty-printed type (empty when not found).
+
+`importRoots` / `empiricistImports` carry the compiled module's TRANSITIVE import
+closure for the harness's import-trust gate (M8 soundness fix v4, Lever 2). Even
+though the harness restricts the compile/checker LEAN_PATH to pinned-trusted roots
+(so a sibling `EmpiricistLean.Poison` planted in the shared build lib is
+unreachable), this report is the defense-in-depth backstop: the harness rejects
+any import whose top-level ROOT is not a pinned-trusted root, and any
+`EmpiricistLean.*` import other than the trusted `EmpiricistLean.Basic` scaffold.
+So a poison olean that somehow becomes reachable and is imported (directly or
+transitively) is caught here even if the path restriction had a gap. -/
 structure Result where
   declFound : Bool
   errors : Array String
   axioms : Array String
   statement : String
+  importRoots : Array String
+  empiricistImports : Array String
 
 def Result.toJson (r : Result) : Json :=
   Json.mkObj
     [ ("declFound", Json.bool r.declFound)
     , ("errors", Json.arr (r.errors.map Json.str))
     , ("axioms", Json.arr (r.axioms.map Json.str))
-    , ("statement", Json.str r.statement) ]
+    , ("statement", Json.str r.statement)
+    , ("importRoots", Json.arr (r.importRoots.map Json.str))
+    , ("empiricistImports", Json.arr (r.empiricistImports.map Json.str)) ]
+
+/-- The transitive import closure of `env`, summarized for the harness's
+import-trust gate: the DISTINCT top-level root components of every imported
+module, plus the full list of imported modules under the `EmpiricistLean`
+namespace (which the harness requires to be exactly `{EmpiricistLean.Basic}`). -/
+def importSummary (env : Environment) : Array String × Array String :=
+  let names := env.allImportedModuleNames
+  let roots := names.foldl (init := (#[] : Array String)) fun acc n =>
+    let r := n.getRoot.toString
+    if acc.contains r then acc else acc.push r
+  let empiricist := names.filterMap fun n =>
+    if n.getRoot == `EmpiricistLean then some n.toString else none
+  (roots, empiricist)
 
 /-- Write the single nonce-framed result line to the REAL stdout (called only
 after `withIsolatedStreams` has restored the stream). -/
@@ -93,13 +120,15 @@ statement. -/
 unsafe def auditModule (modName declName : Name) : IO (String × Result) :=
   IO.FS.withIsolatedStreams do
     let env ← importModules #[{ module := modName }] {} (loadExts := true)
+    let (importRoots, empiricistImports) := importSummary env
     match env.find? declName with
-    | none => pure { declFound := false, errors := #[], axioms := #[], statement := "" }
+    | none => pure { declFound := false, errors := #[], axioms := #[], statement := "",
+                     importRoots, empiricistImports }
     | some ci =>
       let names ← runCoreM env (Lean.collectAxioms declName)
       let fmt ← runCoreM env (Lean.Meta.ppExpr ci.type).run'
       pure { declFound := true, errors := #[], axioms := names.map (·.toString),
-             statement := fmt.pretty }
+             statement := fmt.pretty, importRoots, empiricistImports }
 
 unsafe def mainUnsafe (args : List String) : IO UInt32 := do
   match args with
@@ -120,7 +149,8 @@ unsafe def mainUnsafe (args : List String) : IO UInt32 := do
       emit nonce r
       pure (0 : UInt32)
     catch e =>
-      emit nonce { declFound := false, errors := #[toString e], axioms := #[], statement := "" }
+      emit nonce { declFound := false, errors := #[toString e], axioms := #[], statement := "",
+                   importRoots := #[], empiricistImports := #[] }
       pure (1 : UInt32)
   | _ =>
     IO.eprintln "usage: axiom_audit <module-name> <fully-qualified-decl> <nonce-file>"

@@ -1,70 +1,99 @@
 """LeanVerifier: a real trust gate over the pinned EmpiricistLean project
 (M8, spec 10/D7/exit criterion 4).
 
-The FORMALIZED verdict now rests on the Lean KERNEL itself, re-checking the
-compiled module through `leanchecker` (the standard `lean4checker`, merged into
-the Lean toolchain since v4.28.0 and version-matched to our pinned v4.31.0). The
-gate is a pipeline of four checks over ONE compiled artifact:
+The FORMALIZED verdict rests on the Lean KERNEL itself, re-checking the compiled
+module through `leanchecker` (the standard `lean4checker`, merged into the Lean
+toolchain since v4.28.0 and version-matched to our pinned v4.31.0), over a
+compile that runs untrusted metaprogramming INSIDE AN OS SANDBOX with a
+pinned-trusted import path. The gate is a pipeline over ONE compiled artifact:
 
-    (b) COMPILE   `lake env lean --json -o <olean> <scratch>`
-                  severity=="error" -> FAIL(diagnostics); `sorry` warning -> FAIL(sorry)
-    (c) KERNEL    `lake env leanchecker <Module>`         [THE TRUST ANCHOR]
-                  nonzero exit / kernel-mismatch output -> FAIL(kernel_soundness)
-    (d) AXIOMS    compiled `axiom_audit` driver over the SAME olean
-                  axiom outside whitelist -> FAIL(axioms); also emits the STATEMENT
-    (e) PASS      records the decl's resolved statement + statement_hash
+    (b)  COMPILE   `lean --root <work> --json -o <olean> <scratch>`  [SANDBOXED]
+                   severity=="error" -> FAIL(diagnostics); `sorry` -> FAIL(sorry)
+    (b2) IMPORTS   `lean --deps <scratch>`   [SANDBOXED, Lever 2 import-trust]
+                   any resolved import olean NOT under a pinned-trusted root
+                   (and != the trusted EmpiricistLean.Basic) -> FAIL(import_trust)
+    (c)  KERNEL    `leanchecker <Module>`     [SANDBOXED] [THE TRUST ANCHOR]
+                   nonzero exit / kernel-mismatch output -> FAIL(kernel_soundness)
+    (d)  AXIOMS    compiled `axiom_audit` driver over the SAME olean [SANDBOXED]
+                   axiom outside whitelist -> FAIL(axioms); the driver also reports
+                   the module's TRANSITIVE import closure (Lever 2 backstop:
+                   unknown root / non-Basic EmpiricistLean import -> FAIL(import_trust))
+                   and emits the decl's resolved STATEMENT.
+    (e)  PASS      records the decl's resolved statement + statement_hash
 
-**Why (c) is load-bearing — the hole it closes.** The previous verifier trusted a
-compiled `collectAxioms` driver as the SOLE authority. That is UNSOUND against
-*kernel-unchecked environment injection*: untrusted compile-time metaprogramming
-(`run_cmd`/`elab`) can insert a constant with a FALSE type but a clean, axiom-free
-value via `(getEnv).addDeclCore (doCheck := false)`, `Environment.add`, or
-`set_option debug.skipKernelTC true; addDecl`. `Lean.collectAxioms` walks only the
-stored term -> reports `axioms: []` -> a proof of `False` certified FORMALIZED.
-Auditing WHICH AXIOMS a term cites is NOT the same as verifying the term was
-KERNEL-CHECKED against its stated type. `leanchecker` re-checks the module's own
-added declarations through the real kernel starting from its (trusted, pinned
-mathlib) imports, so it rejects exactly these injections — proven end-to-end
-(a `skipKernelTC` `1=2 := Eq.refl` is re-checked -> "declaration type mismatch").
+**Root cause of the 4th break (this fix).** The predecessor ran the untrusted
+compile at `SandboxMode.NONE` in the shared, writable, non-sandboxed project with
+the writable build lib on the compile/checker LEAN_PATH. Untrusted `module_source`
+runs arbitrary IO at ELABORATION (`#eval`/`initialize`/`run_cmd`), so a compile-
+time `#eval` could WRITE a POISON olean (`theorem Poison.boom : False`, built via
+`addDeclCore (doCheck := false)`, value `Eq.refl` -> compiles clean,
+`collectAxioms=[]`) into `.lake/build/lib/lean/EmpiricistLean/Poison.olean`. The
+poison PERSISTED across calls (per-call cleanup only removed `<tok>` files); a
+SECOND `verify()` did `import EmpiricistLean.Poison; theorem grandclaim :
+(2:Nat)=3 := Poison.boom.elim` -> leanchecker TRUSTS the import (it only replays
+the module's OWN added decls) -> PASS on `2=3` with an attacker-chosen statement.
+This violated the project non-negotiable "the model never gets a shell": untrusted
+Lean got a writable, non-sandboxed environment at elaboration.
 
-**Why the axiom driver IMPORTS the compiled olean (not re-elaborate the source).**
-Gate (d) must audit the SAME artifact leanchecker checked. If the driver
-re-elaborated the source in a second frontend run, a source whose compile-time
-metaprogramming branches on a clock / nondeterministic input could make the olean
-leanchecker checked (honest branch) diverge from the env the audit sees (evil
-branch). The driver `importModules` the one compiled olean, so every gate reads
-the same bytes.
+**The three independent levers that close the CLASS.**
 
-**Why the earlier axiom hole was itself real.** Two independent adversarial reviews
-also defeated the *in-band* `#print axioms` predecessor (output forgery via
-`#eval`/`run_cmd`; and — fatally — REDEFINING the `#print axioms` command). Any
-surface the harness re-elaborates in the tainted environment is attacker-
-shadowable, so the axiom set is computed by compiled code, and its result is
-carried on a nonce-framed channel the untrusted source cannot forge (the driver
-reads a fresh unguessable nonce from a file and DELETES it before importing the
-module; imports run under `IO.FS.withIsolatedStreams`; only a line bearing the
-exact nonce is accepted -> `parse_driver_result` fails closed otherwise).
+- LEVER 1 (primary, sandbox the untrusted compile). Every subprocess that touches
+  untrusted source -- the compile (b), the import probe (b2), the kernel re-check
+  (c), the axiom/statement audit (d) -- runs through `executor.execute()` with
+  `SandboxMode.SANDBOX_EXEC` and an EPHEMERAL per-call workdir. Network is denied;
+  filesystem WRITES are confined to the ephemeral workdir. A compile-time
+  `#eval IO.FS.writeFile "<shared build lib>/…/Poison.olean"` (or the same via a
+  spawned `sh` -- descendants inherit the sandbox) is DENIED ("operation not
+  permitted"). The toolchain (`~/.elan/…`) and the pinned mathlib/Basic oleans are
+  READ-only inputs, which the (allow default) read posture permits; nothing the
+  compile can reach is writable except its own ephemeral scratch. Because lake's
+  own build-dir writes fight the sandbox, we DO NOT invoke `lake` on the hot path:
+  we resolve the pinned toolchain binaries + LEAN_PATH ONCE via `lake env` (trusted,
+  unsandboxed, at setup) and invoke `lean`/`leanchecker`/the driver DIRECTLY with an
+  explicit `-o <ephemeral>/…` and `LEAN_PATH` at the pinned read-only roots -- so a
+  direct binary writes only its `-o` target (in the workdir).
 
-All subprocesses run through `executor.execute()` -- the one audited path -- with
-`sandbox=SandboxMode.NONE` and a MINIMAL scrubbed env (`env_passthrough=False` +
-`env_extra` = PATH + HOME + ELAN_* only; see `_lean_env`). The elan TOOLCHAIN is
-trusted, but `module_source` is NOT and runs IO at compile time (`#eval`,
-`initialize`), so a full passthrough would hand the parent's secrets to
-attacker/model code (a reviewer exfiltrated a secret env var through
-`#eval IO.getEnv`). Scrubbing to PATH/HOME/ELAN_* keeps elan working and leaves
-the secrets absent (regression-tested via an exfil probe). SOUND and load-bearing.
+- LEVER 2 (defense-in-depth, import-trust by pinned closure). The compile/checker
+  LEAN_PATH is built from ONLY pinned-trusted roots: the pinned mathlib + package
+  build libs, the toolchain lib, a READ-ONLY copy of our `EmpiricistLean.Basic`
+  olean (outside any sandbox workdir, so the untrusted compile cannot tamper with
+  it), and the ephemeral scratch dir. The writable shared project build lib is NOT
+  on the path, so `import EmpiricistLean.Poison` cannot even resolve (compile-time
+  FAIL). On top of that, gate (b2) resolves every DIRECT import via `lean --deps`
+  and REQUIRES each resolved olean to sit under a pinned-trusted root (or be exactly
+  the trusted Basic); gate (d)'s driver reports the TRANSITIVE closure and the
+  harness rejects any import ROOT that is not a pinned-trusted root and any
+  `EmpiricistLean.*` import other than `EmpiricistLean.Basic`. So a poison that
+  somehow becomes reachable and is imported is rejected (FAIL import_trust) even if
+  Lever 1 had a gap.
+
+- LEVER 3 (hardening, residue sweep + fail-closed). Each call uses a UNIQUE
+  ephemeral dir (uuid4), removed in `finally`. After the call we SWEEP the shared
+  module + build dirs for any unexpected residue (anything not the pinned
+  mathlib/Basic/toolchain set); a stray file means a prior/concurrent call planted
+  something -> the result is FAILed closed and logged.
+
+**Why (c) is load-bearing.** collectAxioms-only is UNSOUND against kernel-unchecked
+environment injection (`addDeclCore (doCheck := false)`, `skipKernelTC`): a false
+type with a clean `Eq.refl` value reports `axioms: []`. `leanchecker` re-checks the
+module's own added declarations through the real kernel from its (trusted, pinned)
+imports and rejects those injections (proven: `1=2 := Eq.refl` -> "declaration type
+mismatch").
+
+**Why (d) IMPORTS the compiled olean (not re-elaborate the source).** The audit must
+read the SAME artifact leanchecker checked; a second frontend run whose compile-time
+metaprogramming branches on a clock could diverge. The driver `importModules` the one
+compiled olean, and carries its result on a fresh unguessable NONCE channel the
+untrusted source cannot forge (the driver reads the nonce from a file and DELETES it
+before importing; imports run under `IO.FS.withIsolatedStreams`).
 
 `binary_hash` covers this module's own source PLUS the driver source
 (`AxiomAudit.lean`), the leanchecker pin manifest (`lean/lean4checker.pin.json`),
-the project's `lean-toolchain`, `lake-manifest.json`, and `lakefile.toml` bytes:
-a `lake update` (mathlib bump), a toolchain bump, a lakefile/leanOptions edit, a
-change to the compiled audit logic, OR a change to the kernel-checker pin silently
-mints a new verifier identity and drops any prior certification stamp.
+the project's `lean-toolchain`, `lake-manifest.json`, and `lakefile.toml` bytes.
 
-Deliberately OUT of the P5 golden suite / `registry.Registry.certify()` flow (that
-machinery is fusion-verifier-specific). LeanVerifier has its own suite
-(`verifiers/lean_goldens.py`) and its own certify path
-(`registry.certify_with_suite`, additive).
+Deliberately OUT of the P5 golden suite / `registry.Registry.certify()` flow.
+LeanVerifier has its own suite (`verifiers/lean_goldens.py`) and its own certify
+path (`registry.certify_with_suite`, additive).
 """
 
 from __future__ import annotations
@@ -73,9 +102,12 @@ import asyncio
 import inspect
 import json
 import os
+import shutil
 import sys
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
+from tempfile import mkdtemp
 from typing import Any
 
 from blake3 import blake3
@@ -94,13 +126,17 @@ _DEFAULT_PROJECT_DIR = Path(__file__).resolve().parents[3] / "lean" / "Empiricis
 # The only axioms that don't represent a proof-hygiene violation. Anything
 # else -- sorryAx, native_decide's synthesized per-decl axiom, a custom axiom,
 # Lean.ofReduceBool, Lean.trustCompiler -- is rejected by a plain membership
-# test, so this does NOT need to name every bad axiom up front. Note: these
-# axioms are all KERNEL-VALID, so leanchecker (gate c) accepts them; the
-# whitelist (gate d) is the hygiene layer leanchecker does not provide.
+# test. These axioms are all KERNEL-VALID, so leanchecker (gate c) accepts them;
+# the whitelist (gate d) is the hygiene layer leanchecker does not provide.
 _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
 
+# The single trusted EmpiricistLean.* module a scratch may import (the scaffold
+# lemma). Any OTHER EmpiricistLean.* import -- e.g. a planted `EmpiricistLean.Poison`
+# -- is rejected by the import-trust gate.
+_TRUSTED_EMPIRICIST_MODULE = "EmpiricistLean.Basic"
+
 # The framing marker the compiled driver prints its single result line with:
-#   AXIOM_AUDIT::<nonce>::{"declFound":...,"errors":[...],"axioms":[...],"statement":...}
+#   AXIOM_AUDIT::<nonce>::{"declFound":...,"axioms":[...],"importRoots":[...],...}
 _DRIVER_MARKER = "AXIOM_AUDIT"
 
 # Substrings in leanchecker output that signal a kernel rejection even if (belt
@@ -117,19 +153,36 @@ _KERNEL_FAIL_MARKERS = (
 _CAPTURE_CAP = 8 * 1024 * 1024  # generous: mathlib error messages can be long
 
 
+@dataclass(frozen=True)
+class _ToolchainConfig:
+    """The pinned toolchain facts resolved ONCE (trusted, unsandboxed) via
+    `lake env`, so the hot-path gates can invoke `lean`/`leanchecker`/the driver
+    DIRECTLY (no `lake`, whose own build-dir writes fight the sandbox) under a
+    restricted, pinned read-only LEAN_PATH."""
+
+    lean_bin: Path
+    leanchecker_bin: Path
+    sysroot: str
+    # Pinned read-only import roots (the package build libs + the toolchain lib);
+    # the WRITABLE project build lib is deliberately EXCLUDED.
+    trusted_roots: tuple[Path, ...]
+    # Read-only copy of EmpiricistLean/Basic.olean, outside any sandbox workdir.
+    basic_olean: Path
+    # The trusted lib dir containing that copy (its `EmpiricistLean/` subdir).
+    trusted_lib_dir: Path
+    # Distinct top-level module roots reachable via the trusted roots + Basic.
+    allowed_roots: frozenset[str]
+
+
 def parse_driver_result(stdout: str, nonce: str) -> dict[str, Any] | None:
     """Extract the compiled driver's structured result from its stdout.
 
     Returns the parsed JSON object from the SINGLE line framed
     `AXIOM_AUDIT::<nonce>::<json>`, or None (fail closed) if no such line exists
-    or the JSON is malformed.
-
-    Only a line bearing the EXACT `nonce` is trusted -- this is the whole
-    integrity story for the output channel. The untrusted source cannot learn
-    the nonce (the driver deletes the nonce file before importing the module),
-    so it cannot forge an accepted line even by writing directly to `/dev/stdout`
-    and calling `IO.Process.exit`. A None return is ALWAYS a FAIL, never a PASS.
-    """
+    or the JSON is malformed. Only a line bearing the EXACT `nonce` is trusted --
+    the untrusted source cannot learn the nonce (the driver deletes the nonce file
+    before importing), so it cannot forge an accepted line. A None return is
+    ALWAYS a FAIL, never a PASS."""
     prefix = f"{_DRIVER_MARKER}::{nonce}::"
     payloads = [
         line[line.index(prefix) + len(prefix):]
@@ -138,8 +191,6 @@ def parse_driver_result(stdout: str, nonce: str) -> dict[str, Any] | None:
     ]
     if not payloads:
         return None
-    # Only the driver can produce a correct-nonce line, and it produces exactly
-    # one; take the last defensively.
     try:
         parsed = json.loads(payloads[-1])
     except json.JSONDecodeError:
@@ -148,7 +199,7 @@ def parse_driver_result(stdout: str, nonce: str) -> dict[str, Any] | None:
 
 
 def parse_compile_diagnostics(stdout: str) -> tuple[list[str], bool]:
-    """Parse `lake env lean --json` diagnostics from stdout.
+    """Parse `lean --json` diagnostics from stdout.
 
     Returns `(errors, sorry_hit)`: the list of `severity=="error"` message
     bodies, and whether any `sorry` warning is present (`kind=="hasSorry"`, or a
@@ -178,34 +229,36 @@ def parse_compile_diagnostics(stdout: str) -> tuple[list[str], bool]:
 
 
 class LeanVerifier:
-    """Verifier wrapping the kernel re-check (`leanchecker`) + compiled
-    `axiom_audit` driver over the pinned EmpiricistLean project. See module
-    docstring for the trust model."""
+    """Verifier wrapping the SANDBOXED kernel re-check (`leanchecker`) + compiled
+    `axiom_audit` driver over the pinned EmpiricistLean project, with a
+    pinned-trusted import path (Levers 1-3). See module docstring for the trust
+    model."""
 
     name = "lean"
-    version = "3.0"
+    version = "3.1"
 
     def __init__(self, project_dir: Path | None = None) -> None:
         self._project_dir = project_dir or _DEFAULT_PROJECT_DIR
         self._module_dir = self._project_dir / "EmpiricistLean"
-        # Where `lake env lean -o` writes oleans and leanchecker/importModules
-        # resolve them (the new module-system layout puts the project's LEAN_PATH
-        # root at .lake/build/lib/lean, not .lake/build/lib).
-        self._olean_root = self._project_dir / ".lake" / "build" / "lib" / "lean"
+        # The WRITABLE project build lib (where a poison olean would be planted).
+        # Deliberately kept OFF the restricted compile/checker LEAN_PATH; swept for
+        # residue by Lever 3.
+        self._build_lib = self._project_dir / ".lake" / "build" / "lib" / "lean"
         self._driver_src = self._project_dir / "AxiomAudit.lean"
         self._driver_bin = self._project_dir / ".lake" / "build" / "bin" / "axiom_audit"
+        # Read-only trusted lib (Basic.olean copy), under .lake (gitignored) but NOT
+        # the build lib and NOT any sandbox workdir -> untamperable by the sandbox.
+        self._trusted_lib_dir = self._project_dir / ".lake" / "empiricist-trusted-lib"
         self._pin_manifest = self._project_dir.parent / "lean4checker.pin.json"
-        self._driver_ready = False
+        self._cfg: _ToolchainConfig | None = None
 
     @property
     def binary_hash(self) -> str:
         """blake3 over this module's source + the compiled driver's source
         (AxiomAudit.lean) + the leanchecker pin manifest + the project's
-        lean-toolchain, lake-manifest.json, and lakefile.toml bytes. Pins the
-        toolchain (which IS the kernel-checker's version), the mathlib pin, the
-        lakefile/leanOptions, the compiled audit logic, AND the leanchecker pin
-        into the verifier's identity (read fresh from disk on every access, so
-        any of those changing invalidates an existing certification stamp)."""
+        lean-toolchain, lake-manifest.json, and lakefile.toml bytes. Read fresh
+        from disk on every access, so any of those changing invalidates an existing
+        certification stamp."""
         hasher = blake3()
         hasher.update(inspect.getsource(sys.modules[__name__]).encode("utf-8"))
         hasher.update(self._driver_src.read_bytes())
@@ -221,11 +274,11 @@ class LeanVerifier:
     def verify(
         self, module_source: str, *, decl: str, timeout_s: float = 600.0
     ) -> VerifierResult:
-        """Verify `module_source` compiles error-free, is KERNEL-SOUND (leanchecker),
-        and `decl`'s axiom closure is within the whitelist. Total -- never raises:
-        any failure (build/spawn/timeout/malformed output) becomes Verdict.ERROR
-        with the message in details["error"], or a fail-closed Verdict.FAIL.
-        Per-invocation scratch/nonce/olean cleanup ALWAYS runs (finally).
+        """Verify `module_source` compiles error-free, imports only pinned-trusted
+        modules, is KERNEL-SOUND (leanchecker), and `decl`'s axiom closure is within
+        the whitelist. Total -- never raises: any failure becomes Verdict.ERROR or a
+        fail-closed Verdict.FAIL. The per-invocation EPHEMERAL workdir is removed and
+        the shared dirs swept for residue in `finally`.
 
         Wraps `asyncio.run`, so it must NOT be called from a thread with a running
         event loop -- guarded (returns Verdict.ERROR rather than raising)."""
@@ -243,24 +296,28 @@ class LeanVerifier:
             )
 
         source_hash = blake3(module_source.encode("utf-8")).hexdigest()
-        # Per-invocation UNIQUE token (uuid4), NOT keyed on source_hash: two
-        # concurrent verify() calls -- even of the SAME source -- get distinct
-        # scratch/nonce/olean paths, closing both the concurrent-verify nonce-leak
-        # window and the same-source cleanup race. `Scratch_` prefix keeps the
-        # module component a valid Lean identifier for any uuid hex.
+        # Per-invocation UNIQUE token (uuid4): two concurrent verify() calls -- even
+        # of the SAME source -- get distinct workdir/module/nonce, closing the
+        # concurrent-verify nonce-leak window and the cleanup race. `Scratch_` prefix
+        # keeps the module a valid Lean identifier for any uuid hex.
         tok = f"Scratch_{uuid.uuid4().hex}"
-        module_name = f"EmpiricistLean.{tok}"
-        scratch_path = self._module_dir / f"{tok}.lean"
-        nonce_path = self._module_dir / f"{tok}.nonce"
-        olean_path = self._olean_root / "EmpiricistLean" / f"{tok}.olean"
-        # Fresh per call: the attacker cannot predict or read it (the driver
-        # deletes the nonce file before importing), so cannot forge a result line.
+        # EPHEMERAL per-call workdir = the SANDBOX write jail. The scratch source,
+        # its `-o` olean, and the nonce file all live here; NOTHING is written into
+        # the shared project. A direct-import poison plant is confined here and
+        # removed in finally.
+        work = Path(mkdtemp(prefix="empiricist-lean-")).resolve()
+        module_name = tok  # top-level module (decoupled from the EmpiricistLean ns)
+        scratch_path = work / f"{tok}.lean"
+        nonce_path = work / f"{tok}.nonce"
+        olean_path = work / f"{tok}.olean"
+        # Fresh per call: the attacker cannot predict or read it (the driver deletes
+        # the nonce file before importing), so cannot forge a result line.
         nonce = f"AXIOM_AUDIT_{uuid.uuid4().hex}"
         try:
             return asyncio.run(
                 self._verify_async(
                     module_source, decl=decl, timeout_s=timeout_s,
-                    module_name=module_name, scratch_path=scratch_path,
+                    module_name=module_name, work=work, scratch_path=scratch_path,
                     nonce=nonce, nonce_path=nonce_path, olean_path=olean_path,
                     source_hash=source_hash,
                 )
@@ -271,42 +328,54 @@ class LeanVerifier:
                 details={"error": f"{type(exc).__name__}: {exc}"},
             )
         finally:
-            # Per-invocation cleanup: every artifact this call created, by its
-            # unique paths. Unconditional (missing_ok) -- the driver also deletes
-            # the nonce, and a gate may have short-circuited before the olean.
-            scratch_path.unlink(missing_ok=True)
-            nonce_path.unlink(missing_ok=True)
-            olean_path.unlink(missing_ok=True)
+            # Lever 3: remove the whole ephemeral workdir (source, olean, nonce, and
+            # any compile-time residue confined there), unconditionally.
+            shutil.rmtree(work, ignore_errors=True)
 
     async def _verify_async(
         self, module_source: str, *, decl: str, timeout_s: float,
-        module_name: str, scratch_path: Path, nonce: str, nonce_path: Path,
-        olean_path: Path, source_hash: str,
+        module_name: str, work: Path, scratch_path: Path, nonce: str,
+        nonce_path: Path, olean_path: Path, source_hash: str,
     ) -> VerifierResult:
-        build_err = await self._ensure_driver_async()
+        build_err = await self._ensure_ready_async()
         if build_err is not None:
             return VerifierResult(verdict=Verdict.ERROR, details={"error": build_err})
+        cfg = self._cfg
+        assert cfg is not None  # _ensure_ready_async sets it or returns an error
+
+        # Lever 3 (pre): a stray, non-pinned olean already sitting in the shared
+        # dirs means a prior/concurrent call escaped its jail -> fail closed BEFORE
+        # trusting anything.
+        residue = self._sweep_residue()
+        if residue:
+            return VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"gate": "residue", "unexpected_files": residue[:8]},
+            )
 
         # The scratch file is the UNMODIFIED source -- the harness appends NOTHING.
         scratch_path.write_text(module_source, encoding="utf-8")
         nonce_path.write_text(nonce, encoding="utf-8")
-        olean_path.parent.mkdir(parents=True, exist_ok=True)
-        scratch_rel = scratch_path.relative_to(self._project_dir)
+        lean_path = self._restricted_lean_path(work, cfg)
+        env_extra = {**self._lean_env(), "LEAN_PATH": lean_path, "LEAN_SYSROOT": cfg.sysroot}
 
-        # -- Gate (b): COMPILE to an olean, capturing --json diagnostics. --------
+        def sandboxed(argv: list[str], move: str) -> ExecSpec:
+            # cwd=work makes `work` the sandbox write jail (executor resolves cwd to
+            # the SBPL subpath). env_passthrough=False + SANDBOX_EXEC: no secrets, no
+            # network, writes confined to `work`.
+            return ExecSpec(
+                argv=argv, move=move, cwd=work,
+                sandbox=SandboxMode.SANDBOX_EXEC,
+                env_passthrough=False, env_extra=env_extra,
+                capture_cap=_CAPTURE_CAP, timeout_s=timeout_s,
+            )
+
+        # -- Gate (b): SANDBOXED COMPILE to an ephemeral olean, --json diagnostics. -
         compile_res = await execute(
-            ExecSpec(
-                argv=[
-                    "lake", "env", "lean", "--json",
-                    "-o", str(olean_path), str(scratch_rel),
-                ],
-                move="LEAN_COMPILE",
-                cwd=self._project_dir,
-                sandbox=SandboxMode.NONE,
-                env_passthrough=False,
-                env_extra=self._lean_env(),
-                capture_cap=_CAPTURE_CAP,
-                timeout_s=timeout_s,
+            sandboxed(
+                [str(cfg.lean_bin), "--root", str(work), "--json",
+                 "-o", str(olean_path), scratch_path.name],
+                "LEAN_COMPILE",
             ),
             ledger=None,
         )
@@ -322,8 +391,6 @@ class LeanVerifier:
         if sorry_hit:
             return VerifierResult(verdict=Verdict.FAIL, details={"gate": "sorry"})
         if not olean_path.exists():
-            # No error diagnostics but no olean either: fail closed -- we cannot
-            # kernel-check a module that did not compile.
             return VerifierResult(
                 verdict=Verdict.FAIL,
                 details={
@@ -334,18 +401,27 @@ class LeanVerifier:
                 },
             )
 
-        # -- Gate (c): KERNEL re-check via leanchecker (THE TRUST ANCHOR). -------
-        lc_res = await execute(
-            ExecSpec(
-                argv=["lake", "env", "leanchecker", module_name],
-                move="LEAN_KERNEL_CHECK",
-                cwd=self._project_dir,
-                sandbox=SandboxMode.NONE,
-                env_passthrough=False,
-                env_extra=self._lean_env(),
-                capture_cap=_CAPTURE_CAP,
-                timeout_s=timeout_s,
+        # -- Gate (b2): IMPORT-TRUST over DIRECT imports (Lever 2, early). ----------
+        deps_res = await execute(
+            sandboxed(
+                [str(cfg.lean_bin), "--root", str(work), "--deps", scratch_path.name],
+                "LEAN_IMPORT_DEPS",
             ),
+            ledger=None,
+        )
+        early = self._exec_guard(deps_res, "lean --deps")
+        if early is not None:
+            return early
+        untrusted = self._untrusted_import_paths(deps_res.stdout, cfg, work)
+        if untrusted:
+            return VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"gate": "import_trust", "untrusted_imports": untrusted[:8]},
+            )
+
+        # -- Gate (c): KERNEL re-check via leanchecker (THE TRUST ANCHOR). ---------
+        lc_res = await execute(
+            sandboxed([str(cfg.leanchecker_bin), module_name], "LEAN_KERNEL_CHECK"),
             ledger=None,
         )
         early = self._exec_guard(lc_res, "leanchecker")
@@ -356,8 +432,6 @@ class LeanVerifier:
             m in lc_out.lower() for m in _KERNEL_FAIL_MARKERS
         )
         if kernel_bad:
-            # The injected `1=2 := Eq.refl` (or any kernel-bypass forgery) is
-            # re-checked by the real kernel and rejected here. Fail closed.
             return VerifierResult(
                 verdict=Verdict.FAIL,
                 details={
@@ -368,20 +442,11 @@ class LeanVerifier:
                 },
             )
 
-        # -- Gate (d): AXIOM SET + STATEMENT over the SAME kernel-checked olean. --
+        # -- Gate (d): AXIOM SET + IMPORT CLOSURE + STATEMENT over the SAME olean. --
         audit_res = await execute(
-            ExecSpec(
-                argv=[
-                    "lake", "env", str(self._driver_bin),
-                    module_name, decl, str(nonce_path),
-                ],
-                move="LEAN_AXIOM_AUDIT",
-                cwd=self._project_dir,
-                sandbox=SandboxMode.NONE,
-                env_passthrough=False,
-                env_extra=self._lean_env(),
-                capture_cap=_CAPTURE_CAP,
-                timeout_s=timeout_s,
+            sandboxed(
+                [str(self._driver_bin), module_name, decl, str(nonce_path)],
+                "LEAN_AXIOM_AUDIT",
             ),
             ledger=None,
         )
@@ -404,12 +469,19 @@ class LeanVerifier:
 
         driver_errors = result.get("errors") or []
         if driver_errors:
-            # Import errors over a module that compiled + passed the kernel would
-            # be anomalous -- fail closed.
             return VerifierResult(
                 verdict=Verdict.FAIL,
                 details={"gate": "diagnostics", "errors": driver_errors[:3]},
             )
+
+        # Lever 2 backstop: the driver's TRANSITIVE import closure must be pinned.
+        import_bad = self._untrusted_transitive_imports(result, module_name, cfg)
+        if import_bad:
+            return VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"gate": "import_trust", **import_bad},
+            )
+
         if not result.get("declFound"):
             return VerifierResult(
                 verdict=Verdict.FAIL,
@@ -421,6 +493,14 @@ class LeanVerifier:
             return VerifierResult(
                 verdict=Verdict.FAIL,
                 details={"gate": "axioms", "axioms": axioms, "offending_axioms": offending},
+            )
+
+        # Lever 3 (post): nothing may have leaked into the shared dirs during the run.
+        residue = self._sweep_residue()
+        if residue:
+            return VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"gate": "residue", "unexpected_files": residue[:8]},
             )
 
         statement = str(result.get("statement") or "")
@@ -435,9 +515,92 @@ class LeanVerifier:
                 "toolchain": self._toolchain(),
                 "mathlib_commit": self._mathlib_commit(),
                 "kernel_checker": "leanchecker (toolchain builtin, pinned)",
+                "sandbox": "sandbox-exec (network denied, writes confined to ephemeral workdir)",
+                "import_roots": sorted(result.get("importRoots") or []),
                 "source_hash": source_hash,
             },
         )
+
+    def _restricted_lean_path(self, work: Path, cfg: _ToolchainConfig) -> str:
+        """LEAN_PATH = pinned read-only roots + the trusted Basic lib + the ephemeral
+        scratch dir. The WRITABLE project build lib is EXCLUDED, so a sibling poison
+        olean planted there is unreachable (Lever 2)."""
+        roots = [*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir), str(work)]
+        return os.pathsep.join(roots)
+
+    def _untrusted_import_paths(
+        self, deps_stdout: str, cfg: _ToolchainConfig, work: Path
+    ) -> list[str]:
+        """Gate (b2): classify each `lean --deps` resolved import olean path. An
+        import is TRUSTED iff its olean sits under a pinned read-only root or is
+        exactly the trusted `EmpiricistLean.Basic` copy. A path under the ephemeral
+        workdir (a same-call planted sibling) or anywhere else -> UNTRUSTED. Returns
+        the list of untrusted resolved paths (empty == all imports pinned)."""
+        untrusted: list[str] = []
+        for raw in deps_stdout.splitlines():
+            line = raw.strip()
+            if not line or not line.endswith(".olean"):
+                continue
+            try:
+                p = Path(line).resolve()
+            except OSError:
+                untrusted.append(line)
+                continue
+            if p == cfg.basic_olean:
+                continue
+            if any(self._is_under(p, root) for root in cfg.trusted_roots):
+                continue
+            untrusted.append(str(p))
+        return untrusted
+
+    def _untrusted_transitive_imports(
+        self, result: dict[str, Any], module_name: str, cfg: _ToolchainConfig
+    ) -> dict[str, Any] | None:
+        """Gate (d) backstop: over the driver's TRANSITIVE import closure, reject any
+        top-level ROOT that is not pinned-trusted (allowing the scratch's own module
+        root) and any `EmpiricistLean.*` import other than `EmpiricistLean.Basic`.
+        Returns a details dict on violation, else None."""
+        roots = result.get("importRoots") or []
+        allowed = cfg.allowed_roots | {module_name}
+        bad_roots = [r for r in roots if r not in allowed]
+        emp = result.get("empiricistImports") or []
+        bad_emp = [m for m in emp if m != _TRUSTED_EMPIRICIST_MODULE]
+        if bad_roots or bad_emp:
+            return {
+                "reason": "transitive import closure includes non-pinned modules",
+                "unexpected_roots": bad_roots[:8],
+                "unexpected_empiricist_imports": bad_emp[:8],
+            }
+        return None
+
+    def _sweep_residue(self) -> list[str]:
+        """Lever 3: scan the shared module source dir and the writable build lib for
+        UNEXPECTED files -- anything that is not part of the pinned/committed set.
+        A stray olean/lean (e.g. a planted `Poison.olean`, or a leftover `Scratch_*`)
+        means a prior/concurrent call escaped its ephemeral jail. Returns the list of
+        offending paths (empty == clean)."""
+        offenders: list[str] = []
+        # Source dir: only the committed Basic.lean belongs here (Scratch_* used to
+        # live here; they now live in the ephemeral workdir, so any Scratch_* here is
+        # stale residue).
+        for p in self._module_dir.glob("*"):
+            if p.name != "Basic.lean":
+                offenders.append(str(p))
+        # Build lib EmpiricistLean subdir: only Basic.* build products belong here.
+        emp_build = self._build_lib / "EmpiricistLean"
+        if emp_build.exists():
+            for p in emp_build.glob("*"):
+                if not p.name.startswith("Basic."):
+                    offenders.append(str(p))
+        return offenders
+
+    @staticmethod
+    def _is_under(path: Path, root: Path) -> bool:
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            return False
 
     @staticmethod
     def _exec_guard(res: Any, label: str) -> VerifierResult | None:
@@ -454,24 +617,22 @@ class LeanVerifier:
             )
         return None
 
-    async def _ensure_driver_async(self) -> str | None:
-        """Build the `axiom_audit` driver once per verifier instance, via the
-        audited `executor.execute()` path. Incremental `lake build` -- a fast
-        no-op when up-to-date. Returns None on success, or an error string on
-        failure. This is a TRUSTED build step (the pinned toolchain building
-        harness-authored source)."""
-        if self._driver_ready:
+    async def _ensure_ready_async(self) -> str | None:
+        """Build the `axiom_audit` driver + the EmpiricistLean lib once per verifier
+        instance (TRUSTED, unsandboxed: the pinned toolchain building harness-authored
+        source), then resolve the pinned toolchain config via `lake env` and stage the
+        read-only trusted `Basic.olean` copy. Returns None on success, else an error
+        string."""
+        if self._cfg is not None:
             return None
         build = await execute(
             ExecSpec(
-                argv=["lake", "build", "axiom_audit"],
+                argv=["lake", "build", "EmpiricistLean", "axiom_audit"],
                 move="LEAN_BUILD_DRIVER",
                 cwd=self._project_dir,
                 sandbox=SandboxMode.NONE,
-                env_passthrough=False,
-                env_extra=self._lean_env(),
-                capture_cap=_CAPTURE_CAP,
-                timeout_s=600.0,
+                env_passthrough=False, env_extra=self._lean_env(),
+                capture_cap=_CAPTURE_CAP, timeout_s=600.0,
             ),
             ledger=None,
         )
@@ -479,22 +640,102 @@ class LeanVerifier:
             return "axiom_audit driver build timed out"
         if build.exit_code != 0 or not self._driver_bin.exists():
             return (
-                f"`lake build axiom_audit` rc={build.exit_code}, "
+                f"`lake build EmpiricistLean axiom_audit` rc={build.exit_code}, "
                 f"bin_exists={self._driver_bin.exists()}: {build.stderr[-2000:]}"
             )
-        self._driver_ready = True
+        try:
+            cfg = await self._resolve_toolchain_async()
+        except Exception as exc:  # resolution is best-effort; surface as ERROR
+            return f"toolchain resolution failed: {type(exc).__name__}: {exc}"
+        self._cfg = cfg
         return None
+
+    async def _resolve_toolchain_async(self) -> _ToolchainConfig:
+        """Resolve pinned toolchain facts ONCE via `lake env` (trusted, unsandboxed)
+        so the hot path can invoke binaries directly under a restricted LEAN_PATH."""
+        async def lake_env(*args: str) -> str:
+            res = await execute(
+                ExecSpec(
+                    argv=["lake", "env", *args],
+                    move="LEAN_RESOLVE_TOOLCHAIN",
+                    cwd=self._project_dir,
+                    sandbox=SandboxMode.NONE,
+                    env_passthrough=False, env_extra=self._lean_env(),
+                    capture_cap=_CAPTURE_CAP, timeout_s=120.0,
+                ),
+                ledger=None,
+            )
+            if res.exit_code != 0:
+                raise RuntimeError(
+                    f"`lake env {' '.join(args)}` rc={res.exit_code}: {res.stderr[-500:]}"
+                )
+            return res.stdout.strip()
+
+        lean_bin = Path((await lake_env("which", "lean")).splitlines()[-1].strip())
+        leanchecker_bin = Path((await lake_env("which", "leanchecker")).splitlines()[-1].strip())
+        sysroot = (await lake_env("lean", "--print-prefix")).splitlines()[-1].strip()
+        raw_lean_path = await lake_env("printenv", "LEAN_PATH")
+
+        build_lib = self._build_lib.resolve()
+        trusted_roots: list[Path] = []
+        for entry in raw_lean_path.split(os.pathsep):
+            entry = entry.strip()
+            if not entry:
+                continue
+            p = Path(entry).resolve()
+            if p == build_lib:  # EXCLUDE the writable project build lib
+                continue
+            if p not in trusted_roots:
+                trusted_roots.append(p)
+
+        # Stage the read-only trusted Basic.olean copy (fresh, so a Basic rebuild is
+        # reflected), outside any sandbox workdir.
+        trusted_emp = self._trusted_lib_dir / "EmpiricistLean"
+        trusted_emp.mkdir(parents=True, exist_ok=True)
+        basic_src = self._build_lib / "EmpiricistLean" / "Basic.olean"
+        basic_dst = (trusted_emp / "Basic.olean").resolve()
+        if basic_src.exists():
+            # Atomic publish (temp + os.replace): a concurrent fresh verifier reading
+            # the trusted Basic while this instance restages it must never see a torn
+            # file. os.replace is atomic within the same directory.
+            tmp_dst = trusted_emp / f".Basic.olean.{uuid.uuid4().hex}.tmp"
+            shutil.copyfile(basic_src, tmp_dst)
+            os.replace(tmp_dst, basic_dst)
+
+        allowed_roots = self._scan_allowed_roots(trusted_roots, self._trusted_lib_dir.resolve())
+
+        return _ToolchainConfig(
+            lean_bin=lean_bin, leanchecker_bin=leanchecker_bin, sysroot=sysroot,
+            trusted_roots=tuple(trusted_roots), basic_olean=basic_dst,
+            trusted_lib_dir=self._trusted_lib_dir.resolve(), allowed_roots=allowed_roots,
+        )
+
+    @staticmethod
+    def _scan_allowed_roots(trusted_roots: list[Path], trusted_lib_dir: Path) -> frozenset[str]:
+        """The set of top-level module roots reachable via the trusted import roots:
+        each root dir's immediate subdirs (`Mathlib/` -> `Mathlib`) and top-level
+        `*.olean` files (`Init.olean` -> `Init`). Computed once; used to reject any
+        transitive import whose root is not pinned-trusted."""
+        roots: set[str] = set()
+        for d in [*trusted_roots, trusted_lib_dir]:
+            if not d.exists():
+                continue
+            for entry in d.iterdir():
+                if entry.is_dir():
+                    roots.add(entry.name)
+                elif entry.name.endswith(".olean"):
+                    roots.add(entry.name[: -len(".olean")])
+        return frozenset(roots)
 
     @staticmethod
     def _lean_env() -> dict[str, str]:
         """The minimal env for elan/lake/lean/leanchecker, passed as
         `ExecSpec.env_extra` (with `env_passthrough=False`).
 
-        Includes ONLY: the parent PATH (with ~/.elan/bin ensured -- to resolve the
-        elan shims and pinned toolchain, incl. `leanchecker`), the real HOME
-        (elan's ~/.elan and lake's caches live there), and any parent `ELAN*`
-        vars. Everything else the parent holds -- crucially every secret -- is
-        dropped: the untrusted source's compile-time IO must not read it."""
+        Includes ONLY: the parent PATH (with ~/.elan/bin ensured -- to resolve elan
+        shims / `lake`), the real HOME (elan's ~/.elan lives there; read-only under
+        the sandbox), and any parent `ELAN*` vars. Every secret the parent holds is
+        dropped: even under the sandbox, the untrusted compile's IO must not read it."""
         home = os.environ.get("HOME", "")
         path = os.environ.get("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
         if home:
