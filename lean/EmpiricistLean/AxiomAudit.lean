@@ -6,43 +6,43 @@ Authors: Sean Howell
 import Lean
 
 /-!
-# `axiom_audit` — the compiled axiom-audit driver (M8 soundness fix)
+# `axiom_audit` — the compiled axiom-SET + statement driver (M8 soundness fix v3)
 
-This is the COMPILED authority for the LeanVerifier's FORMALIZED trust gate.
-The in-band `#print axioms <decl>` approach it replaces is UNSOUND: any surface
-the harness re-elaborates in the tainted environment (`#print`, `#eval`,
-`run_cmd`, macros) is attacker-shadowable, so a submitted source can redefine
-the `#print axioms` command (`elab "#print " "axioms" ... => logInfo "clean"`)
-or spoof its output and certify `theorem two : (1:Nat)=2 := evil.elim`.
+This is the COMPILED axiom-set and statement authority for the LeanVerifier's
+FORMALIZED trust gate. It runs LAST, only AFTER two earlier gates have already
+established that the submitted module is kernel-sound:
 
-This driver computes the axiom set from COMPILED code that walks the real kernel
-environment (`Lean.collectAxioms`, exactly what `Lean.Elab.Command.elabPrintAxioms`
-calls), never from a re-elaboratable command. It:
+1. `lake env lean --json -o <olean> <scratch>` compiled the module to an olean
+   (any `severity=="error"` / `sorry` warning already rejected there), and
+2. `lake env leanchecker <Module>` re-checked THAT olean's own added declarations
+   through the REAL Lean kernel, starting from its (trusted, pinned-mathlib)
+   imports. This is the trust anchor: it rejects environment-hacking injections
+   (`addDeclCore (doCheck := false)`, `Environment.add`, `skipKernelTC`) that give
+   a constant a FALSE type but a clean, axiom-free value.
 
-1. Reads a fresh harness nonce from a file and DELETES that file BEFORE
-   elaborating the untrusted source, so the source's compile-time IO can never
-   learn it (even reading `IO.getArgs` yields only a path to an already-deleted
-   file). Only a result line bearing this nonce is trusted by the harness — so a
-   direct `/dev/stdout` write followed by `IO.Process.exit` still cannot forge
-   an accepted result.
-2. Elaborates the source with `Lean.Elab.runFrontend` — the exact frontend
-   `lean --json` uses (proper import loading, async elaboration, and per-command
-   compile-time-stdout capture). The whole call runs under
-   `IO.FS.withIsolatedStreams`, so the frontend's own diagnostic report (which is
-   where a source's `#eval`-printed fake axiom line lands, as INFORMATION-level
-   message data) is captured into a string we DISCARD; it can never reach the
-   driver's real stdout, and we never parse it for the axiom decision.
-3. From compiled code over the returned `Environment`: looks up the decl (absent,
-   or the frontend reported errors → FAIL CLOSED) and calls `Lean.collectAxioms`.
-   `sorryAx` and `native_decide`'s synthesized per-decl axioms appear naturally,
-   so the harness whitelist check catches them.
-4. Emits EXACTLY ONE nonce-framed JSON line to the real (restored) stdout AFTER
-   the frontend returns:
-   `AXIOM_AUDIT::<nonce>::{"declFound":…,"errors":[…],"axioms":[…]}`.
+Because the kernel already accepted the olean, THIS driver's job is only the
+*epistemic-hygiene* part that leanchecker does not do: report the decl's AXIOM
+SET (so the harness whitelist can reject `sorryAx` / `native_decide` / custom
+axioms — all of which are kernel-VALID, so leanchecker passes them) and the
+decl's resolved STATEMENT (provenance: what was actually proven).
 
-Any exception fails closed: a nonce-framed `{"declFound":false,"errors":[…],…}`
-line is still emitted (so the harness sees structured evidence) and the process
-exits nonzero. The harness also imposes its own timeout.
+**Why it IMPORTS the compiled olean rather than re-elaborating the source.** The
+predecessor computed axioms by re-running `Lean.Elab.runFrontend` on the source.
+That re-elaboration is a SECOND, independent frontend run; a source whose
+compile-time metaprogramming branches on a clock / nondeterministic input could
+make the olean that leanchecker checked (honest branch) DIVERGE from the env the
+audit sees (evil branch), certifying a statement leanchecker never validated.
+Auditing the SAME single olean artifact leanchecker checked closes that gap: there
+is exactly one compiled artifact, and every gate reads it.
+
+**The nonce channel (unchanged trust story).** The harness passes a fresh
+unguessable nonce via a file; the driver reads it and DELETES the file BEFORE
+`importModules` (importing runs the module's `initialize` blocks, which can do IO).
+The whole import runs under `IO.FS.withIsolatedStreams`, so any `initialize`-time
+stdout is captured and discarded. The driver then writes EXACTLY ONE line to the
+restored real stdout: `AXIOM_AUDIT::<nonce>::{...}`. A source that forges a line
+cannot know the nonce, so the harness (`parse_driver_result`) rejects it and the
+audit fails closed.
 -/
 
 open Lean
@@ -53,8 +53,8 @@ namespace AxiomAudit
 def resultMarker : String := "AXIOM_AUDIT"
 
 /-- Run a `CoreM` action against a fixed environment. Used ONLY to call the
-compiled `Lean.collectAxioms`; performs no elaboration. `maxHeartbeats := 0`
-removes any limit on the axiom walk. -/
+compiled `Lean.collectAxioms` and the pretty-printer; performs no elaboration of
+untrusted source. `maxHeartbeats := 0` removes any limit on the axiom walk. -/
 def runCoreM {α : Type} (env : Environment) (x : CoreM α) : IO α := do
   let ctx : Core.Context :=
     { fileName := "<axiom_audit>"
@@ -62,36 +62,20 @@ def runCoreM {α : Type} (env : Environment) (x : CoreM α) : IO α := do
       options := (maxHeartbeats.set {} 0) }
   Prod.fst <$> x.toIO ctx { env }
 
-/-- The audit result, serialized as the driver's single JSON output line. -/
+/-- The audit result, serialized as the driver's single JSON output line.
+`statement` is the decl's resolved, pretty-printed type (empty when not found). -/
 structure Result where
   declFound : Bool
   errors : Array String
   axioms : Array String
+  statement : String
 
 def Result.toJson (r : Result) : Json :=
   Json.mkObj
     [ ("declFound", Json.bool r.declFound)
     , ("errors", Json.arr (r.errors.map Json.str))
-    , ("axioms", Json.arr (r.axioms.map Json.str)) ]
-
-/-- Best-effort extraction of `.error`-severity diagnostic strings from the
-frontend's captured `--json` report, for the human-readable `errors` field. This
-is COSMETIC: the security decision is `runFrontend` returning `none` (errors) vs
-`some env`; a source can only ADD messages, never turn a real error into `some`.
-A source's `#eval` output is captured by the frontend as INFORMATION-severity
-message data, so it is ignored here. -/
-def extractErrors (captured : String) : Array String := Id.run do
-  let mut errs : Array String := #[]
-  for line in captured.splitOn "\n" do
-    if errs.size ≥ 5 then
-      break
-    match Json.parse line with
-    | .ok j =>
-      match j.getObjValAs? String "severity", j.getObjValAs? String "data" with
-      | .ok "error", .ok d => errs := errs.push d
-      | _, _ => pure ()
-    | .error _ => pure ()
-  return errs
+    , ("axioms", Json.arr (r.axioms.map Json.str))
+    , ("statement", Json.str r.statement) ]
 
 /-- Write the single nonce-framed result line to the REAL stdout (called only
 after `withIsolatedStreams` has restored the stream). -/
@@ -100,56 +84,52 @@ def emit (nonce : String) (r : Result) : IO Unit := do
   out.putStr s!"{resultMarker}::{nonce}::{r.toJson.compress}\n"
   out.flush
 
-/-- Elaborate `source` with the real frontend under isolated streams, returning
-the captured report and the resulting environment (`none` iff the frontend
-reported errors). -/
-unsafe def elaborate (source : String) (fileName : String) :
-    IO (String × Option Environment) :=
-  IO.FS.withIsolatedStreams
-    (Elab.runFrontend source {} fileName `AxiomAuditScratch (jsonOutput := true))
+/-- Import the already-compiled module (its olean must be on the search path) and
+compute, from COMPILED code over the returned `Environment`, the decl's axiom set
+and pretty-printed statement. Runs under isolated streams so the module's
+`initialize`-time IO cannot reach real stdout. `loadExts := true` so the
+pretty-printer has the imported notation available for a referee-readable
+statement. -/
+unsafe def auditModule (modName declName : Name) : IO (String × Result) :=
+  IO.FS.withIsolatedStreams do
+    let env ← importModules #[{ module := modName }] {} (loadExts := true)
+    match env.find? declName with
+    | none => pure { declFound := false, errors := #[], axioms := #[], statement := "" }
+    | some ci =>
+      let names ← runCoreM env (Lean.collectAxioms declName)
+      let fmt ← runCoreM env (Lean.Meta.ppExpr ci.type).run'
+      pure { declFound := true, errors := #[], axioms := names.map (·.toString),
+             statement := fmt.pretty }
 
 unsafe def mainUnsafe (args : List String) : IO UInt32 := do
   match args with
-  | [filePath, declStr, noncePath] =>
-    -- Read the harness nonce, then delete its file BEFORE touching the
-    -- untrusted source, so compile-time IO can never read it (even reading
-    -- `IO.getArgs` yields only a path to an already-deleted file). Only a
+  | [modStr, declStr, noncePath] =>
+    -- Read the harness nonce, then delete its file BEFORE importing the
+    -- untrusted module (import runs `initialize` blocks that can do IO). Only a
     -- result line bearing this nonce is trusted by the harness.
     let nonce := (← IO.FS.readFile noncePath).trimAscii.toString
     try IO.FS.removeFile noncePath catch _ => pure ()
+    let modName := modStr.toName
     let declName := declStr.toName
     try
       Lean.initSearchPath (← Lean.findSysroot)
-      -- Required before `importModules (loadExts := true)`: the frontend runs
-      -- `initialize`/module init code while importing mathlib.
+      -- Required before `importModules (loadExts := true)`: imported modules run
+      -- `initialize` / module init code.
       Lean.enableInitializersExecution
-      let source ← IO.FS.readFile filePath
-      let (captured, envOpt) ← elaborate source filePath
-      let r : Result ← match envOpt with
-        | some env =>
-          let declFound := env.contains declName
-          if declFound then
-            let names ← runCoreM env (Lean.collectAxioms declName)
-            pure { declFound := true, errors := #[], axioms := names.map (·.toString) }
-          else
-            pure { declFound := false, errors := #[], axioms := #[] }
-        | none =>
-          let errs := extractErrors captured
-          let errs := if errs.isEmpty then #["frontend reported errors"] else errs
-          pure { declFound := false, errors := errs, axioms := #[] }
+      let (_captured, r) ← auditModule modName declName
       emit nonce r
       pure (0 : UInt32)
     catch e =>
-      emit nonce { declFound := false, errors := #[toString e], axioms := #[] }
+      emit nonce { declFound := false, errors := #[toString e], axioms := #[], statement := "" }
       pure (1 : UInt32)
   | _ =>
-    IO.eprintln "usage: axiom_audit <file.lean> <fully-qualified-decl> <nonce-file>"
+    IO.eprintln "usage: axiom_audit <module-name> <fully-qualified-decl> <nonce-file>"
     pure (2 : UInt32)
 
 end AxiomAudit
 
 /-- Entry point. `unsafe` because `Lean.enableInitializersExecution` and
-`Lean.Elab.runFrontend` (needed for mathlib-importing sources whose modules run
-`initialize` code) are `unsafe`. -/
+`importModules (loadExts := true)` (imported modules run `initialize` code) are
+`unsafe`. -/
 unsafe def main (args : List String) : IO UInt32 :=
   AxiomAudit.mainUnsafe args

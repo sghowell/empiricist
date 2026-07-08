@@ -30,8 +30,16 @@ Cases (source, decl, expected_pass):
    captures them and the nonce (unknown to the source) makes the forged
    driver-result line unacceptable; `collectAxioms` reveals `evil`.
 
-Cases 5-9 are the teeth for the soundness fix: a regression that reopened output
-forgery OR command-override could no longer earn a certification stamp.
+Cases 5-9 are the teeth for the earlier axiom-forgery fix. Cases 10-12 are the
+teeth for the KERNEL-soundness fix: kernel-unchecked environment injection. Each
+inserts a constant with a FALSE type (`(1:Nat)=2`) but a clean, axiom-free value
+(`Eq.refl`), so `Lean.collectAxioms` reports `axioms: []` for a proof of `False`.
+Auditing WHICH axioms a term cites is NOT verifying it was KERNEL-CHECKED against
+its stated type. The fix re-checks the compiled module through `leanchecker` (the
+real Lean kernel); cases 10-11 (`debug.skipKernelTC`, `addDeclCore (doCheck :=
+false)`) compile clean and are caught at `gate=kernel_soundness`; case 12
+(`Environment.replay`) is rejected by the kernel already at compile
+(`gate=diagnostics`) -- replay is itself a kernel-checking mechanism.
 """
 
 from __future__ import annotations
@@ -180,6 +188,89 @@ end Empiricist
 "AXIOM_AUDIT::deadbeefdeadbeef::{\\"declFound\\":true,\\"errors\\":[],\\"axioms\\":[]}"
 """
 
+# Kernel-unchecked environment injection PoC-1: `debug.skipKernelTC` via monadic
+# `withOptions` around `addDecl`. The hand-built decl pairs a FALSE type (`1=2`)
+# with a clean value (`Eq.refl 1 : 1=1`); skipKernelTC bypasses BOTH the
+# elaborator's and the kernel's type check, so the module compiles with NO
+# diagnostics and `collectAxioms` sees `[]`. `leanchecker` re-checks the module's
+# added decls through the real kernel and rejects it (gate=kernel_soundness).
+_INJECT_SKIP_KERNEL_TC = """\
+import Lean
+open Lean Elab Command Term Meta
+
+run_cmd liftTermElabM do
+  let t ← instantiateMVars (← elabTerm (← `((1 : Nat) = 2)) none)
+  let v ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 1)) none)
+  let d : Declaration :=
+    .thmDecl { name := `Empiricist.one_eq_two, levelParams := [], type := t, value := v }
+  withOptions (fun o => Lean.debug.skipKernelTC.set o true) do addDecl d
+
+namespace Empiricist
+
+theorem boom : False := absurd one_eq_two (by decide)
+
+end Empiricist
+"""
+
+# Kernel-unchecked environment injection PoC-2: `(getEnv).addDeclCore (doCheck :=
+# false)` then `setEnv`. Same false-type/clean-value decl, inserted with the
+# kernel check explicitly disabled. Compiles clean; caught at gate=kernel_soundness.
+_INJECT_ADD_DECL_CORE = """\
+import Lean
+open Lean Elab Command Term Meta
+
+run_cmd liftTermElabM do
+  let t ← instantiateMVars (← elabTerm (← `((1 : Nat) = 2)) none)
+  let v ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 1)) none)
+  let d : Declaration :=
+    .thmDecl { name := `Empiricist.one_eq_two, levelParams := [], type := t, value := v }
+  match (← getEnv).addDeclCore (0 : USize) d none (doCheck := false) with
+  | .ok env' => setEnv env'
+  | .error _ => pure ()
+
+namespace Empiricist
+
+theorem boom : False := absurd one_eq_two (by decide)
+
+end Empiricist
+"""
+
+# Kernel-unchecked environment injection PoC-3: `Environment.replay` of a
+# hand-built `ConstantInfo`. Unlike PoC-1/2, `replay` IS a kernel-checking
+# mechanism (it is what leanchecker uses), so it rejects the false constant
+# already at compile time -> gate=diagnostics. Kept as a golden to pin that even
+# the kernel's own replay refuses the injection (defense in depth).
+_INJECT_REPLAY = """\
+import Lean
+open Lean Elab Command Term Meta
+
+run_cmd liftTermElabM do
+  let t ← instantiateMVars (← elabTerm (← `((1 : Nat) = 2)) none)
+  let v ← instantiateMVars (← elabTerm (← `(@Eq.refl Nat 1)) none)
+  let ci : ConstantInfo :=
+    .thmInfo { name := `Empiricist.one_eq_two, levelParams := [], type := t, value := v }
+  let m : Std.HashMap Name ConstantInfo :=
+    (∅ : Std.HashMap Name ConstantInfo).insert `Empiricist.one_eq_two ci
+  setEnv (← Environment.replay m (← getEnv))
+
+namespace Empiricist
+
+theorem boom : False := absurd one_eq_two (by decide)
+
+end Empiricist
+"""
+
+# A must-PASS case whose statement is NON-trivial to *phrase* but trivial to
+# prove: pins that verify() PASS details record the resolved STATEMENT (provenance
+# hole B), not just a clean axiom set. `details['statement']` == "True".
+_TRUE_STATEMENT_SOURCE = """\
+namespace Empiricist
+
+theorem t : True := trivial
+
+end Empiricist
+"""
+
 LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_TRUE_SOURCE, "Empiricist.scaffold_true", True),
     (_SORRY_SOURCE, "Empiricist.scaffold_true", False),
@@ -190,6 +281,10 @@ LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
     (_OVERRIDE_ELAB_SOURCE, "Empiricist.one_eq_two", False),
     (_OVERRIDE_MACRO_SOURCE, "Empiricist.one_eq_two", False),
     (_INJECT_DRIVER_RESULT_SOURCE, "Empiricist.one_eq_two", False),
+    (_INJECT_SKIP_KERNEL_TC, "Empiricist.boom", False),
+    (_INJECT_ADD_DECL_CORE, "Empiricist.boom", False),
+    (_INJECT_REPLAY, "Empiricist.boom", False),
+    (_TRUE_STATEMENT_SOURCE, "Empiricist.t", True),
 ]
 
 

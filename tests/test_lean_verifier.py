@@ -1,15 +1,18 @@
-"""LeanVerifier tests (M8): the compiled axiom-audit driver contract against
-REAL Lean 4.31.0. The trust gate is the `axiom_audit` lean_exe, which elaborates
-untrusted source with the real frontend and computes the decl's axiom closure via
-compiled `Lean.collectAxioms` (never a re-elaboratable `#print axioms`). These
-tests exercise the honest PASS, every must-FAIL golden (including the fatal
-`#print axioms` COMMAND-OVERRIDE vectors), the FORMALIZED ingestion path, the
-env-scrub exfil regression, and offline `parse_driver_result` nonce tests.
+"""LeanVerifier tests (M8): the KERNEL-re-check trust gate against REAL Lean
+4.31.0. The gate is a four-stage pipeline over one compiled olean -- compile
+(`--json` diagnostics), KERNEL re-check (`leanchecker`, the trust anchor), axiom
+whitelist + statement (the compiled `axiom_audit` driver, importing the same
+olean), then PASS. These tests exercise the honest PASS (with recorded statement),
+every must-FAIL golden -- including the kernel-unchecked ENVIRONMENT-INJECTION
+PoCs (`skipKernelTC`, `addDeclCore (doCheck := false)`, `Environment.replay`) and
+the earlier axiom-forgery / command-override vectors -- the FORMALIZED ingestion
+path, the env-scrub exfil regression, per-invocation isolation, and offline
+`parse_driver_result` / `parse_compile_diagnostics` tests.
 
 Tests that invoke real lake/lean are marked `slow_lean` and skipped when the
-toolchain or the pinned project aren't available. The first `verify()` on a fresh
-LeanVerifier builds the driver (incremental `lake build axiom_audit`, ~1-3s cold),
-then each audit is ~1-2s once mathlib's oleans are warm.
+toolchain or the pinned project aren't available. A session-scoped fixture builds
+the driver once up front (so a cold cache can't flake a per-case timeout); each
+verify() is compile ~2s + leanchecker ~1s + audit ~2s once mathlib oleans warm.
 """
 
 from __future__ import annotations
@@ -26,12 +29,15 @@ from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.lean import (
     LeanVerifier,
     ingest_lean_artifact,
+    parse_compile_diagnostics,
     parse_driver_result,
 )
 from empiricist.verifiers.lean_goldens import LEAN_GOLDEN_SUITE, certify_lean, lean_suite_hash
 
 _PROJECT_DIR = Path(__file__).resolve().parents[1] / "lean" / "EmpiricistLean"
 _MODULE_DIR = _PROJECT_DIR / "EmpiricistLean"
+# Where `lake env lean -o` writes per-invocation scratch oleans (module layout).
+_OLEAN_DIR = _PROJECT_DIR / ".lake" / "build" / "lib" / "lean" / "EmpiricistLean"
 
 _lake_available = (
     shutil.which("lake") is not None
@@ -47,8 +53,24 @@ requires_lake = pytest.mark.skipif(
 _GOLDEN_IDS = [
     "sorry_free_true", "sorry_trap", "native_decide", "type_error",
     "spoof_io_println", "spoof_run_cmd", "override_elab", "override_macro",
-    "inject_driver_result",
+    "inject_driver_result", "inject_skip_kernel_tc", "inject_add_decl_core",
+    "inject_replay", "true_statement",
 ]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _warm_lean_toolchain():
+    """Build the `axiom_audit` driver ONCE per session, OUTSIDE any per-case
+    timeout, so a cold cache can't flake an individual slow_lean case. No-op when
+    the toolchain/project is unavailable. `leanchecker` (gate c) ships with the
+    pinned toolchain, so it needs no build."""
+    if not _lake_available:
+        yield
+        return
+    import asyncio
+
+    asyncio.run(LeanVerifier()._ensure_driver_async())
+    yield
 
 
 @pytest.fixture()
@@ -81,15 +103,67 @@ def test_golden_case_matches_expected_verdict(verifier, source, decl, expected_p
 
 @slow_lean
 @requires_lake
-def test_sorry_golden_fails_at_the_axioms_gate_via_sorryAx(verifier):
+def test_sorry_golden_fails_at_the_sorry_gate(verifier):
     """`sorry` is a WARNING (`lean` exits 0), so a naive exit-code gate would PASS
-    it. The compiled driver's `collectAxioms` reports `sorryAx` as a real axiom
-    dependency, caught by the whitelist membership test (gate=axioms)."""
+    it. The compile gate parses `--json` diagnostics and catches the `hasSorry`
+    warning at compile time (gate=sorry). (`collectAxioms`'s `sorryAx` is the
+    backstop had the warning ever been missing.)"""
     source, decl, _ = LEAN_GOLDEN_SUITE[1]
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.FAIL, result.details
-    assert result.details["gate"] == "axioms"
-    assert "sorryAx" in result.details["offending_axioms"]
+    assert result.details["gate"] == "sorry", result.details
+
+
+@slow_lean
+@requires_lake
+@pytest.mark.parametrize(
+    "case_index,name",
+    [(9, "skip_kernel_tc"), (10, "add_decl_core")],
+)
+def test_kernel_injection_pocs_fail_at_kernel_soundness_gate(verifier, case_index, name):
+    """THE soundness fix's teeth. Both PoCs inject a constant with a FALSE type
+    (`(1:Nat)=2`) but a clean, axiom-free value (`Eq.refl`) by bypassing the
+    kernel (`debug.skipKernelTC` / `addDeclCore (doCheck := false)`). They compile
+    with NO diagnostics and `collectAxioms` would see `[]` -- but `leanchecker`
+    re-checks the module's added decls through the REAL kernel and rejects the
+    `1 = 1 :≠ 1 = 2` mismatch (gate=kernel_soundness). A proof of `False` no longer
+    certifies FORMALIZED."""
+    source, decl, expected_pass = LEAN_GOLDEN_SUITE[case_index]
+    assert expected_pass is False
+    result = verifier.verify(source, decl=decl, timeout_s=120)
+    assert result.verdict == Verdict.FAIL, result.details
+    assert result.details["gate"] == "kernel_soundness", result.details
+    assert result.details["leanchecker_exit"] != 0, result.details
+    assert "type mismatch" in result.details["leanchecker_output"], result.details
+
+
+@slow_lean
+@requires_lake
+def test_environment_replay_injection_rejected_at_compile(verifier):
+    """`Environment.replay` of a hand-built false `ConstantInfo` is rejected by the
+    kernel already at COMPILE (replay is itself a kernel-checking mechanism), so it
+    fails at gate=diagnostics rather than kernel_soundness. Kept to pin that even
+    the kernel's own replay refuses the injection."""
+    source, decl, expected_pass = LEAN_GOLDEN_SUITE[11]
+    assert expected_pass is False
+    result = verifier.verify(source, decl=decl, timeout_s=120)
+    assert result.verdict == Verdict.FAIL, result.details
+    assert result.details["gate"] == "diagnostics", result.details
+
+
+@slow_lean
+@requires_lake
+def test_pass_records_resolved_statement(verifier):
+    """Provenance hole B: a PASS must record the decl's RESOLVED statement, so a
+    referee sees WHAT was proven, not just a clean axiom set. `theorem t : True :=
+    trivial` PASSes with details['statement'] == 'True' and a statement_hash."""
+    source, decl, expected_pass = LEAN_GOLDEN_SUITE[12]
+    assert expected_pass is True
+    result = verifier.verify(source, decl=decl, timeout_s=120)
+    assert result.verdict == Verdict.PASS, result.details
+    assert result.details["statement"] == "True", result.details
+    assert result.details["statement_hash"], result.details
+    assert result.details["axioms"] == []
 
 
 @slow_lean
@@ -183,6 +257,9 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.PASS, result.details
     assert result.details["axioms"] == ["propext", "Classical.choice", "Quot.sound"]
+    # Provenance hole B: the resolved statement is recorded on the PASS.
+    assert "Fintype.card V - 1 ≤" in result.details["statement"], result.details
+    assert result.details["statement_hash"]
 
     art = ingest_lean_artifact(ledger, store, source, decl, result, verifier=verifier)
     assert art.kind == "lean"
@@ -195,10 +272,13 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     ev = ledger.evidence_for(art.id)
     assert len(ev) == 1
     assert ev[0].verifier == "lean"
-    assert ev[0].verifier_version == "2.0"
+    assert ev[0].verifier_version == "3.0"
     assert ev[0].verdict == Verdict.PASS
     assert ev[0].details["decl"] == decl
     assert ev[0].details["mathlib_commit"]
+    # The FORMALIZED evidence carries the statement + its hash.
+    assert ev[0].details["statement"] == result.details["statement"]
+    assert ev[0].details["statement_hash"] == result.details["statement_hash"]
 
     assert store.get(art.content_path).decode("utf-8") == source
 
@@ -217,12 +297,35 @@ def test_ingest_lean_artifact_rejects_non_pass(ledger, store, verifier):
 
 @slow_lean
 @requires_lake
-def test_scratch_and_nonce_files_cleaned_up_across_pass_fail(verifier):
-    before = set(_MODULE_DIR.glob("Scratch_*"))
+def test_scratch_nonce_and_olean_files_cleaned_up_across_pass_fail(verifier):
+    """Per-invocation scratch (.lean), nonce, AND compiled olean are all removed in
+    finally -- across PASS and every FAIL gate."""
+    before_src = set(_MODULE_DIR.glob("Scratch_*"))
+    before_olean = set(_OLEAN_DIR.glob("Scratch_*")) if _OLEAN_DIR.exists() else set()
     for source, decl, _ in LEAN_GOLDEN_SUITE:
         verifier.verify(source, decl=decl, timeout_s=120)
-    after = set(_MODULE_DIR.glob("Scratch_*"))
-    assert after == before
+    assert set(_MODULE_DIR.glob("Scratch_*")) == before_src
+    after_olean = set(_OLEAN_DIR.glob("Scratch_*")) if _OLEAN_DIR.exists() else set()
+    assert after_olean == before_olean
+
+
+@slow_lean
+@requires_lake
+def test_concurrent_same_source_verifies_do_not_collide(verifier):
+    """Reviewer finding C: keying scratch/nonce on source_hash[:12] made two
+    concurrent verifies of the SAME source share paths (nonce-leak + cleanup race).
+    Per-invocation uuid4 keying makes them independent: running the same source
+    twice in parallel threads both PASS and leave no residue."""
+    import concurrent.futures
+
+    source, decl, _ = LEAN_GOLDEN_SUITE[0]
+    before = set(_MODULE_DIR.glob("Scratch_*"))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        futs = [pool.submit(verifier.verify, source, decl=decl, timeout_s=120)
+                for _ in range(2)]
+        results = [f.result() for f in futs]
+    assert all(r.verdict == Verdict.PASS for r in results), [r.details for r in results]
+    assert set(_MODULE_DIR.glob("Scratch_*")) == before
 
 
 @slow_lean
@@ -278,7 +381,7 @@ def test_verify_error_verdict_on_bad_project_dir():
 
 def test_identity():
     assert LeanVerifier.name == "lean"
-    assert LeanVerifier.version == "2.0"
+    assert LeanVerifier.version == "3.0"
 
 
 def test_applicable():
@@ -303,6 +406,19 @@ def test_lean_golden_suite_covers_the_command_override_vectors():
     assert "macro_rules" in joined  # macro_rules command override
     assert "AXIOM_AUDIT::" in joined  # driver-result output injection
     assert "axiom evil : False" in joined  # each backed by a genuine bad axiom
+
+
+def test_lean_golden_suite_covers_the_kernel_injection_vectors():
+    """The KERNEL-soundness fix must be pinned by must-FAIL goldens for every
+    kernel-unchecked environment-injection surface, so a regression that reopened
+    the hole could no longer earn a certification stamp."""
+    sources = [src for src, _, _ in LEAN_GOLDEN_SUITE]
+    joined = "\n".join(sources)
+    assert "debug.skipKernelTC" in joined  # PoC-1: skipKernelTC injection
+    assert "doCheck := false" in joined  # PoC-2: addDeclCore no-check injection
+    assert "Environment.replay" in joined  # PoC-3: replay hand-built constant
+    # each injects a false `1 = 2` and derives a proof of False from it
+    assert "theorem boom : False" in joined
 
 
 def test_binary_hash_changes_when_manifest_bytes_differ(monkeypatch):
@@ -355,7 +471,7 @@ def test_binary_hash_changes_when_lakefile_bytes_differ(monkeypatch):
 
 
 def test_binary_hash_changes_when_driver_source_bytes_differ(monkeypatch):
-    """The compiled audit logic (AxiomAudit.lean) is the trust root, so its bytes
+    """The compiled audit logic (AxiomAudit.lean) is a trust root, so its bytes
     are pinned into the verifier's identity: any edit mints a new identity and
     drops a prior certification stamp."""
     v = LeanVerifier()
@@ -366,6 +482,24 @@ def test_binary_hash_changes_when_driver_source_bytes_differ(monkeypatch):
         data = original_read_bytes(self)
         if self.name == "AxiomAudit.lean":
             return data + b"\n-- tampered audit logic\n"
+        return data
+
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+    assert v.binary_hash != baseline
+
+
+def test_binary_hash_changes_when_leanchecker_pin_bytes_differ(monkeypatch):
+    """The kernel re-checker (leanchecker) is THE trust anchor, so its pin
+    (`lean4checker.pin.json`) is folded into the verifier's identity: re-pinning
+    the checker mints a new identity and drops a prior certification stamp."""
+    v = LeanVerifier()
+    baseline = v.binary_hash
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(self):
+        data = original_read_bytes(self)
+        if self.name == "lean4checker.pin.json":
+            return data + b"\n"
         return data
 
     monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
@@ -426,6 +560,33 @@ def test_parse_driver_result_rejects_malformed_json():
 
 def test_parse_driver_result_rejects_non_object_json():
     assert parse_driver_result(_line("abc123", "[1, 2, 3]"), "abc123") is None
+
+
+def test_parse_compile_diagnostics_detects_error():
+    line = ('{"severity":"error","data":"Unknown identifier `x`",'
+            '"kind":"lean.unknownIdentifier._namedError"}')
+    errors, sorry_hit = parse_compile_diagnostics(line)
+    assert errors == ["Unknown identifier `x`"]
+    assert sorry_hit is False
+
+
+def test_parse_compile_diagnostics_detects_sorry_warning():
+    line = '{"severity":"warning","data":"declaration uses `sorry`","kind":"hasSorry"}'
+    errors, sorry_hit = parse_compile_diagnostics(line)
+    assert errors == []
+    assert sorry_hit is True
+
+
+def test_parse_compile_diagnostics_ignores_non_error_non_sorry_warnings():
+    line = '{"severity":"warning","data":"unused variable `h`","kind":"linter.unusedVariables"}'
+    errors, sorry_hit = parse_compile_diagnostics(line)
+    assert errors == []
+    assert sorry_hit is False
+
+
+def test_parse_compile_diagnostics_ignores_noise_and_bad_json():
+    stdout = "lake: building\nnot json\n{malformed\n"
+    assert parse_compile_diagnostics(stdout) == ([], False)
 
 
 def test_parse_driver_result_picks_correct_nonce_amid_forged_lines():
