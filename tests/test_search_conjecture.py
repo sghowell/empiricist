@@ -17,6 +17,7 @@ example to offer.
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -524,6 +525,105 @@ def test_submit_integrity_error_race_resolves_to_existing_artifact(
     assert len(lg.evidence_for(first.id)) == 1
 
 
+# -- conjecture_artifact_id: SEMANTIC dedup (M9 live-campaign fix) -----------
+
+
+def test_conjecture_artifact_id_ignores_closed_form_prose():
+    """The live finding: 10 CONJECTURED artifacts that were all the SAME
+    (family, predicted_values) claim, reworded 10 ways in closed_form. The
+    id must depend on the MATH only -- same family + predicted_values,
+    different prose, same id."""
+    a = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    b = ConjectureOut(
+        family="path", closed_form="the fusion count equals N minus 3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.4,
+    )
+    assert conjecture_artifact_id(a) == conjecture_artifact_id(b)
+
+
+def test_conjecture_artifact_id_differs_on_predicted_values():
+    a = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    b = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 999}, confidence=0.9,
+    )
+    assert conjecture_artifact_id(a) != conjecture_artifact_id(b)
+
+
+def test_conjecture_artifact_id_differs_on_family():
+    a = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    b = ConjectureOut(
+        family="star", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    assert conjecture_artifact_id(a) != conjecture_artifact_id(b)
+
+
+def test_submit_reworded_duplicate_collapses_to_one_conjectured_artifact(
+    env, small_dataset_rows
+):
+    """The reproducer for the live finding at the `submit` level: the SAME
+    math submitted twice with different closed_form prose lands ONE
+    artifact with ONE evidence row, not two -- and the stored content keeps
+    the FIRST-seen phrasing (submit never overwrites on a semantic dup)."""
+    lg, st = env
+    first_conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    reworded_conj = ConjectureOut(
+        family="path", closed_form="the fusion count equals N minus 3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.4,
+    )
+    assert conjecture_artifact_id(first_conj) == conjecture_artifact_id(reworded_conj)
+
+    first_report = attack(first_conj, small_dataset_rows)
+    first = submit(lg, st, first_conj, first_report)
+
+    reworded_report = attack(reworded_conj, small_dataset_rows)
+    second = submit(lg, st, reworded_conj, reworded_report)
+
+    assert second.id == first.id
+    assert lg.get_artifact(first.id).status == Status.CONJECTURED
+    assert len(lg.evidence_for(first.id)) == 1  # no second attack recorded
+
+    n_statements = lg.conn.execute(
+        "SELECT COUNT(*) FROM artifacts WHERE kind='statement'"
+    ).fetchone()[0]
+    assert n_statements == 1
+
+    # The CAS content stored is the FIRST-seen phrasing, not the reworded one.
+    stored = json.loads(st.get(first.content_path))
+    assert stored["closed_form"] == "N-3"
+
+
+def test_submit_id_is_decoupled_from_content_digest(env, small_dataset_rows):
+    """The artifact id (semantic) and content_path (full-content CAS digest)
+    are no longer necessarily equal for a `statement` artifact -- the
+    documented exception to spec §4.2 rule 1 (see `ingest_artifact`'s
+    docstring). The content is still genuinely retrievable at content_path."""
+    lg, st = env
+    conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
+    art = submit(lg, st, conj, report)
+
+    assert art.id == conjecture_artifact_id(conj)
+    assert art.content_path != art.id  # semantic id != full-content digest
+    assert json.loads(st.get(art.content_path))["family"] == "path"
+
+
 # -- mine: FakeLLMClient round trip ------------------------------------------
 
 
@@ -563,3 +663,124 @@ def test_mine_prompts_are_nonce_diversified(small_dataset_rows):
     run(mine(client, small_dataset_rows, k=3))
     prompts = [p for _, p in client.calls]
     assert len(set(prompts)) == 3  # every prompt carries a distinct nonce
+
+
+# -- mine: ledger threading (M9 live-campaign fix -- bill/provenance) --------
+
+
+class _LedgerSpyClient(FakeLLMClient):
+    """FakeLLMClient that additionally records the kwargs each
+    `complete_many` call received, so tests can assert `mine` actually
+    forwards its `ledger` argument through (previously it was dropped
+    entirely, so Conjecturer calls billed nothing and left no runs row)."""
+
+    def __init__(self, scripted: list[LLMResult]) -> None:
+        super().__init__(scripted)
+        self.complete_many_calls: list[dict] = []
+
+    async def complete_many(self, role, prompts, *, schema=None, ledger=None):
+        self.complete_many_calls.append({"role": role, "ledger": ledger})
+        return await super().complete_many(role, prompts, schema=schema, ledger=ledger)
+
+
+def test_mine_forwards_ledger_to_complete_many(env, small_dataset_rows):
+    lg, _st = env
+    client = _LedgerSpyClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+
+    assert len(client.complete_many_calls) == 1
+    assert client.complete_many_calls[0]["ledger"] is lg
+    assert client.complete_many_calls[0]["role"] is ROLES["conjecturer"]
+
+
+def test_mine_without_ledger_forwards_none(small_dataset_rows):
+    """Default (no ledger) behavior is unchanged -- complete_many still
+    gets called, just with ledger=None (no billing, as before this fix)."""
+    client = _LedgerSpyClient([])
+    run(mine(client, small_dataset_rows, k=1))
+    assert client.complete_many_calls[0]["ledger"] is None
+
+
+# -- mine: family-diversity nudge (M9 live-campaign fix) ---------------------
+
+
+def test_mine_prompt_has_no_nudge_when_ledger_is_none(small_dataset_rows):
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1))
+    _role, prompt = client.calls[0]
+    assert "Already-conjectured" not in prompt
+
+
+def test_mine_prompt_has_no_nudge_when_ledger_has_no_conjectured_families(
+    env, small_dataset_rows
+):
+    lg, _st = env
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+    _role, prompt = client.calls[0]
+    assert "Already-conjectured" not in prompt
+
+
+def test_mine_prompt_includes_diversity_nudge_for_conjectured_families(
+    env, small_dataset_rows
+):
+    """The live finding, prompt-side: once a family has a CONJECTURED
+    artifact in the ledger, `mine`'s prompt names it and asks the model to
+    prefer something else -- a nudge, not a restriction (the model can still
+    legitimately propose that family again with new predicted_values)."""
+    lg, st = env
+    conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    report = attack(conj, small_dataset_rows)
+    assert report.survived is True
+    submit(lg, st, conj, report)  # lands CONJECTURED
+
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+
+    _role, prompt = client.calls[0]
+    assert "Already-conjectured families in this campaign: path" in prompt
+
+
+def test_mine_prompt_nudge_lists_multiple_conjectured_families_sorted(
+    env, small_dataset_rows
+):
+    lg, st = env
+    star_conj = ConjectureOut(
+        family="star", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    path_conj = ConjectureOut(
+        family="path", closed_form="N-3",
+        predicted_values={"3": 0, "4": 1, "5": 2, "6": 3}, confidence=0.9,
+    )
+    submit(lg, st, star_conj, attack(star_conj, small_dataset_rows))
+    submit(lg, st, path_conj, attack(path_conj, small_dataset_rows))
+
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+
+    _role, prompt = client.calls[0]
+    assert "path, star" in prompt  # sorted, not insertion order
+
+
+def test_mine_prompt_no_nudge_for_family_that_only_has_refuted_artifacts(
+    env, small_dataset_rows
+):
+    """REFUTED is not CONJECTURED -- a falsified conjecture must not count
+    as "already covered" and suppress a legitimately different attempt at
+    that family."""
+    lg, st = env
+    false_conj = ConjectureOut(
+        family="path", closed_form="N-2", predicted_values={"6": 4}, confidence=0.5,
+    )
+    report = attack(false_conj, small_dataset_rows)
+    assert report.survived is False
+    submit(lg, st, false_conj, report)  # lands REFUTED
+
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+    _role, prompt = client.calls[0]
+    assert "Already-conjectured" not in prompt
