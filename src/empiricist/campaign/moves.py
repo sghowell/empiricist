@@ -120,8 +120,13 @@ def open_targets(
     """Up to `cap` `TargetSpec`s for the open (unresolved, `exact=False`)
     orbits at size `n`, sorted by `(n, orbit_id)` for determinism.
 
-    `target_f = n` (an F=N witness is the exact upgrade this establishes,
-    spec's mod-3 ladder); `known_bound` is rendered from the row's own
+    `target_f = row["lower_bound"]` -- the smallest F consistent with current
+    knowledge, i.e. the next achievable rung of the mod-3 ladder (L2). A
+    certified witness at that F closes the orbit EXACTLY (achievability meets
+    the proven `F >= lower_bound` floor). For the n=8/9 opens `lower_bound = N`,
+    so this is F=N as before; for the genuinely-beyond-frontier n=6/7 opens
+    `lower_bound = N+3`, so the target is the F=N+3 rung no deterministic tier
+    (Tier-0/Tier-1) reached. `known_bound` is rendered from the same
     `lower_bound`. `lc_orbit_key` is recomputed from `representative_edges`
     (see module docstring) -- an LC-orbit BFS per candidate row, which can in
     principle raise `OrbitTooLarge` for a pathological n; such a row is
@@ -132,14 +137,13 @@ def open_targets(
 
     **Solved-orbit filtering (overnight-safety review I3).** When
     `population` is given, an orbit whose `lc_orbit_key` already holds a
-    population elite with `objective_vec[0] <= target_f` is DROPPED: a
-    certified witness at (or below) the target fusion count already exists,
-    so re-targeting it every generation is pure wasted spend. This is also
-    what makes the orchestrator's targets-exhausted path genuinely
+    population elite with `objective_vec[0] <= target_f` (= `lower_bound`) is
+    DROPPED: a certified witness at (or below) the achievable rung already
+    exists, so re-targeting it every generation is pure wasted spend. This is
+    also what makes the orchestrator's targets-exhausted path genuinely
     reachable -- once every open orbit at `n` is solved, the filtered list
     is empty and the scheduler drops SEARCH from rotation. A witness ABOVE
-    `target_f` (e.g. an F=n+3 construction for an orbit whose F=n question
-    is still open, mod-3 ladder) does NOT drop the target: the bound the
+    `target_f` does NOT drop the target: the achievable-rung bound the
     campaign is after has not been reached. Solved orbits do not consume
     `cap` slots.
     """
@@ -167,12 +171,12 @@ def open_targets(
             if (
                 elite is not None
                 and elite.objective_vec
-                and elite.objective_vec[0] <= row["n"]  # target_f = n for open rows
+                and elite.objective_vec[0] <= row["lower_bound"]  # target_f = achievable rung
             ):
                 logger.info(
                     "open_targets: orbit %s at n=%d already solved "
                     "(population elite F=%s <= target %d) -- dropped",
-                    row["orbit_id"], n, elite.objective_vec[0], row["n"],
+                    row["orbit_id"], n, elite.objective_vec[0], row["lower_bound"],
                 )
                 continue
         targets.append(
@@ -181,7 +185,7 @@ def open_targets(
                 lc_orbit_key=key,
                 representative_edges=tuple(tuple(e) for e in row["representative_edges"]),
                 known_bound=f"F >= {row['lower_bound']}",
-                target_f=row["n"],
+                target_f=row["lower_bound"],
             )
         )
     return targets
