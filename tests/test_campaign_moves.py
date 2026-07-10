@@ -222,6 +222,23 @@ def test_open_targets_caps_and_sorts_by_orbit_id():
     assert targets[0].lc_orbit_key == star_key
 
 
+def test_open_targets_target_f_is_the_achievable_rung_not_n():
+    """Beyond-frontier: for an open orbit whose lower bound is N+3 (n=6/7
+    F>=N+3 opens no deterministic tier reached), target_f must be the
+    achievable rung (lower_bound=N+3), NOT N -- else the exact-upgrade
+    detector could never score an F=N+3 witness. For n=8/9 opens
+    (lower_bound=N) target_f stays N, so this is backward-compatible."""
+    rows = [
+        # a beyond-frontier n=6 open orbit at F>=9 (=N+3)
+        {"n": 6, "orbit_id": "hard6", "representative_edges": [[0, 1], [1, 2], [2, 3],
+         [3, 4], [4, 5], [5, 0], [0, 3], [1, 4], [2, 5]],
+         "F": None, "lower_bound": 9, "exact": False, "tier": "open"},
+    ]
+    [t] = open_targets(rows, 6, cap=8)
+    assert t.target_f == 9  # the achievable rung, not n=6
+    assert t.known_bound == "F >= 9"
+
+
 def test_open_targets_skips_orbit_too_large(monkeypatch):
     import empiricist.campaign.moves as moves_mod
 

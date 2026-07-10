@@ -3,14 +3,14 @@
 - Run directory: `runs/p5-live`
 - Config hash: `9a173c548200768af131e965e18cb2fa893786cbc9a198b84ef043c8182f537f`
 - Environment: python 3.11.14 (main, Dec  9 2025, 19:11:45) [Clang 21.1.4 ]; platform macOS-26.2-arm64-arm-64bit
-- Total spend: $74.7454 (24119 input tokens, 1214658 output tokens)
+- Total spend: $140.9915 (55206 input tokens, 2204416 output tokens)
 
 ## Per-role spend
 
 | Role | Runs | Cost (USD) | Tokens in | Tokens out |
 |---|---|---|---|---|
-| conjecturer | 72 | 3.9556 | 2085 | 39413 |
-| searcher | 640 | 70.7898 | 22034 | 1175245 |
+| conjecturer | 144 | 9.5750 | 5118 | 118197 |
+| searcher | 1440 | 131.4164 | 50088 | 2086219 |
 
 ## Claims
 
@@ -34,6 +34,9 @@
 | `716793e3d9c3` | statement | Conjecture: star F(N) = F(n) = n - 3 for all n >= 3 | CONJECTURED | - | - |
 | `401d7bd3d4d9` | statement | Conjecture: complete F(N) = F(N) = N - 3 for all N >= 3 (the complete graph K_N achieves the universal lower bound F(N) >= N-3 with equality) | CONJECTURED | - | - |
 | `90c1fdcadf65` | statement | Conjecture: cycle F(N) = F(n) = n - 3 for n <= 4; F(n) = n for n >= 5 (equivalently F(n) = (n-3) + 3*[n>=5]) | CONJECTURED | - | - |
+| `235f4cd05ecb` | construction | SEARCH exact upgrade: orbit 000000000000 F=9 | HEURISTIC | - | - |
+| `960c7fec66c8` | construction | SEARCH exact upgrade: orbit 000000000000 F=10 | HEURISTIC | - | - |
+| `b8fe46d3ec0d` | construction | SEARCH exact upgrade: orbit 000000000000 F=10 | HEURISTIC | - | - |
 
 ## Provenance (VERIFIED_N / CERTIFIED / FORMALIZED)
 
@@ -115,9 +118,9 @@ _(none)_
 
 ## Search summary
 
-- Generations run: 20
-- Population size: 4
-- Exact upgrades: 4
+- Generations run: 45
+- Population size: 8
+- Exact upgrades: 7
 - Stall / alarm events:
   - _(none)_
 
