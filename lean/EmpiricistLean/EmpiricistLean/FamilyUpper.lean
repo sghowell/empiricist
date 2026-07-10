@@ -965,4 +965,277 @@ theorem tree_min_fusions {V : Type} [Fintype V] (T : SimpleGraph V) [DecidableRe
    fun _g _f c hcount hc0 hcf hcstep =>
      family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
 
+/-! ## The complete bipartite family exact value `F(K_{m,n}) = N − 3` (M15)
+
+This section proves the exact minimum-fusion value for the **complete bipartite** family
+`K_{m,n}` (Empiricist Problem 5, explicitly one of P5(ii)'s open families), combining the
+general tree theorem (M14) with local complementation (M13).  The mathematical spine
+(verified against the domain for all `(m,n)` with `m + n ≤ 9`): `K_{m,n}` is
+**LC-equivalent to a double-star tree** `D_{m,n}` via EXACTLY three local complementations,
+the sequence `τ₀, τₘ, τ₀`.  The intermediate graphs are:
+
+* `completeBipartite m n` (`= K_{m,n}` on `Fin (m+n)`, tops `0..m-1`, bottoms `m..m+n-1`);
+* `cbG1 m n = τ₀(K_{m,n})` — bottoms become a clique, tops an independent set each joined
+  to every bottom (adjacency `i ≠ j ∧ (m ≤ i ∨ m ≤ j)`);
+* `cbG2 m n = τₘ(cbG1)` — the clique `{0,…,m}` with `n − 1` pendants on `m`;
+* `doubleStar m n = τ₀(cbG2)` — the caterpillar `D_{m,n}`: center `0` adjacent to the top
+  leaves `{1,…,m-1}` and to center `m`, center `m` adjacent to the bottom leaves
+  `{m+1,…,m+n-1}`.
+
+`D_{m,n}` is a tree, so `F(D_{m,n}) = N − 3` by the general tree theorem; `K_{m,n} ≃_LC
+D_{m,n}` by the three explicit LC steps; and `F` is LC-invariant (`ProducibleUpToLC`), so
+`F(K_{m,n}) = N − 3`.
+
+### What is MODELED vs PROVED (M15 — the boundary is UNCHANGED from M13/M14)
+
+MODELED (engine- and domain-justified, not assumed), IDENTICAL to the earlier families:
+* the D6 leaf-merge graph rewrite `ghz3LeafMerge` and its single-pendant identification
+  (engine cross-checked);
+* the identification of `localComplement` with the verified `localcomp.py` rule; the
+  folklore photon-counting + component-merge lower bound (`family_fusion_lower_bound`).
+
+The genuinely NEW proved content of M15 is purely graph-theoretic and carries NO new
+modeling assumption:
+* `cbStep0/1/2` — the three parametric `SimpleGraph.ext` computations
+  `τ₀(K_{m,n}) = cbG1`, `τₘ(cbG1) = cbG2`, `τ₀(cbG2) = D_{m,n}` (real `Fin` arithmetic,
+  discharged by `omega` after unfolding the `Xor` local-complementation rule; the
+  τ-sequence and every intermediate edge set were cross-checked against
+  `domain/p5/localcomp.py::local_complement` for all `m + n ≤ 9`);
+* `lcEquiv_completeBipartite_doubleStar` — chaining the three steps into
+  `K_{m,n} ≃_LC D_{m,n}`;
+* `doubleStar_isTree` — that `D_{m,n}` is a genuine `SimpleGraph.IsTree` (connected, via
+  reachability from center `0`; and `N − 1` edges, via an explicit parent-edge bijection
+  `edgeSet ≃ {v // v ≠ 0}`, discharged through `isTree_iff_connected_and_card`).
+
+`completeBipartite_min_fusions` is the FORMALIZED headline, mirroring `complete_min_fusions`
+(M13): the up-to-LC upper bound (`ProducibleUpToLC (N − 3) (completeBipartite m n)`) via the
+double-star tree, and the UNCHANGED fully-general lower bound, both visible in its type. -/
+
+/-- **`K_{m,n}` on `Fin (m+n)`.**  Tops are the vertices with `.val < m` (labels `0..m-1`),
+bottoms those with `m ≤ .val` (labels `m..m+n-1`); every top is adjacent to every bottom,
+and there are no top-top or bottom-bottom edges.  The genuine complete bipartite graph. -/
+def completeBipartite (m n : ℕ) : SimpleGraph (Fin (m + n)) where
+  Adj i j := (i.val < m ∧ m ≤ j.val) ∨ (m ≤ i.val ∧ j.val < m)
+  symm := ⟨by rintro i j (⟨h1, h2⟩ | ⟨h1, h2⟩); exacts [Or.inr ⟨h2, h1⟩, Or.inl ⟨h2, h1⟩]⟩
+  loopless := ⟨by rintro i (⟨h1, h2⟩ | ⟨h1, h2⟩) <;> omega⟩
+
+@[simp] lemma completeBipartite_adj {m n : ℕ} (i j : Fin (m + n)) :
+    (completeBipartite m n).Adj i j ↔ (i.val < m ∧ m ≤ j.val) ∨ (m ≤ i.val ∧ j.val < m) :=
+  Iff.rfl
+
+/-- `cbG1 m n = τ₀(K_{m,n})`: complementing `K_{m,n}` at a top vertex `0` (whose neighbours
+are exactly the bottoms) makes the bottoms a clique while keeping every top-bottom edge, so
+two distinct vertices are adjacent iff at least one is a bottom (`m ≤ .val`). -/
+def cbG1 (m n : ℕ) : SimpleGraph (Fin (m + n)) where
+  Adj i j := i ≠ j ∧ (m ≤ i.val ∨ m ≤ j.val)
+  symm := ⟨by rintro i j ⟨hne, h⟩; exact ⟨hne.symm, h.symm⟩⟩
+  loopless := ⟨by rintro i ⟨hne, _⟩; exact hne rfl⟩
+
+@[simp] lemma cbG1_adj {m n : ℕ} (i j : Fin (m + n)) :
+    (cbG1 m n).Adj i j ↔ i ≠ j ∧ (m ≤ i.val ∨ m ≤ j.val) := Iff.rfl
+
+/-- `cbG2 m n = τₘ(cbG1)`: the clique on `{0,…,m}` (both `.val ≤ m`) together with the
+`n − 1` bottom leaves `{m+1,…}` each pendant on `m` — distinct `i, j` are adjacent iff both
+have `.val ≤ m`, or one of them is the center `m`. -/
+def cbG2 (m n : ℕ) : SimpleGraph (Fin (m + n)) where
+  Adj i j := i ≠ j ∧ ((i.val ≤ m ∧ j.val ≤ m) ∨ i.val = m ∨ j.val = m)
+  symm := ⟨by rintro i j ⟨hne, h⟩; exact ⟨hne.symm, by omega⟩⟩
+  loopless := ⟨by rintro i ⟨hne, _⟩; exact hne rfl⟩
+
+@[simp] lemma cbG2_adj {m n : ℕ} (i j : Fin (m + n)) :
+    (cbG2 m n).Adj i j ↔ i ≠ j ∧ ((i.val ≤ m ∧ j.val ≤ m) ∨ i.val = m ∨ j.val = m) := Iff.rfl
+
+/-- **The double-star tree `D_{m,n}` on `Fin (m+n)`.**  Center `0` is adjacent to the top
+leaves `{1,…,m-1}` (`.val` in `[1, m]`) and to the second center `m`; center `m` is
+adjacent to the bottom leaves `{m+1,…,m+n-1}` (`.val > m`).  A caterpillar, i.e. a tree. -/
+def doubleStar (m n : ℕ) : SimpleGraph (Fin (m + n)) where
+  Adj i j :=
+    (i.val = 0 ∧ 1 ≤ j.val ∧ j.val ≤ m) ∨ (j.val = 0 ∧ 1 ≤ i.val ∧ i.val ≤ m)
+      ∨ (i.val = m ∧ m < j.val) ∨ (j.val = m ∧ m < i.val)
+  symm := ⟨by
+    rintro i j (⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩)
+    · exact Or.inr (Or.inl ⟨h1, h2, h3⟩)
+    · exact Or.inl ⟨h1, h2, h3⟩
+    · exact Or.inr (Or.inr (Or.inr ⟨h1, h2⟩))
+    · exact Or.inr (Or.inr (Or.inl ⟨h1, h2⟩))⟩
+  loopless := ⟨by rintro i (⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩) <;> omega⟩
+
+@[simp] lemma doubleStar_adj {m n : ℕ} (i j : Fin (m + n)) :
+    (doubleStar m n).Adj i j ↔
+      (i.val = 0 ∧ 1 ≤ j.val ∧ j.val ≤ m) ∨ (j.val = 0 ∧ 1 ≤ i.val ∧ i.val ≤ m)
+        ∨ (i.val = m ∧ m < j.val) ∨ (j.val = m ∧ m < i.val) := Iff.rfl
+
+instance doubleStar_decidableRel {m n : ℕ} : DecidableRel (doubleStar m n).Adj := fun i j =>
+  decidable_of_iff _ (doubleStar_adj i j).symm
+
+/-! ### The three explicit local-complementation steps `τ₀, τₘ, τ₀` -/
+
+/-- **Step 1 (`τ₀`).**  Complementing `K_{m,n}` at the top vertex `v` (`v.val = 0`) yields
+`cbG1`.  A direct edge computation: `v`'s neighbours in `K_{m,n}` are exactly the bottoms,
+so `τ₀` toggles precisely the bottom-bottom pairs.  Needs `1 ≤ m` (so that `v = 0` is a
+top). -/
+theorem cbStep0 {m n : ℕ} (hm : 1 ≤ m) (_hn : 1 ≤ n) (v : Fin (m + n)) (hv : v.val = 0) :
+    localComplement (completeBipartite m n) v = cbG1 m n := by
+  ext x y
+  simp only [localComplement_adj, completeBipartite_adj, cbG1_adj, ne_eq, Fin.ext_iff, hv, Xor]
+  omega
+
+/-- **Step 2 (`τₘ`).**  Complementing `cbG1` at the bottom vertex `v` (`v.val = m`, whose
+neighbours are all other vertices) yields `cbG2`. -/
+theorem cbStep1 {m n : ℕ} (_hm : 1 ≤ m) (_hn : 1 ≤ n) (v : Fin (m + n)) (hv : v.val = m) :
+    localComplement (cbG1 m n) v = cbG2 m n := by
+  ext x y
+  simp only [localComplement_adj, cbG1_adj, cbG2_adj, ne_eq, Fin.ext_iff, hv, Xor]
+  omega
+
+/-- **Step 3 (`τ₀`).**  Complementing `cbG2` at `v` (`v.val = 0`, whose neighbours are
+`{1,…,m}`) yields the double star `D_{m,n}`.  Needs `1 ≤ m`. -/
+theorem cbStep2 {m n : ℕ} (hm : 1 ≤ m) (_hn : 1 ≤ n) (v : Fin (m + n)) (hv : v.val = 0) :
+    localComplement (cbG2 m n) v = doubleStar m n := by
+  ext x y
+  simp only [localComplement_adj, cbG2_adj, doubleStar_adj, ne_eq, Fin.ext_iff, hv, Xor]
+  omega
+
+/-- **`K_{m,n} ≃_LC D_{m,n}` — the crux.**  The three explicit local complementations
+`τ₀, τₘ, τ₀` (each a single `lcEquiv_localComplement` step, rewritten through
+`cbStep0/1/2`) chain via transitivity into an LC-equivalence between the complete bipartite
+graph and its double-star tree. -/
+theorem lcEquiv_completeBipartite_doubleStar {m n : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) :
+    LCEquiv (completeBipartite m n) (doubleStar m n) := by
+  have hpos : 0 < m + n := by omega
+  have hmlt : m < m + n := by omega
+  have e0 : LCEquiv (completeBipartite m n) (cbG1 m n) := by
+    have h := lcEquiv_localComplement (completeBipartite m n) (⟨0, hpos⟩ : Fin (m + n))
+    rwa [cbStep0 hm hn ⟨0, hpos⟩ rfl] at h
+  have e1 : LCEquiv (cbG1 m n) (cbG2 m n) := by
+    have h := lcEquiv_localComplement (cbG1 m n) (⟨m, hmlt⟩ : Fin (m + n))
+    rwa [cbStep1 hm hn ⟨m, hmlt⟩ rfl] at h
+  have e2 : LCEquiv (cbG2 m n) (doubleStar m n) := by
+    have h := lcEquiv_localComplement (cbG2 m n) (⟨0, hpos⟩ : Fin (m + n))
+    rwa [cbStep2 hm hn ⟨0, hpos⟩ rfl] at h
+  exact lcEquiv_trans (lcEquiv_trans e0 e1) e2
+
+/-! ### `D_{m,n}` is a tree -/
+
+/-- **`D_{m,n}` is connected.**  Every vertex is reachable from center `0`: the top leaves
+and center `m` directly, the bottom leaves via center `m`. -/
+theorem doubleStar_connected {m n : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) :
+    (doubleStar m n).Connected := by
+  have hpos : 0 < m + n := by omega
+  have hmlt : m < m + n := by omega
+  have hz : (⟨0, hpos⟩ : Fin (m + n)).val = 0 := rfl
+  have hw : (⟨m, hmlt⟩ : Fin (m + n)).val = m := rfl
+  rw [connected_iff_exists_forall_reachable]
+  refine ⟨⟨0, hpos⟩, fun w => ?_⟩
+  by_cases h0 : w.val = 0
+  · have hwe : w = (⟨0, hpos⟩ : Fin (m + n)) := Fin.ext (by rw [hz]; exact h0)
+    rw [hwe]
+  · by_cases hle : w.val ≤ m
+    · have hadj : (doubleStar m n).Adj ⟨0, hpos⟩ w := by rw [doubleStar_adj]; omega
+      exact hadj.reachable
+    · have h1 : (doubleStar m n).Adj ⟨0, hpos⟩ ⟨m, hmlt⟩ := by rw [doubleStar_adj]; omega
+      have h2 : (doubleStar m n).Adj ⟨m, hmlt⟩ w := by rw [doubleStar_adj]; omega
+      exact h1.reachable.trans h2.reachable
+
+/-- **`D_{m,n}` has `N − 1` edges.**  The map `v ↦ s(v, parent v)` — where `parent v = 0`
+for `v.val ≤ m` and `parent v = m` otherwise — is a bijection from the non-center vertices
+`{v // v.val ≠ 0}` (of which there are `N − 1`) onto the edge set. -/
+theorem doubleStar_card_edgeFinset {m n : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) :
+    (doubleStar m n).edgeFinset.card = m + n - 1 := by
+  classical
+  have hpos : 0 < m + n := by omega
+  have hmlt : m < m + n := by omega
+  have hz : (⟨0, hpos⟩ : Fin (m + n)).val = 0 := rfl
+  have hw : (⟨m, hmlt⟩ : Fin (m + n)).val = m := rfl
+  have hfilter : (Finset.univ.filter (fun v : Fin (m + n) => v.val ≠ 0)).card = m + n - 1 := by
+    have hEq : (Finset.univ.filter (fun v : Fin (m + n) => v.val ≠ 0))
+        = Finset.univ.erase (⟨0, hpos⟩ : Fin (m + n)) := by
+      ext v
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_erase, ne_eq,
+        Fin.ext_iff, and_true]
+    rw [hEq, Finset.card_erase_of_mem (Finset.mem_univ _), Finset.card_univ, Fintype.card_fin]
+  rw [← hfilter]
+  refine (Finset.card_bij
+    (fun v _ => s(v, if v.val ≤ m then (⟨0, hpos⟩ : Fin (m + n)) else ⟨m, hmlt⟩)) ?_ ?_ ?_).symm
+  · -- the parent edge really is an edge
+    intro v hv
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hv
+    rw [SimpleGraph.mem_edgeFinset, SimpleGraph.mem_edgeSet]
+    by_cases hle : v.val ≤ m
+    · rw [if_pos hle, doubleStar_adj]; omega
+    · rw [if_neg hle, doubleStar_adj]; omega
+  · -- injectivity
+    intro a ha b hb hab
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha hb
+    apply Fin.ext
+    split_ifs at hab <;>
+      simp only [Sym2.eq_iff, Fin.ext_iff] at hab <;> omega
+  · -- surjectivity
+    intro e he
+    induction e using Sym2.ind with
+    | _ a b =>
+      rw [SimpleGraph.mem_edgeFinset, SimpleGraph.mem_edgeSet, doubleStar_adj] at he
+      rcases he with ⟨ha0, hb1, hbm⟩ | ⟨hb0, ha1, ham⟩ | ⟨ham, hbm⟩ | ⟨hbm, ham⟩
+      · refine ⟨b, Finset.mem_filter.mpr ⟨Finset.mem_univ _, by omega⟩, ?_⟩
+        rw [if_pos (by omega : b.val ≤ m)]
+        have : a = (⟨0, hpos⟩ : Fin (m + n)) := Fin.ext (by rw [hz]; omega)
+        rw [this]; exact Sym2.eq_swap
+      · refine ⟨a, Finset.mem_filter.mpr ⟨Finset.mem_univ _, by omega⟩, ?_⟩
+        rw [if_pos (by omega : a.val ≤ m)]
+        have : b = (⟨0, hpos⟩ : Fin (m + n)) := Fin.ext (by rw [hz]; omega)
+        rw [this]
+      · refine ⟨b, Finset.mem_filter.mpr ⟨Finset.mem_univ _, by omega⟩, ?_⟩
+        rw [if_neg (by omega : ¬ b.val ≤ m)]
+        have : a = (⟨m, hmlt⟩ : Fin (m + n)) := Fin.ext (by rw [hw]; omega)
+        rw [this]; exact Sym2.eq_swap
+      · refine ⟨a, Finset.mem_filter.mpr ⟨Finset.mem_univ _, by omega⟩, ?_⟩
+        rw [if_neg (by omega : ¬ a.val ≤ m)]
+        have : b = (⟨m, hmlt⟩ : Fin (m + n)) := Fin.ext (by rw [hw]; omega)
+        rw [this]
+
+/-- **`D_{m,n}` is a tree.**  Connected with `N − 1` edges, via
+`isTree_iff_connected_and_card`. -/
+theorem doubleStar_isTree {m n : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) :
+    (doubleStar m n).IsTree := by
+  classical
+  rw [isTree_iff_connected_and_card]
+  refine ⟨doubleStar_connected hm hn, ?_⟩
+  rw [Nat.card_eq_fintype_card, ← SimpleGraph.edgeFinset_card, doubleStar_card_edgeFinset hm hn,
+    Nat.card_eq_fintype_card, Fintype.card_fin]
+  omega
+
+/-! ### The exact value `F(K_{m,n}) = N − 3` -/
+
+/-- **`F(K_{m,n}) = N − 3` — the exact minimum-fusion value, stated faithfully.**  The
+FORMALIZED headline for the complete bipartite family, MIRRORING `complete_min_fusions`
+(M13) with the honest up-to-LC upper bound; an explicit conjunction whose two halves are
+exactly the two claims, with nothing packaged behind a definition:
+
+* **(upper, left conjunct)** `ProducibleUpToLC (N − 3) (completeBipartite m n)` — an explicit
+  `N − 3`-fusion construction produces a graph (the double-star tree `D_{m,n}`, built by the
+  general tree theorem) LC-equivalent to `K_{m,n}` via the three complementations `τ₀,τₘ,τ₀`
+  (so `F(K_{m,n}) ≤ N − 3`);
+* **(lower, right conjunct)** for **arbitrary** `g, f` and component-count dynamics `c` —
+  *any* GHZ₃-fusion schedule whatsoever, with **no** restriction to a construction class —
+  photon counting (`N + 2f = 3g`) plus the local merge rule (start `g`, end connected, each
+  fusion drops the component count by at most one) force `N − 3 ≤ f` (so
+  `F(K_{m,n}) ≥ N − 3`).
+
+The lower bound is UNCHANGED from the earlier families: local complementation preserves the
+vertex count and connectivity, so any schedule producing something LC-equivalent to
+`K_{m,n}` still produces an `N`-vertex connected output, and `family_fusion_lower_bound`
+applies verbatim.  Together: the minimum number of `{X_aZ_b, Z_aX_b}` fusions of GHZ₃
+resources producing a graph state LC-equivalent to `|K_{m,n}⟩` is exactly `N − 3`. -/
+theorem completeBipartite_min_fusions {m n : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) (hN : 3 ≤ m + n) :
+    ProducibleUpToLC (m + n - 3) (completeBipartite m n)
+    ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), (m + n) + 2 * f = 3 * g → c 0 = g → c f = 1 →
+        (∀ i, i < f → c i ≤ c (i + 1) + 1) → (m + n) - 3 ≤ f := by
+  refine ⟨⟨doubleStar m n, ?_, ?_⟩, ?_⟩
+  · have hcard : Fintype.card (Fin (m + n)) = m + n := Fintype.card_fin _
+    have h := producibleBy_tree (doubleStar m n) (doubleStar_isTree hm hn) (by rw [hcard]; omega)
+    rwa [hcard] at h
+  · exact lcEquiv_symm (lcEquiv_completeBipartite_doubleStar hm hn)
+  · intro g f c hcount hc0 hcf hcstep
+    exact family_fusion_lower_bound (by omega) hcount c hc0 hcf hcstep
+
 end Empiricist
