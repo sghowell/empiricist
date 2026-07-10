@@ -53,17 +53,45 @@ doc's Formalization note calls formalizable ("arithmetic plus connectivity
 induction"). This half is universal (holds for every connected G) and is the tight
 half for the N−3 families.
 
-## What remains (the harder half)
+## The path family, exact — `F(path_N) = N − 3` (upper bound DONE)
 
-The exact family values `F(path/star/complete) = N−3` need the **upper bound**
-`F ≤ N−3`: an explicit all-merge schedule (f = g−1 = N−3) that provably *produces*
-the family graph. Faithfully, that requires formalizing the fusion→graph
-transformation rule (the {X_aZ_b, Z_aX_b} Bell measurement → complete-bipartite
-neighbourhood merge, ratified in spec D6 and used by the two verification engines)
-and an induction on N that the schedule yields the target — a genuine
-formalization sub-project, staged separately. The live campaign already exhibits
-machine-*verified* witnesses for specific N (the engines certify them); lifting
-those to an all-N Lean theorem is the open work.
+The upper-bound half is now formalized for the **path family**
+(`lean/EmpiricistLean/EmpiricistLean/FamilyUpper.lean`), giving the first
+gate-certified **exact** minimum-fusion value. The FORMALIZED-ingested claim
+(`pathGraph_min_fusions`, statement recorded faithfully in the ledger):
+
+> for `N ≥ 3`: `pathGraph N` is producible by exactly `N − 3` GHZ₃ leaf-merge
+> fusions, **and** every schedule (photon counting + component-merge dynamics)
+> producing an `N`-vertex connected output uses `≥ N − 3` fusions.
+
+Together ⟹ `F(path_N) = N − 3`. What made this tractable and faithful:
+- The D6 disjoint leaf-merge is **modeled as a `SimpleGraph` rewrite**
+  (`ghz3LeafMerge`) and proven isomorphic to "attach one pendant"
+  (`ghz3LeafMerge_iso_addPendant` — a *theorem*). This modeled rule is
+  **cross-checked against the two verified engines**: a McKay-certificate check
+  found 0/200 mismatches vs `merge_fresh_ghz3(role="leaf")`, and leaf-merging onto
+  a path endpoint yields the longer path on *both* `fusion_gf2` and `fusion_stim`
+  (N=3..7). The construction produces the path **exactly** (not just up-to-LC), so
+  no LC-equivalence machinery was needed.
+- The upper bound (`producibleBy_pathGraph`) is a genuine induction exhibiting the
+  N−3-fusion construction; the lower bound is the universal `FusionCost` argument
+  re-derived inline. The exact-value statement carries the *general* lower bound in
+  its own type (not hidden behind a construction-class `Achievable` set — an earlier
+  `IsLeast` framing was tightened after review because it read as general optimality
+  while quantifying only over the construction class).
+
+**Modeled-vs-proved boundary (unchanged):** the D6 graph rewrite is the modeled
+primitive (justified by the engine cross-check), and the component-merge dynamics is
+the same faithful folklore abstraction as the lower bound; this is not a
+first-principles derivation from qubit-level stabilizer semantics.
+
+## What remains
+
+- **star, complete** exact values: reuse the same rule-formalization scaffold with
+  their own (non-path) constructions — the natural next families.
+- The genuinely-open P5 parts — 2D cluster / lattice family structure, the
+  NP-completeness of FUSION-COST (part i), and the extremal growth of μ(N) (part
+  iii) — remain research-frontier, not mechanical follow-ons.
 
 ## Provenance
 Certified through `LeanVerifier` v3.2 (the hardened gate); FORMALIZED artifact
