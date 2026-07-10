@@ -53,7 +53,7 @@ doc's Formalization note calls formalizable ("arithmetic plus connectivity
 induction"). This half is universal (holds for every connected G) and is the tight
 half for the N−3 families.
 
-## The path family, exact — `F(path_N) = N − 3` (upper bound DONE)
+## Exact family values, formalized — `F(path_N) = F(star_N) = N − 3`
 
 The upper-bound half is now formalized for the **path family**
 (`lean/EmpiricistLean/EmpiricistLean/FamilyUpper.lean`), giving the first
@@ -85,10 +85,24 @@ primitive (justified by the engine cross-check), and the component-merge dynamic
 the same faithful folklore abstraction as the lower bound; this is not a
 first-principles derivation from qubit-level stabilizer semantics.
 
+### The star family, exact — `F(star_N) = N − 3`
+
+`star_min_fusions` (same faithful shape as `pathGraph_min_fusions`, gate-certified
+PASS, FORMALIZED-ingested) reuses the entire path scaffold: `starGraph N` is genuine
+K_{1,N-1} (center 0 adjacent to all, no leaf–leaf edges), and the **same
+`ghz3LeafMerge` rule** attaching pendants at the fixed *center* (rather than a path
+endpoint) grows `star_{N-1}` → `star_N` **exactly** (a pure relabelling iso — no LC).
+Engine cross-check: `merge_fresh_ghz3(star_N, center, "leaf")` yields exactly
+K_{1,N} (degree sequence: one degree-N center + N degree-1 leaves) on *both* engines,
+N=3..7. So two of the three `N−3` families are now machine-proven exact.
+
 ## What remains
 
-- **star, complete** exact values: reuse the same rule-formalization scaffold with
-  their own (non-path) constructions — the natural next families.
+- **complete `K_N`**: harder than it looks — `K_N` is **LC-equivalent** to the star
+  (which is *why* it shares `F = N−3`), and a leaf-merge only adds degree-1 vertices,
+  so it cannot produce `K_N` *exactly*. A faithful proof therefore needs LC-equivalence
+  formalized (`F(K_N) = F(star_N)` via the LC relation) — a genuine sub-project, not a
+  scaffold reuse. Staged, not faked.
 - The genuinely-open P5 parts — 2D cluster / lattice family structure, the
   NP-completeness of FUSION-COST (part i), and the extremal growth of μ(N) (part
   iii) — remain research-frontier, not mechanical follow-ons.
