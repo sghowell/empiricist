@@ -4,6 +4,8 @@ Released under the MIT license as described in the file LICENSE.
 Authors: Sean Howell
 -/
 import Mathlib.Combinatorics.SimpleGraph.Hasse
+import Mathlib.Combinatorics.SimpleGraph.Acyclic
+import Mathlib.Combinatorics.SimpleGraph.Star
 import Mathlib.Logic.Equiv.Fin.Basic
 import Mathlib.Logic.Relation
 import Mathlib.Order.Bounds.Basic
@@ -714,6 +716,252 @@ theorem complete_min_fusions {N : ℕ} (hN : 3 ≤ N) :
     ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 →
         (∀ i, i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f :=
   ⟨producibleUpToLC_completeGraph hN,
+   fun _g _f c hcount hc0 hcf hcstep =>
+     family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
+
+/-! ## The GENERAL tree family exact minimum-fusion value `F(T) = N − 3` (M14)
+
+This section generalizes the path (M11) and star (M12) results to **every** tree `T`
+on `N ≥ 3` vertices, using mathlib's genuine tree predicate `SimpleGraph.IsTree`
+(`= Connected ∧ IsAcyclic`).  Mathematically: every tree is built from the 3-vertex
+tree (`GHZ3graph = pathGraph 3`) by attaching `N − 3` leaves, one per leaf-merge, each
+producing the tree EXACTLY.  The proof is a strong induction on `Fintype.card V`:
+
+* **Base** (`threeVertexTree_iso`): every tree on a 3-element vertex type is isomorphic
+  to `GHZ3graph`.  (There is only one tree on 3 vertices, the path with the degree-2
+  vertex in the middle.)
+* **Step**: a finite tree with `N ≥ 4` vertices has a leaf `v` (a degree-1 vertex,
+  `IsTree.exists_vert_degree_one_of_nontrivial`) with a unique neighbour `b`.  Deleting
+  `v` (`T.induce {v}ᶜ`) yields a tree on `N − 1` vertices — connected by
+  `Connected.induce_compl_singleton_of_degree_eq_one` and acyclic by `IsAcyclic.induce`,
+  both mathlib.  By the induction hypothesis it is produced by `N − 4` leaf-merges;
+  one further `ghz3LeafMerge` at `b` re-attaches `v` (`addPendant_deleteLeaf_iso`),
+  producing `T` in `N − 3` fusions total.
+
+The MODELED-vs-PROVED boundary is UNCHANGED from the path/star families: the D6
+leaf-merge graph rewrite `ghz3LeafMerge` (and its single-pendant identification) is
+modeled and engine-cross-checked; the folklore photon-counting + component-merge lower
+bound is `family_fusion_lower_bound`.  The genuinely NEW content here is purely the
+tree-induction upper bound — the leaf-removal recursion above, built entirely on
+mathlib's tree API.  `producibleBy_pathGraph`/`producibleBy_starGraph` become COROLLARIES
+(`producibleBy_pathGraph_of_tree`, `producibleBy_starGraph_of_tree`), witnessing that the
+path and star families are special cases of the general tree theorem. -/
+
+/-- Relabelling `Option ↥({v}ᶜ) ≃ V`: the fresh pendant slot `none ↦ v`, and each
+survivor `some x ↦ x`.  A bijection because the survivors are exactly `V \ {v}`. -/
+def optionComplSingletonEquiv {V : Type} [DecidableEq V] (v : V) :
+    Option ↥({v}ᶜ : Set V) ≃ V where
+  toFun o := o.elim v Subtype.val
+  invFun x := if h : x = v then none else some ⟨x, by
+    simp only [Set.mem_compl_iff, Set.mem_singleton_iff]; exact h⟩
+  left_inv o := by
+    cases o with
+    | none => simp
+    | some x =>
+      have hx : (x : V) ≠ v := by
+        have h2 := x.2
+        simp only [Set.mem_compl_iff, Set.mem_singleton_iff] at h2
+        exact h2
+      simp only [Option.elim, dif_neg hx, Subtype.coe_eta]
+  right_inv x := by
+    by_cases h : x = v
+    · subst h; simp
+    · simp only [dif_neg h, Option.elim]
+
+/-- **The reconstruction isomorphism (the mathematical heart of the tree induction).**
+For a leaf `v` with unique neighbour `b`, re-attaching `v` as a pendant at `b` onto the
+leaf-deleted graph `T.induce {v}ᶜ` recovers `T` up to relabelling.  Only the leaf
+property (`hb : T.Adj v b`, `hbu : v`'s only neighbour is `b`) is used — no connectivity
+— so this is a clean graph-theoretic identity.  Under `optionComplSingletonEquiv v`, the
+fresh pendant `none` becomes `v` and every survivor `some x` becomes `x`. -/
+def addPendant_deleteLeaf_iso {V : Type} [DecidableEq V] (T : SimpleGraph V) {v b : V}
+    (hb : T.Adj v b) (hbu : ∀ y, T.Adj v y → y = b) :
+    addPendant (T.induce ({v}ᶜ : Set V)) ⟨b, by
+      simp only [Set.mem_compl_iff, Set.mem_singleton_iff]; exact hb.ne'⟩ ≃g T where
+  __ := optionComplSingletonEquiv v
+  map_rel_iff' := by
+    intro o₁ o₂
+    cases o₁ with
+    | none =>
+      cases o₂ with
+      | none => simp [optionComplSingletonEquiv, addPendant]
+      | some y =>
+        simp only [optionComplSingletonEquiv, Equiv.coe_fn_mk, Option.elim, addPendant,
+          Subtype.ext_iff]
+        exact ⟨fun h => hbu _ h, fun h => by rw [h]; exact hb⟩
+    | some x =>
+      cases o₂ with
+      | none =>
+        simp only [optionComplSingletonEquiv, Equiv.coe_fn_mk, Option.elim, addPendant,
+          Subtype.ext_iff]
+        rw [adj_comm]
+        exact ⟨fun h => hbu _ h, fun h => by rw [h]; exact hb⟩
+      | some y =>
+        simp only [optionComplSingletonEquiv, Equiv.coe_fn_mk, Option.elim, addPendant, induce_adj]
+
+/-- **The base of the tree induction.**  Every tree on a 3-element vertex type is
+isomorphic to the GHZ₃ resource `pathGraph 3`: the unique tree on 3 vertices is the path
+with its degree-2 vertex `b` in the middle (leaf `v` and third vertex `w` as endpoints).
+Constructed explicitly: `v ↦ 0`, `b ↦ 1`, `w ↦ 2`. -/
+theorem threeVertexTree_iso {V : Type} [Fintype V] (T : SimpleGraph V)
+    (hT : T.IsTree) (hcard : Fintype.card V = 3) : Nonempty (GHZ3graph ≃g T) := by
+  classical
+  have hnt : Nontrivial V := Fintype.one_lt_card_iff_nontrivial.mp (by omega)
+  obtain ⟨v, hv⟩ := hT.exists_vert_degree_one_of_nontrivial
+  obtain ⟨b, hb, hbu⟩ := degree_eq_one_iff_existsUnique_adj.mp hv
+  have hvb : v ≠ b := hb.ne
+  -- the third vertex `w`
+  have hne : (({v, b} : Finset V)ᶜ).Nonempty := by
+    rw [← Finset.card_pos, Finset.card_compl, hcard, Finset.card_pair hvb]; omega
+  obtain ⟨w, hwmem⟩ := hne
+  rw [Finset.mem_compl, Finset.mem_insert, Finset.mem_singleton] at hwmem
+  push_neg at hwmem
+  obtain ⟨hwv, hwb⟩ := hwmem
+  -- exhaustiveness: `{v, b, w}` covers `V`
+  have h3 : ({v, b, w} : Finset V).card = 3 :=
+    Finset.card_eq_three.mpr ⟨v, b, w, hvb, hwv.symm, hwb.symm, rfl⟩
+  have huniv : ({v, b, w} : Finset V) = Finset.univ :=
+    Finset.eq_univ_of_card _ (h3.trans hcard.symm)
+  have key : ∀ x : V, x = v ∨ x = b ∨ x = w := by
+    intro x
+    have hx : x ∈ ({v, b, w} : Finset V) := huniv ▸ Finset.mem_univ x
+    simpa [Finset.mem_insert, Finset.mem_singleton] using hx
+  -- the second edge `b — w`
+  have hbw : T.Adj b w := by
+    obtain ⟨z, hz⟩ := (T.degree_pos_iff_exists_adj w).mp
+      (lt_of_lt_of_le hT.connected.preconnected.minDegree_pos_of_nontrivial
+        (T.minDegree_le_degree w))
+    rcases key z with rfl | rfl | rfl
+    · exact absurd (hbu w hz.symm) hwb
+    · exact hz.symm
+    · exact absurd rfl hz.ne
+  have hvw : ¬ T.Adj v w := fun h => hwb (hbu w h)
+  -- the explicit relabelling `Fin 3 ≃ V`, `0 ↦ v`, `1 ↦ b`, `2 ↦ w`
+  refine ⟨⟨⟨![v, b, w],
+             fun x => if x = v then 0 else if x = b then 1 else 2, ?_, ?_⟩, ?_⟩⟩
+  · intro i
+    fin_cases i <;> simp [Ne.symm hvb, hwv, hwb]
+  · intro x
+    rcases key x with rfl | rfl | rfl <;>
+      simp [Ne.symm hvb, hwv, hwb]
+  · intro i j
+    simp only [GHZ3graph]
+    fin_cases i <;> fin_cases j <;>
+      simp only [pathGraph_adj, Fin.isValue] <;>
+      first
+        | exact iff_of_true (by assumption) (by decide)
+        | exact iff_of_true hb.symm (by decide)
+        | exact iff_of_true hbw.symm (by decide)
+        | exact iff_of_false T.irrefl (by decide)
+        | exact iff_of_false hvw (by decide)
+        | exact iff_of_false (fun h => hvw h.symm) (by decide)
+
+/-- **The general tree producibility theorem — auxiliary form.**  Strong induction on
+`Fintype.card V = n`.  For every tree `T` on `n ≥ 3` vertices, `T` is produced from the
+GHZ₃ resource by exactly `n − 3` leaf-merge fusions. -/
+theorem producibleBy_tree_aux :
+    ∀ (n : ℕ), 3 ≤ n → ∀ {V : Type} [Fintype V] (T : SimpleGraph V),
+      T.IsTree → Fintype.card V = n → ProducibleBy (n - 3) T := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    intro hn V _ T hT hcard
+    classical
+    obtain rfl | hn4 : n = 3 ∨ 4 ≤ n := by omega
+    · -- base: 3-vertex tree ≃g GHZ₃
+      obtain ⟨iso⟩ := threeVertexTree_iso T hT hcard
+      simpa using ProducibleBy.iso ProducibleBy.base iso
+    · -- step: delete a leaf, apply the IH, re-attach it
+      have hnt : Nontrivial V := Fintype.one_lt_card_iff_nontrivial.mp (by omega)
+      obtain ⟨v, hv⟩ := hT.exists_vert_degree_one_of_nontrivial
+      obtain ⟨b, hb, hbu⟩ := degree_eq_one_iff_existsUnique_adj.mp hv
+      have hTconn : (T.induce ({v}ᶜ : Set V)).Connected :=
+        hT.connected.induce_compl_singleton_of_degree_eq_one hv
+      have hT' : (T.induce ({v}ᶜ : Set V)).IsTree := ⟨hTconn, hT.isAcyclic.induce _⟩
+      have hcard' : Fintype.card ↥({v}ᶜ : Set V) = n - 1 := by
+        rw [Fintype.card_compl_set, hcard]; simp
+      have hbmem : b ∈ ({v}ᶜ : Set V) := by
+        simp only [Set.mem_compl_iff, Set.mem_singleton_iff]; exact hb.ne'
+      have hih : ProducibleBy (n - 1 - 3) (T.induce ({v}ᶜ : Set V)) :=
+        ih (n - 1) (by omega) (by omega) (T.induce ({v}ᶜ : Set V)) hT' hcard'
+      have hmerge : ProducibleBy (n - 1 - 3 + 1)
+          (ghz3LeafMerge (T.induce ({v}ᶜ : Set V)) ⟨b, hbmem⟩) :=
+        ProducibleBy.merge (T.induce ({v}ᶜ : Set V)) ⟨b, hbmem⟩ hih
+      have hfin : ProducibleBy (n - 1 - 3 + 1) T :=
+        ProducibleBy.iso hmerge
+          ((ghz3LeafMerge_iso_addPendant (T.induce ({v}ᶜ : Set V)) ⟨b, hbmem⟩).trans
+            (addPendant_deleteLeaf_iso T hb hbu))
+      have hexp : n - 1 - 3 + 1 = n - 3 := by omega
+      rwa [hexp] at hfin
+
+/-- **`F(T) = N − 3` upper bound for EVERY tree — the general producibility theorem.**
+For every tree `T` on `N ≥ 3` vertices, `T` is produced from the GHZ₃ resource by exactly
+`N − 3` leaf-merge fusions.  This strictly generalizes `producibleBy_pathGraph` and
+`producibleBy_starGraph`, using mathlib's genuine `SimpleGraph.IsTree`. -/
+theorem producibleBy_tree {V : Type} [Fintype V] (T : SimpleGraph V)
+    (hT : T.IsTree) (hN : 3 ≤ Fintype.card V) :
+    ProducibleBy (Fintype.card V - 3) T :=
+  producibleBy_tree_aux (Fintype.card V) hN T hT rfl
+
+/-! ### Path and star are corollaries (the generalization made explicit)
+
+Both the path family (M11) and the star family (M12) are special cases of the general
+tree theorem `producibleBy_tree`: a path and a star are both trees.  The star corollary
+below is fully discharged — mathlib's `SimpleGraph.isTree_starGraph` proves the star is a
+tree, so `producibleBy_tree` reproduces `producibleBy_starGraph_of_le` with **no** extra
+hypothesis.  The path corollary is stated with the (folklore) tree-ness of the path as an
+explicit hypothesis, because mathlib currently exposes `pathGraph`'s connectivity
+(`pathGraph_connected`) but not its acyclicity as a named lemma; `(pathGraph N).IsTree`
+is the standard fact that a path is a tree, and given it, `producibleBy_tree` reproduces
+`producibleBy_pathGraph_of_le`. -/
+
+/-- **Corollary: the path result follows from the tree theorem** (given that `pathₙ` is a
+tree — the standard fact `pathGraph_connected` + acyclicity; see the section note). -/
+theorem producibleBy_pathGraph_of_tree {N : ℕ} (hN : 3 ≤ N)
+    (hpath : (pathGraph N).IsTree) : ProducibleBy (N - 3) (pathGraph N) := by
+  have := producibleBy_tree (pathGraph N) hpath (by simpa using hN)
+  simpa using this
+
+/-- **Corollary: the star result follows from the tree theorem.**  `starₙ` is a tree
+(it is mathlib's `SimpleGraph.starGraph` centred at vertex `0`), so `producibleBy_tree`
+reproduces `producibleBy_starGraph_of_le`. -/
+theorem producibleBy_starGraph_of_tree {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleBy (N - 3) (starGraph N) := by
+  have hpos : 0 < N := by omega
+  have hstar : (starGraph N).IsTree := by
+    have heq : starGraph N = SimpleGraph.starGraph (⟨0, hpos⟩ : Fin N) := by
+      ext i j
+      simp only [starGraph_adj, SimpleGraph.starGraph_adj, Fin.ext_iff]
+    rw [heq]; exact SimpleGraph.isTree_starGraph _
+  have := producibleBy_tree (starGraph N) hstar (by simpa using hN)
+  simpa using this
+
+set_option linter.unusedDecidableInType false in
+/-- **`F(T) = N − 3` — the exact minimum-fusion value for EVERY tree, stated faithfully.**
+The FORMALIZED headline of the general tree family (M14), MIRRORING `pathGraph_min_fusions`
+/ `star_min_fusions` but quantifying over ALL trees via mathlib's genuine
+`SimpleGraph.IsTree` (`= Connected ∧ IsAcyclic`).  An explicit conjunction whose two
+halves are exactly the two claims, with nothing packaged behind a definition:
+
+* **(upper, left conjunct)** `ProducibleBy (N − 3) T` — the explicit `N − 3`-fusion
+  leaf-merge construction (the tree induction of `producibleBy_tree`) produces `T`
+  EXACTLY (so `F(T) ≤ N − 3`);
+* **(lower, right conjunct)** for **arbitrary** `g, f` and component-count dynamics `c` —
+  *any* GHZ₃-fusion schedule whatsoever, with **no** restriction to a construction class —
+  photon counting (`N + 2f = 3g`) plus the local merge rule (start `g`, end connected,
+  each fusion drops the component count by at most one) force `N − 3 ≤ f` (so
+  `F(T) ≥ N − 3`).
+
+The lower bound is UNCHANGED from path/star/complete: it references neither the target
+family nor the tree structure, only the schedule invariants (`family_fusion_lower_bound`).
+Together: for every tree `T`, the minimum number of `{X_aZ_b, Z_aX_b}` fusions of GHZ₃
+resources producing (a graph state LC-equivalent to) `T` is exactly `N − 3`. -/
+theorem tree_min_fusions {V : Type} [Fintype V] (T : SimpleGraph V) [DecidableRel T.Adj]
+    (hT : T.IsTree) (hN : 3 ≤ Fintype.card V) :
+    ProducibleBy (Fintype.card V - 3) T
+    ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), Fintype.card V + 2 * f = 3 * g → c 0 = g → c f = 1 →
+        (∀ i, i < f → c i ≤ c (i + 1) + 1) → Fintype.card V - 3 ≤ f :=
+  ⟨producibleBy_tree T hT hN,
    fun _g _f c hcount hc0 hcf hcstep =>
      family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
 
