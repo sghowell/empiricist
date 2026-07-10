@@ -165,15 +165,16 @@ _TRUSTED_EMPIRICIST_MODULE = "EmpiricistLean.Basic"
 # The COMMITTED source modules that legitimately live in the project module dir,
 # and their build-product basename prefixes. The residue sweep (Lever 3) flags
 # anything OUTSIDE this set as escaped-jail residue (a planted `Poison.olean`, a
-# leftover `Scratch_*`). `FusionCost` is the Problem-5 minimum-fusion lower-bound
-# module (M10): it is a self-contained mathlib+Basic proof submitted to verify()
-# as SOURCE like every other claim, so it is never a TRUSTED import (only
-# `EmpiricistLean.Basic` is, above) -- but its committed source + built olean must
-# not be mistaken for residue. The build lib stays OFF the restricted LEAN_PATH
-# (Lever 2) and gate (d) still rejects any non-`Basic` EmpiricistLean import, so
-# allowlisting `FusionCost.olean` here does not widen the import-trust surface.
-_COMMITTED_SOURCE_FILES = frozenset({"Basic.lean", "FusionCost.lean"})
-_COMMITTED_BUILD_PREFIXES = ("Basic.", "FusionCost.")
+# leftover `Scratch_*`). `FusionCost` (M10, minimum-fusion lower bound) and
+# `FamilyUpper` (M11, the path family's exact value `F = N-3`) are self-contained
+# mathlib+Basic proofs submitted to verify() as SOURCE like every other claim, so
+# they are never TRUSTED imports (only `EmpiricistLean.Basic` is, above) -- but
+# their committed source + built oleans must not be mistaken for residue. The build
+# lib stays OFF the restricted LEAN_PATH (Lever 2) and gate (d) still rejects any
+# non-`Basic` EmpiricistLean import, so allowlisting their oleans here does not
+# widen the import-trust surface.
+_COMMITTED_SOURCE_FILES = frozenset({"Basic.lean", "FusionCost.lean", "FamilyUpper.lean"})
+_COMMITTED_BUILD_PREFIXES = ("Basic.", "FusionCost.", "FamilyUpper.")
 
 # The framing marker the compiled driver prints its single result line with:
 #   AXIOM_AUDIT::<nonce>::{"declFound":...,"axioms":[...],"importRoots":[...],...}
