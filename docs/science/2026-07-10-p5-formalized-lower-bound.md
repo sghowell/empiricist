@@ -73,6 +73,18 @@ non-isomorphic tree orbit at N = 3..8 is `F = N−3`. This subsumes the two
 tree-shaped named families below into one class theorem; the complete graph `K_N`
 (not a tree) remains its own result via local complementation.
 
+### Complete bipartite, exact — `F(K_{m,n}) = N − 3`
+
+Another P5(ii)-listed family, formalized deterministically (no model search) by
+composing the trees theorem with local complementation. `completeBipartite_min_
+fusions` (gate-certified PASS, FORMALIZED-ingested): every `K_{m,n}` (m,n ≥ 1,
+N = m+n ≥ 3) is **3 local complementations (τ_0, τ_m, τ_0) from a double-star
+caterpillar tree** — each step an exact graph equality matching the verified
+`localComplement` rule, cross-checked against the domain for all m+n ≤ 9. The
+double-star is proven a genuine tree (`IsTree`: connected + N−1 edges), so
+`F(double-star)=N−3` by the tree theorem, and LC-invariance (`ProducibleUpToLC`)
+carries it to `F(K_{m,n})=N−3`. No new modeling assumption.
+
 ## Named exact family values — `F(path_N) = F(star_N) = F(K_N) = N − 3`
 
 The upper-bound half is now formalized for the **path family**
