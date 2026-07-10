@@ -9,12 +9,16 @@ import Mathlib.Order.Bounds.Basic
 import EmpiricistLean.Basic
 
 /-!
-# The path family exact minimum-fusion value `F(pathₙ) = N − 3` (Empiricist Problem 5)
+# Path and star family exact minimum-fusion values `F = N − 3` (Empiricist Problem 5)
 
-This module proves the **upper** bound `F(pathₙ) ≤ N − 3` for the minimum-fusion
-synthesis problem restricted to the path family, and combines it with the
-universal lower bound (re-derived here, since the gate forbids importing
-`EmpiricistLean.FusionCost`) to pin the **exact value** `F(pathₙ) = N − 3`.
+This module proves the **upper** bound `F ≤ N − 3` for the minimum-fusion synthesis
+problem restricted to the **path** family (`pathₙ`, M11) and the **star** family
+(`starₙ = K₁,ₙ₋₁`, M12), and combines each with the universal lower bound (re-derived
+here, since the gate forbids importing `EmpiricistLean.FusionCost`) to pin the two
+**exact values** `F(pathₙ) = N − 3` (`pathGraph_min_fusions`) and
+`F(starₙ) = N − 3` (`star_min_fusions`).  The star family is a clean reuse of the
+path scaffold — the SAME `ghz3LeafMerge` rule and SAME lower bound, differing only in
+attaching each fresh pendant at the star's fixed CENTER (see the star section below).
 
 `F(G)` = the minimum number of `{X_aZ_b, Z_aX_b}` Bell-measurement fusions of
 GHZ₃ resource states producing a graph state LC-equivalent to `|G⟩`.
@@ -376,5 +380,138 @@ caveat as `pathGraph_leafMerge_isLeast` (NOT general optimality; see
 theorem pathGraph_leafMerge_sInf {N : ℕ} (hN : 3 ≤ N) :
     sInf (Achievable N (pathGraph N)) = N - 3 :=
   (pathGraph_leafMerge_isLeast hN).csInf_eq
+
+/-! ## The star family exact minimum-fusion value `F(starₙ) = N − 3` (M12)
+
+The star `K₁,ₙ₋₁` is the **clean reuse** of the path scaffold: the SAME modeled D6
+leaf-merge rule (`ghz3LeafMerge`, engine-cross-checked) and the SAME universal lower
+bound (`family_fusion_lower_bound`), differing only in **where** the pendant attaches
+— at the star's fixed CENTER instead of a path endpoint.
+
+* `starGraph N` — the genuine `K₁,ₙ₋₁`: vertex `0` (the unique vertex with `.val = 0`)
+  is the center, adjacent to every other vertex; no two leaves are adjacent.
+* `ghz3_iso_star3` — GHZ₃ (`= pathGraph 3`, center `1`) is the 3-vertex star
+  (center `0`) up to relabelling (swap `0 ↔ 1`); the induction base.
+* `addPendant_starGraph_iso` — the **add-pendant-at-CENTER step**: attaching one
+  pendant at the center of `starₙ₊₁` yields **exactly** `starₙ₊₂` (a genuine graph
+  isomorphism, no local complementation).  This is the only genuinely new content.
+* `star_min_fusions` — the faithful headline exact value, MIRRORING
+  `pathGraph_min_fusions`: an explicit conjunction of the upper-bound construction
+  and the fully-general lower bound, both visible in the type (no
+  construction-class packaging, no `Achievable`/`IsLeast` circularity).
+
+**Exact, not up-to-LC.**  `addPendant_starGraph_iso` is a `SimpleGraph.Iso` (a pure
+qubit relabelling), so the construction produces the star `K₁,ₙ₋₁` EXACTLY; no local
+complementation is needed.  The independent engine cross-check corroborates this: for
+`N = 3..7`, fusing a fresh GHZ₃ **leaf** onto the star's center (`merge_fresh_ghz3`,
+`role = "leaf"`, `a = center`) yields `starₙ₊₁` on BOTH engines (`fusion_gf2`,
+`fusion_stim`, via `lc_orbit_key`), and the closed-form output is exactly `K₁,ₙ`
+(degree sequence: one center of degree `N`, `N` leaves of degree `1`).
+
+**Modeled vs proved (same boundary as the path family).**  MODELED (and
+engine-justified, not assumed): the D6 leaf-merge graph rewrite `ghz3LeafMerge` and
+its identification with a single center-pendant attachment.  PROVED from that rule:
+the explicit `N − 3`-fusion star construction, and — combined with the folklore
+photon-counting + component-merge lower bound — the exact value below. -/
+
+/-- The star graph `K₁,ₙ₋₁` on `Fin N`: the center is the vertex `0` (the unique
+vertex with `.val = 0`), adjacent to every other vertex; no two leaves are adjacent.
+Using `.val = 0` (rather than the `0 : Fin N` literal, which needs `NeZero N`) keeps
+`starGraph` total over `ℕ`; in the problem's regime `N ≥ 3` the center is vertex `0`. -/
+def starGraph (N : ℕ) : SimpleGraph (Fin N) where
+  Adj i j := i ≠ j ∧ (i.val = 0 ∨ j.val = 0)
+  symm := ⟨by rintro i j ⟨hij, h0⟩; exact ⟨hij.symm, h0.symm⟩⟩
+  loopless := ⟨by rintro i ⟨hii, _⟩; exact hii rfl⟩
+
+@[simp] lemma starGraph_adj {N : ℕ} (i j : Fin N) :
+    (starGraph N).Adj i j ↔ i ≠ j ∧ (i.val = 0 ∨ j.val = 0) := Iff.rfl
+
+/-- **Base identity.**  GHZ₃ (`= pathGraph 3`, center `1`, leaves `0, 2`) is the
+3-vertex star `starGraph 3` (center `0`, leaves `1, 2`) up to the qubit relabelling
+swapping `0 ↔ 1`.  A finite `Fin 3` check. -/
+def ghz3_iso_star3 : GHZ3graph ≃g starGraph 3 where
+  __ := Equiv.swap (0 : Fin 3) 1
+  map_rel_iff' := by
+    intro a b
+    unfold GHZ3graph
+    fin_cases a <;> fin_cases b <;>
+      simp only [starGraph_adj, pathGraph_adj] <;> decide
+
+/-- **The add-pendant-at-CENTER step (the only genuinely new content).**  Attaching
+one pendant at the center `0` of `starₙ₊₁` yields `starₙ₊₂`.  The relabelling is
+`finSuccEquivLast`, sending the new pendant (`none`) to the last leaf `Fin.last` and
+the surviving center (`some 0`) to the center `0`, with every other survivor
+`some k ↦ k.castSucc`.  A genuine graph isomorphism, so the bigger star is produced
+EXACTLY (no local complementation). -/
+def addPendant_starGraph_iso (n : ℕ) :
+    addPendant (starGraph (n + 1)) (0 : Fin (n + 1)) ≃g starGraph (n + 2) where
+  __ := (finSuccEquivLast (n := n + 1)).symm
+  map_rel_iff' := by
+    rintro (_ | x) (_ | y) <;>
+      simp only [finSuccEquivLast_symm_none, finSuccEquivLast_symm_some]
+    · -- `none` vs `none`: the new pendant `Fin.last` has no self-loop, matching
+      -- `addPendant none none = False`.
+      simp [starGraph_adj, addPendant]
+    · -- `none` vs `some y`: new pendant `Fin.last` is adjacent to leaf `y.castSucc`
+      -- iff `y` is the reused center `0` (matching `addPendant none (some y) = (y = 0)`).
+      simp only [starGraph_adj, addPendant, ne_eq, Fin.ext_iff, Fin.val_last, Fin.val_castSucc,
+        Fin.val_zero]
+      omega
+    · -- `some x` vs `none`: symmetric to the previous case.
+      simp only [starGraph_adj, addPendant, ne_eq, Fin.ext_iff, Fin.val_last, Fin.val_castSucc,
+        Fin.val_zero]
+      omega
+    · -- `some x` vs `some y`: two surviving vertices keep their star adjacency
+      -- (`castSucc` is injective and preserves `.val`).
+      simp only [starGraph_adj, addPendant, ne_eq, Fin.ext_iff, Fin.val_castSucc, Fin.val_zero]
+
+/-- One leaf-merge fusion of the modeled rule (attached at the center) extends
+`starₙ₊₁` to `starₙ₊₂`. -/
+def ghz3LeafMerge_starGraph_iso (n : ℕ) :
+    ghz3LeafMerge (starGraph (n + 1)) (0 : Fin (n + 1)) ≃g starGraph (n + 2) :=
+  (ghz3LeafMerge_iso_addPendant (starGraph (n + 1)) 0).trans (addPendant_starGraph_iso n)
+
+/-- **The explicit upper-bound construction.**  `starₖ₊₃` is produced from the GHZ₃
+resource by exactly `k` center-pendant leaf-merge fusions.  Induction on `k`: the
+base is `starGraph 3 ≃g GHZ₃`; each further fusion attaches one pendant at the fixed
+center (`merge` + `ghz3LeafMerge_starGraph_iso`). -/
+theorem producibleBy_starGraph (k : ℕ) : ProducibleBy k (starGraph (k + 3)) := by
+  induction k with
+  | zero => exact ProducibleBy.iso ProducibleBy.base ghz3_iso_star3
+  | succ k ih =>
+      have hstep : ProducibleBy (k + 1) (ghz3LeafMerge (starGraph (k + 3)) (0 : Fin (k + 3))) :=
+        ProducibleBy.merge (starGraph (k + 3)) 0 ih
+      exact ProducibleBy.iso hstep (ghz3LeafMerge_starGraph_iso (k + 2))
+
+/-- `starₙ` is produced by exactly `N − 3` center-pendant leaf-merge fusions,
+for `N ≥ 3`. -/
+theorem producibleBy_starGraph_of_le {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleBy (N - 3) (starGraph N) := by
+  have h := producibleBy_starGraph (N - 3)
+  rwa [Nat.sub_add_cancel hN] at h
+
+/-- **`F(starₙ) = N − 3` — the exact minimum-fusion value, stated faithfully.**  The
+FORMALIZED headline for the star family, MIRRORING `pathGraph_min_fusions`: an
+explicit conjunction whose two halves are exactly the two claims, with nothing
+packaged behind a definition:
+
+* **(upper, left conjunct)** `ProducibleBy (N − 3) (starGraph N)` — an explicit
+  `N − 3`-fusion center-pendant leaf-merge construction produces `starₙ`
+  (so `F(starₙ) ≤ N − 3`);
+* **(lower, right conjunct)** for **arbitrary** `g, f` and component-count dynamics
+  `c` — *any* GHZ₃-fusion schedule whatsoever, with **no** restriction to a
+  construction class — photon counting (`N + 2f = 3g`) plus the local merge rule
+  (start `g`, end connected, each fusion drops the component count by at most one)
+  force `N − 3 ≤ f` (so `F(starₙ) ≥ N − 3`).
+
+Together: the minimum number of `{X_aZ_b, Z_aX_b}` fusions of GHZ₃ resources
+producing (a graph state LC-equivalent to) `starₙ` is exactly `N − 3`. -/
+theorem star_min_fusions {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleBy (N - 3) (starGraph N)
+    ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 →
+        (∀ i, i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f :=
+  ⟨producibleBy_starGraph_of_le hN,
+   fun _g _f c hcount hc0 hcf hcstep =>
+     family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
 
 end Empiricist
