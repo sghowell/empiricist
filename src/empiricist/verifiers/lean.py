@@ -162,6 +162,19 @@ _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
 # -- is rejected by the import-trust gate.
 _TRUSTED_EMPIRICIST_MODULE = "EmpiricistLean.Basic"
 
+# The COMMITTED source modules that legitimately live in the project module dir,
+# and their build-product basename prefixes. The residue sweep (Lever 3) flags
+# anything OUTSIDE this set as escaped-jail residue (a planted `Poison.olean`, a
+# leftover `Scratch_*`). `FusionCost` is the Problem-5 minimum-fusion lower-bound
+# module (M10): it is a self-contained mathlib+Basic proof submitted to verify()
+# as SOURCE like every other claim, so it is never a TRUSTED import (only
+# `EmpiricistLean.Basic` is, above) -- but its committed source + built olean must
+# not be mistaken for residue. The build lib stays OFF the restricted LEAN_PATH
+# (Lever 2) and gate (d) still rejects any non-`Basic` EmpiricistLean import, so
+# allowlisting `FusionCost.olean` here does not widen the import-trust surface.
+_COMMITTED_SOURCE_FILES = frozenset({"Basic.lean", "FusionCost.lean"})
+_COMMITTED_BUILD_PREFIXES = ("Basic.", "FusionCost.")
+
 # The framing marker the compiled driver prints its single result line with:
 #   AXIOM_AUDIT::<nonce>::{"declFound":...,"axioms":[...],"importRoots":[...],...}
 _DRIVER_MARKER = "AXIOM_AUDIT"
@@ -708,17 +721,17 @@ class LeanVerifier:
         means a prior/concurrent call escaped its ephemeral jail. Returns the list of
         offending paths (empty == clean)."""
         offenders: list[str] = []
-        # Source dir: only the committed Basic.lean belongs here (Scratch_* used to
+        # Source dir: only the committed modules belong here (Scratch_* used to
         # live here; they now live in the ephemeral workdir, so any Scratch_* here is
         # stale residue).
         for p in self._module_dir.glob("*"):
-            if p.name != "Basic.lean":
+            if p.name not in _COMMITTED_SOURCE_FILES:
                 offenders.append(str(p))
-        # Build lib EmpiricistLean subdir: only Basic.* build products belong here.
+        # Build lib EmpiricistLean subdir: only committed-module build products belong.
         emp_build = self._build_lib / "EmpiricistLean"
         if emp_build.exists():
             for p in emp_build.glob("*"):
-                if not p.name.startswith("Basic."):
+                if not p.name.startswith(_COMMITTED_BUILD_PREFIXES):
                     offenders.append(str(p))
         return offenders
 
