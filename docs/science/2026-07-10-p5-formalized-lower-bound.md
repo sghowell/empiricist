@@ -53,7 +53,7 @@ doc's Formalization note calls formalizable ("arithmetic plus connectivity
 induction"). This half is universal (holds for every connected G) and is the tight
 half for the N−3 families.
 
-## Exact family values, formalized — `F(path_N) = F(star_N) = N − 3`
+## Exact family values, formalized — `F(path_N) = F(star_N) = F(K_N) = N − 3`
 
 The upper-bound half is now formalized for the **path family**
 (`lean/EmpiricistLean/EmpiricistLean/FamilyUpper.lean`), giving the first
@@ -96,16 +96,38 @@ Engine cross-check: `merge_fresh_ghz3(star_N, center, "leaf")` yields exactly
 K_{1,N} (degree sequence: one degree-N center + N degree-1 leaves) on *both* engines,
 N=3..7. So two of the three `N−3` families are now machine-proven exact.
 
-## What remains
+### The complete family, exact — `F(K_N) = N − 3` (via formalized local complementation)
 
-- **complete `K_N`**: harder than it looks — `K_N` is **LC-equivalent** to the star
-  (which is *why* it shares `F = N−3`), and a leaf-merge only adds degree-1 vertices,
-  so it cannot produce `K_N` *exactly*. A faithful proof therefore needs LC-equivalence
-  formalized (`F(K_N) = F(star_N)` via the LC relation) — a genuine sub-project, not a
-  scaffold reuse. Staged, not faked.
-- The genuinely-open P5 parts — 2D cluster / lattice family structure, the
-  NP-completeness of FUSION-COST (part i), and the extremal growth of μ(N) (part
-  iii) — remain research-frontier, not mechanical follow-ons.
+The third family needed **local complementation formalized** (mathlib has none), because
+`K_N` is not producible by leaf-merges exactly — it is the star's LC-orbit. Delivered
+(`complete_min_fusions`, gate-certified PASS, FORMALIZED-ingested):
+- `localComplement G v` = `Xor (G.Adj x y) (x ≠ y ∧ G.Adj x v ∧ G.Adj y v)` — the τ_v
+  rule **matching the verified domain `localcomp.py` exactly** (toggle within N(v),
+  v's edges untouched), proven an **involution** as the domain asserts.
+- `localComplement (starGraph N) center = completeGraph (Fin N)` — proven as an
+  **equality** (`τ_center(star) = K_N`), matching the domain cross-check (N=3..7).
+- `LCEquiv` = the genuine equivalence closure of "one local complementation or one
+  relabelling" (the domain's LC-orbit notion); `star_N ≃_LC K_N` in one step.
+- `ProducibleUpToLC f H` = `∃ G, ProducibleBy f G ∧ LCEquiv G H` — the **faithful
+  physical `F`** (up to LC, since single-qubit Cliffords are free). This also makes
+  path/star more faithful: exact production ⟹ up-to-LC (`ProducibleBy.toUpToLC`).
+
+So `K_N` is producible in `N − 3` fusions up to LC (via `star_N`), and the universal
+lower bound gives `≥ N − 3` (LC preserves vertex count + connectivity) ⟹
+`F(K_N) = N − 3`. **All three `N−3` families are now machine-proven exact**, with the
+fusion rule *and* local complementation formalized and cross-checked against the
+verified engines/domain.
+
+## What remains (the honest research frontier)
+
+The genuinely-open P5 parts, none a mechanical follow-on:
+- **(ii) hard families:** general trees, complete bipartite `K_{m,n}`, and the
+  physically-central `L×L` 2D cluster + `FN₆`/Raussendorf lattice families ("even the
+  2D cluster family is open") — large graphs past enumeration, needing general
+  structural arguments.
+- **(i) complexity:** is `FUSION-COST` NP-complete? A reduction proof — a different
+  mode from construction search, plausibly out of this harness's scope.
+- **(iii) extremal:** the growth of `μ(N) = max_G F(G)`.
 
 ## Provenance
 Certified through `LeanVerifier` v3.2 (the hardened gate); FORMALIZED artifact

@@ -5,20 +5,26 @@ Authors: Sean Howell
 -/
 import Mathlib.Combinatorics.SimpleGraph.Hasse
 import Mathlib.Logic.Equiv.Fin.Basic
+import Mathlib.Logic.Relation
 import Mathlib.Order.Bounds.Basic
 import EmpiricistLean.Basic
 
 /-!
-# Path and star family exact minimum-fusion values `F = N − 3` (Empiricist Problem 5)
+# Path, star, and complete family exact minimum-fusion values `F = N − 3` (Empiricist Problem 5)
 
 This module proves the **upper** bound `F ≤ N − 3` for the minimum-fusion synthesis
-problem restricted to the **path** family (`pathₙ`, M11) and the **star** family
-(`starₙ = K₁,ₙ₋₁`, M12), and combines each with the universal lower bound (re-derived
-here, since the gate forbids importing `EmpiricistLean.FusionCost`) to pin the two
-**exact values** `F(pathₙ) = N − 3` (`pathGraph_min_fusions`) and
-`F(starₙ) = N − 3` (`star_min_fusions`).  The star family is a clean reuse of the
+problem restricted to the **path** family (`pathₙ`, M11), the **star** family
+(`starₙ = K₁,ₙ₋₁`, M12), and the **complete** family (`Kₙ`, M13), and combines each with
+the universal lower bound (re-derived here, since the gate forbids importing
+`EmpiricistLean.FusionCost`) to pin the three **exact values** `F(pathₙ) = N − 3`
+(`pathGraph_min_fusions`), `F(starₙ) = N − 3` (`star_min_fusions`), and
+`F(Kₙ) = N − 3` (`complete_min_fusions`).  The star family is a clean reuse of the
 path scaffold — the SAME `ghz3LeafMerge` rule and SAME lower bound, differing only in
 attaching each fresh pendant at the star's fixed CENTER (see the star section below).
+The complete family is the star built and then **locally complemented once at its center**
+(`τ₀(starₙ) = Kₙ` exactly), formalized via a `localComplement` rule matching the verified
+domain (`domain/p5/localcomp.py`) and the honest **up-to-LC** producibility notion (the
+physical `F` is defined up to single-qubit Cliffords = local complementation).
 
 `F(G)` = the minimum number of `{X_aZ_b, Z_aX_b}` Bell-measurement fusions of
 GHZ₃ resource states producing a graph state LC-equivalent to `|G⟩`.
@@ -511,6 +517,203 @@ theorem star_min_fusions {N : ℕ} (hN : 3 ≤ N) :
     ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 →
         (∀ i, i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f :=
   ⟨producibleBy_starGraph_of_le hN,
+   fun _g _f c hcount hc0 hcf hcstep =>
+     family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
+
+/-! ## Local complementation and the complete family exact value `F(Kₙ) = N − 3` (M13)
+
+The complete graph `Kₙ` is the hardest of Problem 5's three `N − 3` families.  The
+mathematical spine (verified against the domain): `Kₙ` is a **single local
+complementation of the star at its center**, `τ₀(starₙ) = Kₙ` *exactly*.  In `starₙ`
+the center's neighbours are the `N − 1` leaves, pairwise non-adjacent; `τ₀` complements
+among them, making them pairwise adjacent, while the center stays adjacent to all — so
+every pair is adjacent, i.e. `Kₙ`.  Cross-checked against the verified domain
+(`domain/p5/localcomp.py::local_complement` and `lc_orbit_key`) for `N = 3..7`: the edge
+sets are equal and the two graphs share an LC-orbit.
+
+### The `localComplement` rule and its match to `domain/p5/localcomp.py`
+
+`local_complement(gs, a)` toggles every edge WITHIN the neighbourhood `N(a)`: `a`'s own
+edges are unchanged, and only pairs `b, c ∈ N(a)` with `b ≠ c` flip (an involution).  We
+encode this with propositional exclusive-or `Xor` (mathlib's `Xor a b = (a ∧ ¬b) ∨
+(b ∧ ¬a)`), which gives the IDENTICAL adjacency a decidable `if`-form would but needs no
+`Decidable`/`Fintype` instance — keeping `localComplement`, `LCStep`, and `LCEquiv` clean
+over an arbitrary vertex type.  A pair `x, y` is adjacent in `τ_v(G)` iff `G.Adj x y` XOR
+"`x ≠ y` and both `x, y ∈ N(v)`" (`localComplement_adj`).  The `x ≠ y` guard reproduces
+localcomp.py's `for j in range(i+1, …)` (distinct pairs only, so no self-loop is created),
+and because `G.Adj x v` is false when `x = v` (looplessness), `v`'s own edges are left
+unchanged — exactly the python's "a's own edges are unchanged".  `localComplement` is
+proved to be an **involution** (`localComplement_involutive`), matching the python docstring.
+
+### What is MODELED vs PROVED (M13, extending the path/star boundary)
+
+MODELED (engine- and domain-justified, not assumed):
+* the D6 leaf-merge graph rewrite `ghz3LeafMerge` and its single-pendant identification
+  (as for path/star — engine cross-checked);
+* the identification of `localComplement` with the verified `localcomp.py` rule (stated
+  above; the python is fuzz/orbit-checked ground truth).
+
+PROVED from those:
+* `localComplement_starGraph` — `τ_c(starₙ) = Kₙ` *exactly* (a `SimpleGraph.ext`
+  edge computation, for the center `c` with `c.val = 0`);
+* `lcEquiv_starGraph_completeGraph` — `starₙ` and `Kₙ` are LC-equivalent (one step);
+* `producibleUpToLC_completeGraph` — `Kₙ` is producible up to LC by `N − 3` fusions
+  (`starₙ` producible by `N − 3` leaf-merges + one local complementation);
+* `complete_min_fusions` — the exact value, mirroring `star_min_fusions` but with the
+  up-to-LC upper bound and the UNCHANGED fully-general lower bound.
+
+### Why "up to LC" is MORE faithful (not less)
+
+The physical `F(G)` is the minimum number of fusions producing a graph state
+LC-equivalent to `|G⟩`, because single-qubit Cliffords (which realize local
+complementation) are free.  The path/star theorems prove EXACT production of the target
+graph, which is *strictly stronger* than up-to-LC (via `ProducibleBy.toUpToLC`, since
+`LCEquiv` is reflexive); the complete family genuinely needs the up-to-LC notion (one LC
+step separates `starₙ` from `Kₙ`).  `LCEquiv` is the equivalence closure (`Relation.EqvGen`,
+a genuine `Equivalence` — `lcEquiv_equivalence`) of one-step "local complementation OR
+qubit relabelling", matching the domain's LC-orbit-up-to-isomorphism key. -/
+
+/-- **Local complementation** `τ_v(G)` (Bouchet), matching the verified domain rule
+`domain/p5/localcomp.py::local_complement`: toggle every edge WITHIN the neighbourhood
+`N(v)`; `v`'s own edges are unchanged, and only distinct pairs `x, y` that are BOTH
+neighbours of `v` flip.  Encoded with propositional exclusive-or `Xor` (identical
+adjacency to a decidable `if`-form, but instance-free): `x, y` are adjacent in `τ_v(G)`
+iff `G.Adj x y` XOR "`x ≠ y` and `x, y ∈ N(v)`". -/
+def localComplement {V : Type*} (G : SimpleGraph V) (v : V) : SimpleGraph V where
+  Adj x y := Xor (G.Adj x y) (x ≠ y ∧ G.Adj x v ∧ G.Adj y v)
+  symm := ⟨by
+    intro x y h
+    have hc : G.Adj x y ↔ G.Adj y x := G.adj_comm x y
+    simp only [Xor, ne_eq] at h ⊢
+    rcases h with ⟨h1, h2⟩ | ⟨⟨hne, hx, hy⟩, h2⟩
+    · exact Or.inl ⟨hc.mp h1, fun ⟨a, b, c⟩ => h2 ⟨fun e => a e.symm, c, b⟩⟩
+    · exact Or.inr ⟨⟨fun e => hne e.symm, hy, hx⟩, fun e => h2 (hc.mpr e)⟩⟩
+  loopless := ⟨by
+    intro x h
+    simp only [Xor, ne_eq, not_true_eq_false, false_and, or_false,
+      SimpleGraph.irrefl] at h⟩
+
+@[simp] lemma localComplement_adj {V : Type*} (G : SimpleGraph V) (v x y : V) :
+    (localComplement G v).Adj x y ↔ Xor (G.Adj x y) (x ≠ y ∧ G.Adj x v ∧ G.Adj y v) :=
+  Iff.rfl
+
+/-- **`τ_c(starₙ) = Kₙ` exactly.**  For the star's center `c` (`c.val = 0`, the unique
+vertex with `.val = 0`): its neighbours are all other vertices (pairwise non-adjacent
+leaves); `τ_c` complements them to pairwise-adjacent, the center stays adjacent to all, so
+every distinct pair is adjacent — the complete graph `⊤ = completeGraph (Fin N)`.  A direct
+`SimpleGraph.ext` edge computation.  (Domain cross-check: `τ₀(starₙ) = Kₙ` for `N = 3..7`
+via `localcomp.py`/`lc_orbit_key`.) -/
+theorem localComplement_starGraph {N : ℕ} (v : Fin N) (hv : v.val = 0) :
+    localComplement (starGraph N) v = completeGraph (Fin N) := by
+  ext x y
+  have ex : (x = v) ↔ (x.val = 0) := by rw [Fin.ext_iff, hv]
+  have ey : (y = v) ↔ (y.val = 0) := by rw [Fin.ext_iff, hv]
+  simp only [localComplement_adj, starGraph_adj, completeGraph, top_adj, hv, or_true,
+    and_true, ne_eq, Xor]
+  by_cases hxy : x = y
+  · subst hxy; simp
+  · simp only [hxy, not_false_eq_true, true_and]
+    rw [← ex, ← ey]
+    tauto
+
+/-- **Local complementation is an involution** (`τ_v(τ_v(G)) = G`), matching the
+`localcomp.py` docstring: `τ_v` leaves `N(v)` unchanged, so applying it twice toggles the
+same pairs back. -/
+theorem localComplement_involutive {V : Type*} (G : SimpleGraph V) (v : V) :
+    localComplement (localComplement G v) v = G := by
+  ext x y
+  simp only [localComplement_adj, SimpleGraph.irrefl, and_false, Xor, ne_eq]
+  tauto
+
+/-! ### LC-equivalence (a genuine equivalence relation) -/
+
+/-- One LC-equivalence step on `SimpleGraph V`: a single local complementation, or a single
+relabelling (graph isomorphism = qubit permutation).  Both are physically free, so the
+equivalence closure below is the honest "same graph state up to local Cliffords and
+relabelling" — exactly the domain's LC-orbit-up-to-isomorphism key. -/
+def LCStep {V : Type*} (H₁ H₂ : SimpleGraph V) : Prop :=
+  (∃ v : V, localComplement H₁ v = H₂) ∨ Nonempty (H₁ ≃g H₂)
+
+/-- **LC-equivalence**: the equivalence closure of one-step LC / relabelling. -/
+def LCEquiv {V : Type*} : SimpleGraph V → SimpleGraph V → Prop := Relation.EqvGen LCStep
+
+/-- `LCEquiv` is a genuine equivalence relation (reflexive, symmetric, transitive). -/
+theorem lcEquiv_equivalence {V : Type*} : Equivalence (@LCEquiv V) :=
+  Relation.EqvGen.is_equivalence LCStep
+
+theorem lcEquiv_refl {V : Type*} (G : SimpleGraph V) : LCEquiv G G :=
+  Relation.EqvGen.refl G
+
+theorem lcEquiv_symm {V : Type*} {G H : SimpleGraph V} (h : LCEquiv G H) : LCEquiv H G :=
+  Relation.EqvGen.symm _ _ h
+
+theorem lcEquiv_trans {V : Type*} {G H K : SimpleGraph V}
+    (h₁ : LCEquiv G H) (h₂ : LCEquiv H K) : LCEquiv G K :=
+  Relation.EqvGen.trans _ _ _ h₁ h₂
+
+/-- A single local complementation is an LC-equivalence. -/
+theorem lcEquiv_localComplement {V : Type*} (G : SimpleGraph V) (v : V) :
+    LCEquiv G (localComplement G v) :=
+  Relation.EqvGen.rel _ _ (Or.inl ⟨v, rfl⟩)
+
+/-- **`starₙ` and `Kₙ` are LC-equivalent** via the single local complementation at the
+center (`localComplement_starGraph`). -/
+theorem lcEquiv_starGraph_completeGraph {N : ℕ} (hN : 3 ≤ N) :
+    LCEquiv (starGraph N) (completeGraph (Fin N)) := by
+  have hpos : 0 < N := by omega
+  have hstep := localComplement_starGraph (⟨0, hpos⟩ : Fin N) rfl
+  rw [← hstep]
+  exact lcEquiv_localComplement (starGraph N) ⟨0, hpos⟩
+
+/-! ### Producibility up to LC (the physical `F`) and the complete family exact value -/
+
+/-- **Producibility up to LC** — the FAITHFUL physical notion.  `H` is producible by `f`
+fusions *up to LC* iff some graph `G` on the same qubits is produced by exactly `f`
+leaf-merge fusions (`ProducibleBy f G`) and is LC-equivalent to `H`.  Since the single-qubit
+Cliffords implementing local complementation are free, `F` is defined up to LC — this is
+MORE faithful than the exact-production `ProducibleBy` used for path/star, not less. -/
+def ProducibleUpToLC (f : ℕ) {W : Type} (H : SimpleGraph W) : Prop :=
+  ∃ G : SimpleGraph W, ProducibleBy f G ∧ LCEquiv G H
+
+/-- Exact production ⟹ production up to LC (`LCEquiv` is reflexive): the path/star exact
+theorems (`producibleBy_pathGraph_of_le`, `producibleBy_starGraph_of_le`) feed directly into
+the up-to-LC notion, so `pathₙ`/`starₙ` satisfy `ProducibleUpToLC (N − 3)` too. -/
+theorem ProducibleBy.toUpToLC {f : ℕ} {W : Type} {G : SimpleGraph W}
+    (h : ProducibleBy f G) : ProducibleUpToLC f G :=
+  ⟨G, h, lcEquiv_refl G⟩
+
+/-- **`Kₙ` is producible up to LC by exactly `N − 3` fusions**: `starₙ` is produced by
+`N − 3` center-pendant leaf-merges (`producibleBy_starGraph_of_le`) and is LC-equivalent to
+`Kₙ` by one local complementation (`lcEquiv_starGraph_completeGraph`). -/
+theorem producibleUpToLC_completeGraph {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleUpToLC (N - 3) (completeGraph (Fin N)) :=
+  ⟨starGraph N, producibleBy_starGraph_of_le hN, lcEquiv_starGraph_completeGraph hN⟩
+
+/-- **`F(Kₙ) = N − 3` — the exact minimum-fusion value, stated faithfully.**  The FORMALIZED
+headline for the complete family, MIRRORING `star_min_fusions` but with the honest up-to-LC
+upper bound; an explicit conjunction whose two halves are exactly the two claims, with
+nothing packaged behind a definition:
+
+* **(upper, left conjunct)** `ProducibleUpToLC (N − 3) (completeGraph (Fin N))` — an
+  explicit `N − 3`-fusion construction produces a graph (`starₙ`) LC-equivalent to `Kₙ`
+  (so `F(Kₙ) ≤ N − 3`);
+* **(lower, right conjunct)** for **arbitrary** `g, f` and component-count dynamics `c` —
+  *any* GHZ₃-fusion schedule whatsoever, with **no** restriction to a construction class —
+  photon counting (`N + 2f = 3g`) plus the local merge rule (start `g`, end connected, each
+  fusion drops the component count by at most one) force `N − 3 ≤ f` (so `F(Kₙ) ≥ N − 3`).
+
+The lower bound is UNCHANGED from path/star: local complementation preserves the vertex
+count and connectivity, so any schedule producing something LC-equivalent to `Kₙ` still
+produces an `N`-vertex connected output, and `family_fusion_lower_bound` applies verbatim —
+it references neither the target family nor the LC structure, only the schedule invariants.
+
+Together: the minimum number of `{X_aZ_b, Z_aX_b}` fusions of GHZ₃ resources producing a
+graph state LC-equivalent to `|Kₙ⟩` is exactly `N − 3`. -/
+theorem complete_min_fusions {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleUpToLC (N - 3) (completeGraph (Fin N))
+    ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 →
+        (∀ i, i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f :=
+  ⟨producibleUpToLC_completeGraph hN,
    fun _g _f c hcount hc0 hcf hcstep =>
      family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
 
