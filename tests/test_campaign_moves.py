@@ -348,6 +348,58 @@ def test_conjecture_move_duplicates_yield_one_artifact_one_evidence_row(campaign
     assert len(state.ledger.evidence_for(artifacts1[0].id)) == 1  # one attack, ever
 
 
+def test_conjecture_move_reworded_duplicates_yield_one_artifact(campaign):
+    """M9 live-campaign fix: the SAME (family, predicted_values) mined
+    twice with DIFFERENT closed_form prose -- the exact shape of the live
+    finding (10 CONJECTURED artifacts, all one conjecture reworded) -- must
+    collapse to one CONJECTURED artifact, not two."""
+    state, cfg = campaign
+    same_values = {"3": 0, "4": 1, "5": 2}
+    conj_dict_a = {
+        "family": "path", "closed_form": "N-3",
+        "predicted_values": same_values, "confidence": 0.9,
+    }
+    conj_dict_b = {
+        "family": "path", "closed_form": "the fusion count equals N minus 3",
+        "predicted_values": same_values, "confidence": 0.4,
+    }
+    client = FakeLLMClient([make_result(conj_dict_a), make_result(conj_dict_b)])
+
+    artifacts = run(conjecture_move(state, cfg, client))
+
+    assert len(artifacts) == 1  # the reworded restatement was skipped
+    n_statements = state.ledger.conn.execute(
+        "SELECT COUNT(*) FROM artifacts WHERE kind='statement'"
+    ).fetchone()[0]
+    assert n_statements == 1
+    assert state.ledger.get_artifact(artifacts[0].id).status == Status.CONJECTURED
+    assert len(state.ledger.evidence_for(artifacts[0].id)) == 1
+
+
+def test_conjecture_move_passes_state_ledger_to_mine(campaign, monkeypatch):
+    """M9 live-campaign fix: Conjecturer calls were previously untracked
+    (no `ledger` forwarded to `client.complete_many`, so no `runs` row, no
+    cost/provenance). `conjecture_move` must pass `state.ledger` into
+    `mine`."""
+    state, cfg = campaign
+    import empiricist.campaign.moves as moves_mod
+
+    calls: list[dict] = []
+    original_mine = moves_mod.mine
+
+    async def spy_mine(client, rows, *, k=None, ledger=None):
+        calls.append({"ledger": ledger})
+        return await original_mine(client, rows, k=k, ledger=ledger)
+
+    monkeypatch.setattr(moves_mod, "mine", spy_mine)
+
+    client = FakeLLMClient([])
+    run(conjecture_move(state, cfg, client))
+
+    assert len(calls) == 1
+    assert calls[0]["ledger"] is state.ledger
+
+
 # -- open_targets: solved-orbit filtering (I3) ---------------------------------
 
 

@@ -1,7 +1,13 @@
 """Ingest an artifact: content into the CAS, metadata row into the ledger.
 
-The artifact id IS the blake3 digest of the canonical content — identity
-and provenance are the same fact (spec §4.2 rule 1).
+By default the artifact id IS the blake3 digest of the canonical content —
+identity and provenance are the same fact (spec §4.2 rule 1). `content_path`
+is ALWAYS that content digest (the CAS write is never overridden); `id` can
+be overridden via `artifact_id` for the one documented exception in this
+codebase (`search.conjecture.submit`'s semantic conjecture dedup, see its
+docstring) where the identity that matters for dedup is a reduced hash of
+the artifact's MATH, while the full content (incl. prose) is still what's
+stored for provenance.
 """
 
 from __future__ import annotations
@@ -24,10 +30,12 @@ def ingest_artifact(
     status_n: int | None = None,
     coverage: str | None = None,
     run_id: str | None = None,
+    artifact_id: str | None = None,
 ) -> Artifact:
-    digest = store.put(content)
+    content_digest = store.put(content)
     art = Artifact(
-        id=digest, kind=kind, problem=problem, title=title, content_path=digest,
+        id=artifact_id if artifact_id is not None else content_digest,
+        kind=kind, problem=problem, title=title, content_path=content_digest,
         status=status, substatus=substatus, status_n=status_n, coverage=coverage,
         run_id=run_id,
     )

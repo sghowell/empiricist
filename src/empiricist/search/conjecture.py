@@ -47,6 +47,7 @@ counterexample recorded as evidence.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import sys
 import uuid
@@ -203,16 +204,63 @@ def dataset_summary(
     return "\n".join(lines)
 
 
+_TITLE_FAMILY_RE = re.compile(r"^Conjecture: (\S+) F\(N\) = ")
+
+
+def _conjectured_families(ledger: Ledger) -> set[str]:
+    """Families with at least one CONJECTURED statement artifact already in
+    `ledger` -- read off the artifact TITLE (`submit`'s `f"Conjecture:
+    {family} F(N) = {closed_form}"` convention), not the CAS content: `mine`
+    has no `Store` handle, and the title's leading family token is exactly
+    as reliable (it's derived from the same `conj.family` at submit time,
+    and a CONJECTURED artifact's family is always one `attack` could ground,
+    i.e. always in `FAMILIES`). Used for the diversity nudge below --
+    finding nothing to parse in a malformed/legacy title is silently
+    skipped, not raised (a reporting nudge, not a correctness gate)."""
+    families: set[str] = set()
+    for art in ledger.find_artifacts(kind="statement", problem="P5", status=Status.CONJECTURED):
+        m = _TITLE_FAMILY_RE.match(art.title)
+        if m:
+            families.add(m.group(1))
+    return families
+
+
 async def mine(
-    client: LLMClient, dataset_rows: list[dict], *, k: int | None = None
+    client: LLMClient, dataset_rows: list[dict], *, k: int | None = None,
+    ledger: Ledger | None = None,
 ) -> list[ConjectureOut]:
     """Sample `k` (default `ROLES["conjecturer"].k`) nonce-diversified
     Conjecturer prompts over `dataset_summary(dataset_rows)`, returning every
     schema-valid `ConjectureOut` produced. Never trusted downstream without
-    `attack`."""
+    `attack`.
+
+    `ledger`, when given, does double duty (both pass-throughs are the
+    caller's ledger, e.g. `campaign.moves.conjecture_move`'s `state.ledger`):
+
+    - forwarded to `client.complete_many` so every Conjecturer sample is
+      billed and provenance-recorded as a `runs` row, same discipline
+      `SearchLoop.run_generation` already applies to Searcher calls (M9
+      live-campaign finding: this was previously omitted, so conjecturer
+      spend was untracked).
+    - queried via `_conjectured_families` for a DIVERSITY NUDGE: the prompt
+      lists families already CONJECTURED elsewhere in the campaign and asks
+      the model to prefer an uncovered one. This is a prompt-level nudge
+      ONLY -- it does not restrict `conj.family` to anything, since a
+      genuinely new closed form for an already-covered family is still
+      legitimate and `attack` grounds whatever comes back regardless (M9
+      live-campaign finding: without this, the Conjecturer fixated on one
+      family and 10 waves reworded the same claim in prose).
+    """
     role = ROLES["conjecturer"]
     k_eff = k if k is not None else role.k
     summary = dataset_summary(dataset_rows)
+    covered = _conjectured_families(ledger) if ledger is not None else set()
+    nudge = (
+        f"Already-conjectured families in this campaign: {', '.join(sorted(covered))}. "
+        "Prefer a DIFFERENT family from that list; propose one of them again only "
+        "if you have a genuinely new closed form for it.\n"
+        if covered else ""
+    )
 
     def build_prompt(nonce: str) -> str:
         return (
@@ -221,6 +269,7 @@ async def mine(
             "of the families tabulated above (path, cycle, star, or complete). "
             "Predict F for EVERY n shown in that family's row -- state nothing "
             "you cannot check against the table.\n"
+            f"{nudge}"
             'Emit exactly one ConjectureOut JSON object: {"family": str, '
             '"closed_form": str, "predicted_values": {"<n>": int, ...}, '
             '"confidence": float}.\n'
@@ -228,7 +277,7 @@ async def mine(
         )
 
     prompts = [build_prompt(uuid.uuid4().hex) for _ in range(k_eff)]
-    results = await client.complete_many(role, prompts, schema=ConjectureOut)
+    results = await client.complete_many(role, prompts, schema=ConjectureOut, ledger=ledger)
 
     conjectures: list[ConjectureOut] = []
     for result in results:
@@ -377,14 +426,38 @@ def _canonical_conjecture_json(conj: ConjectureOut) -> bytes:
     ).encode("utf-8")
 
 
+def _semantic_conjecture_key(conj: ConjectureOut) -> bytes:
+    """`conj`'s MATH identity -- `(family, predicted_values)` ONLY, with the
+    prose `closed_form` deliberately excluded (M9 live-campaign finding: a
+    live overnight run produced 10 CONJECTURED artifacts that were all the
+    SAME claim -- `family='path'`, the same `predicted_values` -- reworded
+    10 different ways, because the old id hashed the full `ConjectureOut`
+    including that prose, so cosmetic restatements earned distinct blake3
+    ids and all landed as separate artifacts). `confidence` is also excluded
+    -- it is the model's self-report, not part of the claim. Canonical JSON
+    (sorted keys) so `predicted_values` dict insertion order never perturbs
+    the digest."""
+    return json.dumps(
+        {"family": conj.family, "predicted_values": conj.predicted_values},
+        sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")
+
+
 def conjecture_artifact_id(conj: ConjectureOut) -> str:
-    """The blake3 content digest a submitted `conj` would receive as its
-    artifact id (identity == canonical content, spec §4.2 rule 1) -- the
-    same digest `Store.put`/`ingest_artifact` compute, WITHOUT any CAS or
-    ledger write. Callers (`campaign.moves.conjecture_move`) use this to
-    detect an already-submitted conjecture before spending an attack on it.
+    """The blake3 digest of `conj`'s MATH identity (see
+    `_semantic_conjecture_key`) -- the artifact id a submitted `conj` would
+    receive, WITHOUT any CAS or ledger write. This is a deliberate exception
+    to spec §4.2 rule 1 (id == canonical content) for `statement` artifacts
+    ONLY: the CAS content `submit` stores is still the FULL `ConjectureOut`
+    (closed_form prose included, via `content_path`) -- only the `id`/dedup
+    key is reduced to the semantic tuple, so two conjectures that predict
+    the same F for the same family collapse to ONE artifact regardless of
+    how differently worded their closed_form is. Callers
+    (`campaign.moves.conjecture_move`, `submit`) use this SAME function so
+    the identity agrees everywhere: an already-submitted conjecture (by
+    math, not by prose) is detected before spending an attack on it.
     """
-    return blake3(_canonical_conjecture_json(conj)).hexdigest()
+    return blake3(_semantic_conjecture_key(conj)).hexdigest()
 
 
 def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackReport) -> Artifact:
@@ -395,27 +468,31 @@ def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackRepo
     HEURISTIC snapshot; re-read via `ledger.get_artifact` for the post-
     evidence status, same convention as `search.loop`'s exact-upgrade path).
 
-    **Idempotent on duplicates.** A byte-identical conjecture canonicalizes
-    to the same content, hence the same blake3 digest, hence the SAME
-    artifact id -- so a model that re-mines yesterday's conjecture (the
-    common case after `resume`) must not crash the campaign on the
-    artifacts PRIMARY KEY. If the artifact already exists, submit
-    SHORT-CIRCUITS: it returns the existing artifact AS STORED (its
-    `.status` is the current post-evidence status, e.g. CONJECTURED or
-    REFUTED, not a fresh HEURISTIC snapshot) and records NO second evidence
-    row -- the original falsification effort stands; re-deriving the same
-    statement is not new evidence about it. Belt-and-braces: a concurrent
-    insert between the existence check and the ingest still collides on the
-    PRIMARY KEY, so `sqlite3.IntegrityError` is additionally caught and
-    resolved to the existing row.
+    **Idempotent on duplicates -- SEMANTIC, not byte-identical (M9 live-
+    campaign fix).** The artifact id is `conjecture_artifact_id(conj)`, a
+    hash of `(family, predicted_values)` only (see its docstring) -- so a
+    model that re-mines yesterday's MATH, worded differently (the common
+    case both after `resume` and within a single wave's k>1 nonce-diversified
+    samples), must not crash the campaign on the artifacts PRIMARY KEY, and
+    must not land a second CONJECTURED artifact either. If the artifact
+    already exists, submit SHORT-CIRCUITS: it returns the existing artifact
+    AS STORED (its `.status` is the current post-evidence status, e.g.
+    CONJECTURED or REFUTED, not a fresh HEURISTIC snapshot) and records NO
+    second evidence row -- the original falsification effort stands;
+    re-deriving the same claim is not new evidence about it. The CAS content
+    under that id is whichever phrasing was submitted FIRST -- a later
+    semantic duplicate's own closed_form prose is never written. Belt-and-
+    braces: a concurrent insert between the existence check and the ingest
+    still collides on the PRIMARY KEY, so `sqlite3.IntegrityError` is
+    additionally caught and resolved to the existing row.
     """
-    content = _canonical_conjecture_json(conj)
-    digest = blake3(content).hexdigest()  # == the would-be artifact id
+    art_id = conjecture_artifact_id(conj)
     try:
-        return ledger.get_artifact(digest)  # duplicate: short-circuit, no new evidence
+        return ledger.get_artifact(art_id)  # duplicate: short-circuit, no new evidence
     except KeyError:
         pass
 
+    content = _canonical_conjecture_json(conj)  # full content, incl. closed_form -- for the CAS
     try:
         art = ingest_artifact(
             ledger,
@@ -425,11 +502,12 @@ def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackRepo
             problem="P5",
             title=f"Conjecture: {conj.family} F(N) = {conj.closed_form}",
             status=Status.HEURISTIC,
+            artifact_id=art_id,
         )
     except sqlite3.IntegrityError:
-        # Raced with another insert of the identical statement -- the row
-        # that won is byte-identical content, so it IS this conjecture.
-        return ledger.get_artifact(digest)
+        # Raced with another insert of the same MATH -- the row that won
+        # IS this conjecture's claim (its own phrasing may differ).
+        return ledger.get_artifact(art_id)
     ledger.record_evidence(
         EvidenceRow(
             artifact_id=art.id,

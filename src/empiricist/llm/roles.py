@@ -61,7 +61,10 @@ ROLES: dict[str, Role] = {
         system_prompt=(
             "You are the Conjecturer. Given a VERIFIED_N dataset, propose a precise "
             "closed-form statement for a named family and predict its values. State "
-            "nothing you cannot check against the data. Output the conjecture schema."
+            "nothing you cannot check against the data. Favor a family the prompt "
+            "does not flag as already-conjectured when one is listed -- a campaign "
+            "of restated claims about one family is not progress. Output the "
+            "conjecture schema."
         ),
         effort=Effort.MEDIUM, k=8, active=True,
     ),

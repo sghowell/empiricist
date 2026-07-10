@@ -221,18 +221,27 @@ async def conjecture_move(
     so this is safe to call as the campaign's very first move too.
 
     **Duplicate conjectures are skipped, not resubmitted (overnight-safety
-    review C1).** A re-mined byte-identical conjecture (the common case
-    after `resume`: the model rediscovers yesterday's closed form) already
-    has its artifact + evidence in the ledger; it is detected up front via
+    review C1; M9 live-campaign fix widened this from byte-identical to
+    SEMANTIC duplicates).** A re-mined conjecture with the same `(family,
+    predicted_values)` MATH as one already submitted -- whether byte-
+    identical (the `resume` case: the model rediscovers yesterday's closed
+    form) or merely reworded (a live finding: k>1 nonce-diversified samples
+    in one wave restating the same claim in different prose) -- already has
+    its artifact + evidence in the ledger; it is detected up front via
     `conjecture_artifact_id` (before spending an attack on it), logged, and
     EXCLUDED from the returned list -- so the orchestrator's per-wave
     progress count sees only genuinely NEW artifacts and a wave of pure
-    re-discoveries correctly reads as no progress. (`submit` itself is also
-    duplicate-safe -- see its docstring -- this check just avoids the
-    wasted attack and keeps the return-list semantics honest.)"""
+    re-discoveries/restatements correctly reads as no progress. (`submit`
+    itself is also duplicate-safe -- see its docstring -- this check just
+    avoids the wasted attack and keeps the return-list semantics honest.)
+
+    `mine` is given `state.ledger` -- billing every Conjecturer sample as a
+    `runs` row (previously untracked, an M9 live-campaign finding) and
+    letting it nudge the prompt away from families already CONJECTURED
+    (see `mine`'s docstring)."""
     artifact = ensure_enumerate(state, cfg)
     rows = dataset_rows(state, artifact)
-    conjectures = await mine(client, rows)
+    conjectures = await mine(client, rows, ledger=state.ledger)
     artifacts: list[Artifact] = []
     for conj in conjectures:
         art_id = conjecture_artifact_id(conj)
