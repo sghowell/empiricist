@@ -53,7 +53,27 @@ doc's Formalization note calls formalizable ("arithmetic plus connectivity
 induction"). This half is universal (holds for every connected G) and is the tight
 half for the N−3 families.
 
-## Exact family values, formalized — `F(path_N) = F(star_N) = F(K_N) = N − 3`
+## A whole graph class, exact — `F(T) = N − 3` for EVERY tree
+
+The strongest formalized result: not a single family but an infinite class.
+`tree_min_fusions` (gate-certified PASS, FORMALIZED-ingested) proves that **every
+tree** — mathlib's genuine `SimpleGraph.IsTree` (`Connected ∧ IsAcyclic`), over any
+finite vertex type — has minimum fusion cost exactly `N − 3`:
+
+> for a tree `T` with `N = card V ≥ 3`: `ProducibleBy (N−3) T` (an explicit N−3
+> leaf-merge construction produces `T` exactly), **and** every schedule (photon
+> counting + component-merge dynamics) uses `≥ N−3` fusions.
+
+The upper bound is a genuine leaf-removal induction (every finite tree has a leaf;
+delete it → a smaller tree by `Connected.induce_compl_singleton_of_degree_eq_one` +
+`IsAcyclic.induce`; the IH's construction plus one `ghz3LeafMerge` at the leaf's
+neighbour rebuilds `T`), reusing mathlib's tree API throughout. **Path and star are
+now corollaries** (both are trees). Data-confirmed exhaustively: every
+non-isomorphic tree orbit at N = 3..8 is `F = N−3`. This subsumes the two
+tree-shaped named families below into one class theorem; the complete graph `K_N`
+(not a tree) remains its own result via local complementation.
+
+## Named exact family values — `F(path_N) = F(star_N) = F(K_N) = N − 3`
 
 The upper-bound half is now formalized for the **path family**
 (`lean/EmpiricistLean/EmpiricistLean/FamilyUpper.lean`), giving the first
