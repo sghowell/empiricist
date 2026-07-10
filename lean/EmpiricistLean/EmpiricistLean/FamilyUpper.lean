@@ -45,8 +45,13 @@ What we then PROVE from this modeled rule:
 * `family_fusion_lower_bound` — the universal lower bound `N − 3 ≤ f` for *any*
   schedule satisfying photon counting and the local merge dynamics (this is the
   `FusionCost` content, re-derived inline; the gate forbids the cross-module import).
-* `pathGraph_fusion_isLeast` — combining both: `N − 3` is the **least** achievable
-  fusion count, i.e. `F(pathₙ) = N − 3`.
+* `pathGraph_min_fusions` — **the headline exact value `F(pathₙ) = N − 3`, stated
+  faithfully as an explicit conjunction**: (upper) an explicit `N − 3`-fusion
+  leaf-merge construction produces `pathₙ`, AND (lower) *every* GHZ₃-fusion
+  schedule (photon counting + component-merge dynamics, with **no** restriction to
+  any construction class) producing an `N`-vertex connected output uses `≥ N − 3`
+  fusions.  Both halves are visible in the statement's type, so the statement is
+  faithful **in isolation** — nothing must be unfolded to see what was proven.
 
 ## Faithfulness of the identification GHZ₃ = `pathGraph 3` and iso ⇒ LC-equiv
 
@@ -59,26 +64,26 @@ are therefore at least as strong as the "LC-equivalent to familyₙ" claim.
 
 ## Honest scope of the `F = N − 3` statement
 
-`Schedule` records a synthesis schedule by its physical invariants (photon
-counting `N + 2f = 3g`; a component-merge dynamics forcing connectivity) **plus**
-a genuine producing construction (`ProducibleBy`).  Requiring `ProducibleBy` in a
-`Schedule` is what makes membership non-vacuous (a real construction, not merely
-consistent counts): the upper half of `pathGraph_fusion_isLeast` exhibits the
-explicit `ProducibleBy` construction, and its lower half is discharged from the
-schedule's photon counting + merge dynamics (never the construction).
+The FORMALIZED headline is `pathGraph_min_fusions`, whose type spells out both
+halves with no packaging: the upper half is the raw `ProducibleBy (N − 3)
+(pathGraph N)` (an explicit construction), and the lower half quantifies over
+**arbitrary** `g, f, c` satisfying only photon counting + the component-merge
+dynamics — the fully general "no GHZ₃-fusion strategy beats `N − 3`" claim
+(`FusionCost`'s content), with no `ProducibleBy` anywhere in it.
 
-**Where the general optimality lives.**  Because a `Schedule`'s `ProducibleBy`
-construction of an `N`-vertex path uses exactly `N − 3` leaf-merges, `Achievable`
-here is the class of genuine leaf-merge constructions, all with `f = N − 3`; so
-`pathGraph_fusion_isLeast` says "the least fusion count among genuine leaf-merge
-constructions of `pathₙ` is `N − 3`".  The claim that **no** GHZ₃-fusion strategy
-whatsoever beats `N − 3` is the SEPARATE, fully general `family_fusion_lower_bound`
-(photon counting + merge dynamics only, no `ProducibleBy`) — the `FusionCost`
-content.  Together: `family_fusion_lower_bound` (F ≥ N − 3 for any schedule) and
-`pathGraph_fusion_upper_bound` (F ≤ N − 3 by explicit construction) pin the exact
-value.  This mirrors `FusionCost.lean`: nothing smuggles the conclusion into a
-definition — the hypotheses are the exact qubit-count equality, the local merge
-rule, and an actual construction.
+**The construction-class corollaries, and why they are NOT the general claim.**
+`Schedule` records a synthesis schedule by its physical invariants **plus** a
+genuine producing construction (`ProducibleBy`); `Achievable` is the set of its
+fusion counts.  Because a `ProducibleBy` construction of an `N`-vertex path uses
+exactly `N − 3` leaf-merges, `Achievable N (pathGraph N)` is the **leaf-merge
+construction class**, every element of which is `N − 3` — so the `IsLeast`/`sInf`
+corollaries (`pathGraph_leafMerge_isLeast`, `pathGraph_leafMerge_sInf`) quantify
+over that class only and must NOT be read as general optimality (over the
+construction class alone they are nearly circular).  They are kept as packaging
+conveniences; the general optimality lives ONLY in `family_fusion_lower_bound`
+and in the lower half of `pathGraph_min_fusions`.  This mirrors `FusionCost.lean`:
+nothing smuggles the conclusion into a definition — the hypotheses are the exact
+qubit-count equality, the local merge rule, and an actual construction.
 -/
 
 namespace Empiricist
@@ -271,6 +276,36 @@ theorem family_fusion_lower_bound {N g f : ℕ} (hN : 3 ≤ N)
 
 /-! ## The exact value `F(pathₙ) = N − 3` -/
 
+/-- **`F(pathₙ) = N − 3` — the exact minimum-fusion value, stated faithfully.**
+The FORMALIZED headline: an explicit conjunction whose two halves are exactly the
+two claims, with nothing packaged behind a definition:
+
+* **(upper, left conjunct)** `ProducibleBy (N − 3) (pathGraph N)` — an explicit
+  `N − 3`-fusion leaf-merge construction produces `pathₙ` (so `F(pathₙ) ≤ N − 3`);
+* **(lower, right conjunct)** for **arbitrary** `g, f` and component-count
+  dynamics `c` — *any* GHZ₃-fusion schedule whatsoever, with **no** restriction to
+  a construction class — photon counting (`N + 2f = 3g`) plus the local merge rule
+  (start `g`, end connected, each fusion drops the component count by at most one)
+  force `N − 3 ≤ f` (so `F(pathₙ) ≥ N − 3`).
+
+Together: the minimum number of `{X_aZ_b, Z_aX_b}` fusions of GHZ₃ resources
+producing (a graph state LC-equivalent to) `pathₙ` is exactly `N − 3`. -/
+theorem pathGraph_min_fusions {N : ℕ} (hN : 3 ≤ N) :
+    ProducibleBy (N - 3) (pathGraph N)
+    ∧ ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 →
+        (∀ i, i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f :=
+  ⟨producibleBy_pathGraph_of_le hN,
+   fun _g _f c hcount hc0 hcf hcstep =>
+     family_fusion_lower_bound hN hcount c hc0 hcf hcstep⟩
+
+/-! ### Construction-class packaging (corollaries, NOT the general claim)
+
+Everything below quantifies over `Schedule`/`Achievable`, which bake in a
+`ProducibleBy` leaf-merge construction — so these `IsLeast`/`sInf` forms range
+over the **leaf-merge construction class only** (whose every element is `N − 3`)
+and must not be read as general optimality.  The general claim is
+`pathGraph_min_fusions` above. -/
+
 /-- A GHZ₃-fusion synthesis **schedule** producing (a graph isomorphic to) the
 target `T` on `N` vertices, recorded by its physical invariants **and** a genuine
 producing construction.
@@ -322,20 +357,24 @@ theorem pathGraph_fusion_upper_bound {N : ℕ} (hN : 3 ≤ N) :
     (N - 3) ∈ Achievable N (pathGraph N) :=
   ⟨pathGraphSchedule hN, rfl⟩
 
-/-- **`F(pathₙ) = N − 3` — the exact minimum-fusion value.**  `N − 3` is the least
-achievable fusion count for producing `pathₙ` (`N ≥ 3`): it is achieved by the
-explicit `N − 3`-fusion construction (`pathGraph_fusion_upper_bound`), and every
-schedule uses at least `N − 3` fusions by the universal lower bound
-(`family_fusion_lower_bound`, applied to the schedule's own physical invariants). -/
-theorem pathGraph_fusion_isLeast {N : ℕ} (hN : 3 ≤ N) :
+/-- `N − 3` is the least fusion count **over the leaf-merge construction class**
+(`Achievable` bakes in `ProducibleBy`, so every member is a genuine leaf-merge
+construction and this set is `{N − 3}`) — packaging only, NOT general optimality;
+that is `pathGraph_min_fusions`.  Upper half: the explicit construction
+(`pathGraph_fusion_upper_bound`); lower half: discharged from each schedule's own
+photon counting + merge dynamics via `family_fusion_lower_bound` (never from its
+construction). -/
+theorem pathGraph_leafMerge_isLeast {N : ℕ} (hN : 3 ≤ N) :
     IsLeast (Achievable N (pathGraph N)) (N - 3) := by
   refine ⟨pathGraph_fusion_upper_bound hN, ?_⟩
   rintro f ⟨s, rfl⟩
   exact family_fusion_lower_bound hN s.hcount s.c s.hc0 s.hcf s.hcstep
 
-/-- The minimum-fusion value as an infimum: `F(pathₙ) = N − 3`. -/
-theorem pathGraph_fusion_sInf {N : ℕ} (hN : 3 ≤ N) :
+/-- The leaf-merge construction class's fusion count as an infimum — same scope
+caveat as `pathGraph_leafMerge_isLeast` (NOT general optimality; see
+`pathGraph_min_fusions`). -/
+theorem pathGraph_leafMerge_sInf {N : ℕ} (hN : 3 ≤ N) :
     sInf (Achievable N (pathGraph N)) = N - 3 :=
-  (pathGraph_fusion_isLeast hN).csInf_eq
+  (pathGraph_leafMerge_isLeast hN).csInf_eq
 
 end Empiricist
