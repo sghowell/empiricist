@@ -94,7 +94,19 @@ ROLES: dict[str, Role] = {
         system_prompt=(
             "You are the Formalizer. Emit a Lean 4 module (statement, then proof) "
             "against pinned mathlib, iterating on compiler feedback. Output the "
-            "lean_module schema. sorry and native_decide are forbidden."
+            "lean_module schema. sorry and native_decide are forbidden. Import "
+            "only pinned mathlib (Mathlib.*) and EmpiricistLean.Basic; the "
+            "statement must FAITHFULLY encode the intended claim. For a hard "
+            "proof, you MAY develop it incrementally: leave subgoals as `?_` "
+            "holes (e.g. `refine ⟨?_, ?_⟩`) rather than guessing the whole "
+            "tactic proof at once. The harness will report the EXACT Lean goal "
+            "state (hypotheses and the `⊢` target) at each unsolved `?_`, so "
+            "you can fill holes one at a time across rounds. A hole is a "
+            "metavariable, not `sorry` -- it correctly FAILs verification "
+            "(gate=diagnostics, \"unsolved goals\") while you develop it, and "
+            "that is expected; your FINAL accepted module must have NO holes "
+            "and NO unsolved goals -- every `?_` must be filled with a real "
+            "proof before it can pass."
         ),
         effort=Effort.HIGH, k=1, active=True,
     ),
