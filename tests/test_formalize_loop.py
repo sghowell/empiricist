@@ -283,6 +283,80 @@ def test_invalid_json_round_handled_then_pass(tmp_path):
     lg.close()
 
 
+# -- (g) goal-state feedback (M18 hole-driven development) ----------------
+
+
+_MODULE_HOLE = (
+    "import Mathlib\n"
+    "namespace Empiricist\n"
+    "theorem foo (n : Nat) : n + 0 = n ∧ n = n := by\n"
+    "  refine ⟨?_, ?_⟩\n"
+    "end Empiricist\n"
+)
+_MODULE_FILLED = (
+    "import Mathlib\n"
+    "namespace Empiricist\n"
+    "theorem foo (n : Nat) : n + 0 = n ∧ n = n := by\n"
+    "  exact ⟨by simp, rfl⟩\n"
+    "end Empiricist\n"
+)
+_GOAL_STATE_ERROR = (
+    "unsolved goals\ncase refine_1\nn : Nat\n⊢ n + 0 = n\n\n"
+    "case refine_2\nn : Nat\n⊢ n = n"
+)
+
+
+def test_hole_proof_then_filled_proof_carries_full_goal_state_into_round_two(tmp_path):
+    """A `?_`-hole module FAILs at gate=diagnostics with the real Lean goal
+    state in `details["errors"]`; round 2's prompt must carry that goal state
+    forward VERBATIM (not truncated, not summarized) so the model can fill the
+    holes -- the whole point of M18 goal-state feedback."""
+    lg, st = make_env(tmp_path)
+    client = FakeLLMClient([
+        make_result(out_dict(_MODULE_HOLE)),
+        make_result(out_dict(_MODULE_FILLED)),
+    ])
+    verifier = FakeVerifier([
+        fail_result(gate="diagnostics", errors=[_GOAL_STATE_ERROR]),
+        pass_result(),
+    ])
+    loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
+
+    report = run(loop.run(FormalizeTask(name="t8", goal="prove foo", context="ctx")))
+
+    assert report.ok is True
+    assert report.rounds == 2
+    assert report.history[0][0] == "FAIL"
+    assert report.history[0][1] == "diagnostics"
+    # the round-1 feedback itself carries the goal state, in full
+    assert _GOAL_STATE_ERROR in report.history[0][2]
+    assert "⊢" in report.history[0][2]
+    assert "REMAINING GOAL" in report.history[0][2]
+
+    # round-2 PROMPT (what the model actually sees) carries the prior module
+    # AND the untruncated goal state forward
+    assert len(client.calls) == 2
+    round2_prompt = client.calls[1][1]
+    assert _MODULE_HOLE in round2_prompt
+    assert _GOAL_STATE_ERROR in round2_prompt
+    assert "case refine_1" in round2_prompt
+    assert "case refine_2" in round2_prompt
+
+    # round 2 PASSes and ingests
+    assert report.history[1][0] == "PASS"
+    assert report.artifact_id is not None
+    art = lg.get_artifact(report.artifact_id)
+    assert art.status == Status.FORMALIZED
+    lg.close()
+
+
+def test_default_max_rounds_is_twelve(tmp_path):
+    lg, st = make_env(tmp_path)
+    loop = FormalizeLoop(FakeLLMClient([]), lg, st, FakeVerifier([]))
+    assert loop._max_rounds == 12
+    lg.close()
+
+
 # -- build_prompt -------------------------------------------------------
 
 
@@ -295,6 +369,27 @@ def test_build_prompt_round_one_has_no_prior_attempt(tmp_path):
     assert "FAITHFULLY" in prompt
     assert "previous attempt" not in prompt
     lg.close()
+
+
+def test_build_prompt_round_one_carries_hole_development_guidance(tmp_path):
+    lg, st = make_env(tmp_path)
+    loop = FormalizeLoop(FakeLLMClient([]), lg, st, FakeVerifier([]))
+    prompt = loop.build_prompt(FormalizeTask(name="t", goal="prove X", context="ctx Y"), [])
+    assert "?_" in prompt
+    assert "hole" in prompt.lower()
+    assert "goal state" in prompt.lower()
+    lg.close()
+
+
+def test_formalizer_role_prompt_carries_hole_development_guidance():
+    from empiricist.llm.roles import ROLES
+
+    prompt = ROLES["formalizer"].system_prompt
+    assert "?_" in prompt
+    assert "hole" in prompt.lower()
+    assert "goal state" in prompt.lower()
+    assert "sorry" in prompt.lower()
+    assert "native_decide" in prompt.lower()
 
 
 def test_max_rounds_must_be_positive(tmp_path):

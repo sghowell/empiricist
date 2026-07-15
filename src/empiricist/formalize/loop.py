@@ -100,7 +100,7 @@ class FormalizeLoop:
         store: Store,
         verifier: Any,   # LeanVerifier-shaped: .verify(module_source, *, decl, timeout_s=...)
         *,
-        max_rounds: int = 6,
+        max_rounds: int = 12,
     ) -> None:
         if max_rounds < 1:
             raise ValueError("max_rounds must be >= 1")
@@ -118,7 +118,12 @@ class FormalizeLoop:
                 "statement, with the theorem name in `decl`. Import only "
                 "pinned mathlib (Mathlib.*) and EmpiricistLean.Basic. No "
                 "sorry, no native_decide. The statement must FAITHFULLY "
-                "encode the goal."
+                "encode the goal. For a hard proof, you may develop it "
+                "incrementally by leaving subgoals as `?_` holes -- the "
+                "harness will report the exact Lean goal state at each "
+                "unsolved `?_` so you can fill them one at a time across "
+                "rounds. Your FINAL accepted proof must have NO holes: a `?_` "
+                "or any unsolved goal fails verification."
             )
         last = history[-1]
         prior = (

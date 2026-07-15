@@ -32,6 +32,67 @@ def test_diagnostics_gate_caps_and_notes_truncation():
     assert "+5 more errors truncated" in msg
 
 
+def test_diagnostics_gate_surfaces_full_goal_state_for_unsolved_goals():
+    """A `?_` hole compiles clean but leaves Lean's own "unsolved goals"
+    diagnostic -- the full proof state (hypotheses + `⊢` target) at the hole.
+    M18: this must be surfaced IN FULL (never truncated) and clearly labeled
+    as the model's remaining goal, not folded into the generic error dump."""
+    goal_state = (
+        "unsolved goals\ncase left\nn : Nat\nh : n > 0\n⊢ n + 0 = n"
+    )
+    result = VerifierResult(
+        verdict=Verdict.FAIL,
+        details={"gate": "diagnostics", "errors": [goal_state]},
+    )
+    msg = format_feedback(result)
+    assert goal_state in msg  # verbatim, not truncated or reworded
+    assert "⊢" in msg
+    assert "n : Nat" in msg
+    assert "h : n > 0" in msg
+    assert "REMAINING GOAL" in msg
+    assert "more unsolved-goal messages not shown" not in msg  # only one goal: no count-cap notice
+
+
+def test_diagnostics_gate_mixes_goal_state_and_ordinary_errors():
+    goal_state = "unsolved goals\ncase right\nn : Nat\n⊢ n = n"
+    ordinary = "unknown identifier `bar`"
+    result = VerifierResult(
+        verdict=Verdict.FAIL,
+        details={"gate": "diagnostics", "errors": [goal_state, ordinary]},
+    )
+    msg = format_feedback(result)
+    assert goal_state in msg
+    assert "REMAINING GOAL" in msg
+    assert ordinary in msg
+    assert "Compilation failed" in msg
+
+
+def test_diagnostics_gate_never_truncates_a_long_goal_state():
+    """Even a goal state far longer than the ordinary per-message handling
+    would tolerate must survive verbatim -- cutting hypotheses mid-list would
+    show the model a nonsensical, possibly self-contradictory partial state."""
+    long_hyps = "\n".join(f"h{i} : n{i} = n{i} + {i}" for i in range(200))
+    goal_state = f"unsolved goals\nn : Nat\n{long_hyps}\n⊢ n = n"
+    result = VerifierResult(
+        verdict=Verdict.FAIL,
+        details={"gate": "diagnostics", "errors": [goal_state]},
+    )
+    msg = format_feedback(result)
+    assert goal_state in msg
+    assert "h199 : n199 = n199 + 199" in msg  # the tail of the hypothesis list survived
+
+
+def test_diagnostics_gate_caps_goal_state_count_not_content():
+    goals = [f"unsolved goals\ncase c{i}\nn : Nat\n⊢ n = {i}" for i in range(12)]
+    result = VerifierResult(verdict=Verdict.FAIL, details={"gate": "diagnostics", "errors": goals})
+    msg = format_feedback(result)
+    for g in goals[:8]:
+        assert g in msg
+    for g in goals[8:]:
+        assert g not in msg
+    assert "+4 more unsolved-goal messages" in msg
+
+
 def test_sorry_gate():
     result = VerifierResult(verdict=Verdict.FAIL, details={"gate": "sorry"})
     msg = format_feedback(result)

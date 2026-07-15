@@ -210,6 +210,15 @@ _KERNEL_FAIL_MARKERS = (
 
 _CAPTURE_CAP = 8 * 1024 * 1024  # generous: mathlib error messages can be long
 
+# How many gate-(b)/(d) diagnostic MESSAGES survive into `details["errors"]`
+# (surfacing verbosity only -- the verdict is decided by `if errors:`/
+# `if driver_errors:` above these caps, so widening this never changes a
+# FAIL/PASS outcome). Wide enough that a hole-driven proof's "unsolved goals"
+# messages (M18 goal-state feedback, one per `?_`-bearing `by` block) aren't
+# silently dropped before `format_feedback` ever sees them; `format_feedback`
+# does its own, separate capping of how many it surfaces to the model.
+_DIAGNOSTICS_ERROR_CAP = 25
+
 
 @dataclass(frozen=True)
 class _ToolchainConfig:
@@ -476,7 +485,7 @@ class LeanVerifier:
         if errors:
             return VerifierResult(
                 verdict=Verdict.FAIL,
-                details={"gate": "diagnostics", "errors": errors[:3]},
+                details={"gate": "diagnostics", "errors": errors[:_DIAGNOSTICS_ERROR_CAP]},
             )
         if sorry_hit:
             return VerifierResult(verdict=Verdict.FAIL, details={"gate": "sorry"})
@@ -574,7 +583,7 @@ class LeanVerifier:
         if driver_errors:
             return VerifierResult(
                 verdict=Verdict.FAIL,
-                details={"gate": "diagnostics", "errors": driver_errors[:3]},
+                details={"gate": "diagnostics", "errors": driver_errors[:_DIAGNOSTICS_ERROR_CAP]},
             )
 
         # Lever 2/4 backstop: the driver's TRANSITIVE import closure must be pinned,
