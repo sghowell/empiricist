@@ -169,7 +169,7 @@ _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
 # source/build entries below); the trusted-lib copy iterates over this set.
 _TRUSTED_EMPIRICIST_MODULES = frozenset(
     {"EmpiricistLean.Basic", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp",
-     "EmpiricistLean.FusionRule"}
+     "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm"}
 )
 
 # The COMMITTED source modules that legitimately live in the project module dir,
@@ -187,10 +187,10 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
 # oleans here does not widen the import-trust surface.
 _COMMITTED_SOURCE_FILES = frozenset(
     {"Basic.lean", "FusionCost.lean", "FamilyUpper.lean", "Foundation.lean",
-     "LocalComp.lean", "FusionRule.lean"}
+     "LocalComp.lean", "FusionRule.lean", "TreeThm.lean"}
 )
 _COMMITTED_BUILD_PREFIXES = (
-    "Basic.", "FusionCost.", "FamilyUpper.", "Foundation.", "LocalComp.", "FusionRule."
+    "Basic.", "FusionCost.", "FamilyUpper.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm."
 )
 
 # The framing marker the compiled driver prints its single result line with:
