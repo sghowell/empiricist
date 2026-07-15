@@ -20,6 +20,14 @@ rev = "v4.31.0"
 
 [[lean_lib]]
 name = "EmpiricistLean"
+# `EmpiricistLean.Foundation` (the promoted Fable-authored fusion lower bound) is a
+# self-contained trusted-foundation module. It DELIBERATELY re-proves
+# `Empiricist.fusion_cost_lower_bound` / `components_merge_bound` under the same
+# names FusionCost.lean owns, so it cannot be imported into the aggregate root
+# alongside FusionCost (name collision). It is instead built as its own first-class
+# library module via this glob, so `lake build EmpiricistLean` produces its olean
+# without importing it into the root.
+globs = ["EmpiricistLean", "EmpiricistLean.Foundation"]
 
 # Compiled axiom-audit driver: the SOLE axiom authority for the FORMALIZED trust
 # gate (M8 soundness fix). Only imports `Lean`, so it builds in seconds; the

@@ -322,7 +322,7 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     ev = ledger.evidence_for(art.id)
     assert len(ev) == 1
     assert ev[0].verifier == "lean"
-    assert ev[0].verifier_version == "3.2"
+    assert ev[0].verifier_version == "3.3"
     assert ev[0].verdict == Verdict.PASS
     assert ev[0].details["decl"] == decl
     assert ev[0].details["mathlib_commit"]
@@ -521,6 +521,73 @@ def test_reachable_nonpinned_import_rejected_by_import_trust(verifier):
 
 @slow_lean
 @requires_lake
+def test_foundation_is_a_usable_trusted_import(verifier):
+    """PROMOTION headline: `EmpiricistLean.Foundation` (the Fable-authored fusion
+    lower bound, added to the trusted-foundation SET {Basic, Foundation}) is now a
+    USABLE trusted import. A scratch that imports it and specializes
+    `Empiricist.fusion_cost_lower_bound` verifies PASS -- proving Foundation's olean is
+    staged onto the frozen import path and the import-trust gate accepts it as a
+    member of the trusted set (its own axioms clean, a real statement recorded)."""
+    source = (
+        "import EmpiricistLean.Foundation\n"
+        "namespace Empiricist\n"
+        "theorem foundation_lb_usable (N g f : Nat) (c : Nat → Nat)\n"
+        "    (hN : 3 ≤ N) (hqubits : N + 2 * f = 3 * g)\n"
+        "    (h0 : c 0 = g) (hf : c f = 1)\n"
+        "    (hstep : ∀ i, i < f → c i ≤ c (i + 1) + 1) :\n"
+        "    N - 3 ≤ f :=\n"
+        "  fusion_cost_lower_bound N g f c hN hqubits h0 hf hstep\n"
+        "end Empiricist\n"
+    )
+    result = verifier.verify(source, decl="Empiricist.foundation_lb_usable", timeout_s=120)
+    assert result.verdict == Verdict.PASS, result.details
+    # Foundation was actually imported and accepted as a trusted EmpiricistLean import.
+    assert "EmpiricistLean" in result.details["import_roots"], result.details
+    # A real statement is recorded (provenance) and the axiom set is within whitelist.
+    assert result.details["statement"], result.details
+    assert all(
+        a in {"propext", "Classical.choice", "Quot.sound"}
+        for a in result.details["axioms"]
+    ), result.details
+
+
+@slow_lean
+@requires_lake
+def test_nontrusted_empiricist_module_still_rejected_by_import_trust(verifier):
+    """The whitelist is a PRECISE SET {Basic, Foundation}, NOT "any EmpiricistLean.*".
+    Stage the REAL, committed-but-NON-trusted `EmpiricistLean.FamilyUpper` olean onto
+    the trusted lib dir (alongside Basic/Foundation) so `import EmpiricistLean.FamilyUpper`
+    RESOLVES, then verify a scratch importing it. The import-trust gate rejects it --
+    it is not in the trusted set -> FAIL(import_trust) -- even though Foundation, a
+    sibling olean in the SAME dir, is accepted. Promotion widened the set to exactly
+    {Basic, Foundation}; it did NOT open the door to every EmpiricistLean module."""
+    # Force readiness so the toolchain cfg + trusted lib dir exist and are staged.
+    verifier.verify(
+        "namespace Empiricist\ntheorem t : True := trivial\nend Empiricist\n",
+        decl="Empiricist.t", timeout_s=120,
+    )
+    cfg = verifier._cfg
+    assert cfg is not None
+    family_src = _OLEAN_DIR / "FamilyUpper.olean"
+    assert family_src.exists(), "FamilyUpper.olean not built (run `lake build EmpiricistLean`)"
+    staged = cfg.trusted_lib_dir / "EmpiricistLean" / "FamilyUpper.olean"
+    shutil.copyfile(family_src, staged)
+    try:
+        harvest = (
+            "import EmpiricistLean.FamilyUpper\n"
+            "namespace Empiricist\ntheorem t2 : True := trivial\nend Empiricist\n"
+        )
+        r = verifier.verify(harvest, decl="Empiricist.t2", timeout_s=120)
+        assert r.verdict == Verdict.FAIL, r.details
+        assert r.details["gate"] == "import_trust", r.details
+        assert r.details["untrusted_imports"], r.details
+        assert any("FamilyUpper" in p for p in r.details["untrusted_imports"]), r.details
+    finally:
+        staged.unlink(missing_ok=True)
+
+
+@slow_lean
+@requires_lake
 def test_residue_sweep_fails_closed_on_stray_shared_file(verifier):
     """LEVER 3: a stray, non-pinned olean in the shared build lib (a prior/concurrent
     call that escaped its jail) makes the NEXT verify() FAIL closed at gate=residue,
@@ -611,7 +678,7 @@ def test_verify_error_verdict_on_bad_project_dir():
 
 def test_identity():
     assert LeanVerifier.name == "lean"
-    assert LeanVerifier.version == "3.2"
+    assert LeanVerifier.version == "3.3"
 
 
 def test_applicable():

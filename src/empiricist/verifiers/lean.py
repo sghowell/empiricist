@@ -15,7 +15,7 @@ pinned-trusted import path. The gate is a pipeline over ONE compiled artifact:
                    scratch module from THIS frozen file, never from `work`.
     (b2) IMPORTS   `lean --deps <scratch>`   [SANDBOXED, Lever 2 import-trust]
                    any resolved import olean NOT under a pinned-trusted root
-                   (and != the trusted EmpiricistLean.Basic) -> FAIL(import_trust)
+                   (and not a trusted EmpiricistLean foundation copy) -> FAIL(import_trust)
     (c)  KERNEL    `leanchecker <Module>`  [SANDBOXED, LEAN_PATH->FROZEN] [ANCHOR]
                    nonzero exit / kernel-mismatch output -> FAIL(kernel_soundness)
     (d)  AXIOMS    compiled `axiom_audit` driver over the FROZEN olean [SANDBOXED,
@@ -81,17 +81,19 @@ Lean got a writable, non-sandboxed environment at elaboration.
 
 - LEVER 2 (defense-in-depth, import-trust by pinned closure). The compile/checker
   LEAN_PATH is built from ONLY pinned-trusted roots: the pinned mathlib + package
-  build libs, the toolchain lib, a READ-ONLY copy of our `EmpiricistLean.Basic`
-  olean (outside any sandbox workdir, so the untrusted compile cannot tamper with
-  it), and the ephemeral scratch dir. The writable shared project build lib is NOT
-  on the path, so `import EmpiricistLean.Poison` cannot even resolve (compile-time
-  FAIL). On top of that, gate (b2) resolves every DIRECT import via `lean --deps`
-  and REQUIRES each resolved olean to sit under a pinned-trusted root (or be exactly
-  the trusted Basic); gate (d)'s driver reports the TRANSITIVE closure and the
+  build libs, the toolchain lib, READ-ONLY copies of our trusted EmpiricistLean
+  FOUNDATION oleans (`EmpiricistLean.Basic` + `EmpiricistLean.Foundation`, outside
+  any sandbox workdir, so the untrusted compile cannot tamper with them), and the
+  ephemeral scratch dir. The writable shared project build lib is NOT on the path,
+  so `import EmpiricistLean.Poison` cannot even resolve (compile-time FAIL). On top
+  of that, gate (b2) resolves every DIRECT import via `lean --deps` and REQUIRES each
+  resolved olean to sit under a pinned-trusted root (or be one of the trusted
+  foundation copies); gate (d)'s driver reports the TRANSITIVE closure and the
   harness rejects any import ROOT that is not a pinned-trusted root and any
-  `EmpiricistLean.*` import other than `EmpiricistLean.Basic`. So a poison that
-  somehow becomes reachable and is imported is rejected (FAIL import_trust) even if
-  Lever 1 had a gap.
+  `EmpiricistLean.*` import NOT in the trusted set (`_TRUSTED_EMPIRICIST_MODULES` =
+  {Basic, Foundation}; nothing else -- not FusionCost, not FamilyUpper -- is
+  trusted). So a poison that somehow becomes reachable and is imported is rejected
+  (FAIL import_trust) even if Lever 1 had a gap.
 
 - LEVER 3 (hardening, residue sweep + fail-closed). Each call uses a UNIQUE
   ephemeral dir (uuid4), removed in `finally`. After the call we SWEEP the shared
@@ -157,10 +159,17 @@ _DEFAULT_PROJECT_DIR = Path(__file__).resolve().parents[3] / "lean" / "Empiricis
 # the whitelist (gate d) is the hygiene layer leanchecker does not provide.
 _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
 
-# The single trusted EmpiricistLean.* module a scratch may import (the scaffold
-# lemma). Any OTHER EmpiricistLean.* import -- e.g. a planted `EmpiricistLean.Poison`
-# -- is rejected by the import-trust gate.
-_TRUSTED_EMPIRICIST_MODULE = "EmpiricistLean.Basic"
+# The SET of trusted EmpiricistLean.* modules a scratch may import (the trusted
+# FOUNDATION): the `Basic` scaffold lemma and the promoted Fable-authored
+# `Foundation` fusion lower bound. An EmpiricistLean.* import is TRUSTED iff it is a
+# MEMBER of this set; any OTHER EmpiricistLean.* import -- a planted
+# `EmpiricistLean.Poison`, or even a committed-but-non-trusted `EmpiricistLean.
+# FusionCost`/`FamilyUpper` -- is rejected by the import-trust gate. Adding a future
+# trusted-foundation module is a one-line addition here (plus its committed
+# source/build entries below); the trusted-lib copy iterates over this set.
+_TRUSTED_EMPIRICIST_MODULES = frozenset(
+    {"EmpiricistLean.Basic", "EmpiricistLean.Foundation"}
+)
 
 # The COMMITTED source modules that legitimately live in the project module dir,
 # and their build-product basename prefixes. The residue sweep (Lever 3) flags
@@ -168,13 +177,17 @@ _TRUSTED_EMPIRICIST_MODULE = "EmpiricistLean.Basic"
 # leftover `Scratch_*`). `FusionCost` (M10, minimum-fusion lower bound) and
 # `FamilyUpper` (M11, the path family's exact value `F = N-3`) are self-contained
 # mathlib+Basic proofs submitted to verify() as SOURCE like every other claim, so
-# they are never TRUSTED imports (only `EmpiricistLean.Basic` is, above) -- but
-# their committed source + built oleans must not be mistaken for residue. The build
-# lib stays OFF the restricted LEAN_PATH (Lever 2) and gate (d) still rejects any
-# non-`Basic` EmpiricistLean import, so allowlisting their oleans here does not
-# widen the import-trust surface.
-_COMMITTED_SOURCE_FILES = frozenset({"Basic.lean", "FusionCost.lean", "FamilyUpper.lean"})
-_COMMITTED_BUILD_PREFIXES = ("Basic.", "FusionCost.", "FamilyUpper.")
+# they are NOT trusted imports -- but their committed source + built oleans must not
+# be mistaken for residue. `Foundation` (the promoted Fable-authored fusion lower
+# bound) IS a trusted import (it is in `_TRUSTED_EMPIRICIST_MODULES`) whose olean is
+# staged into the trusted lib; its committed source belongs here too. The build lib
+# stays OFF the restricted LEAN_PATH (Lever 2) and gate (d) still rejects any
+# EmpiricistLean import not in the trusted set, so allowlisting the non-trusted
+# oleans here does not widen the import-trust surface.
+_COMMITTED_SOURCE_FILES = frozenset(
+    {"Basic.lean", "FusionCost.lean", "FamilyUpper.lean", "Foundation.lean"}
+)
+_COMMITTED_BUILD_PREFIXES = ("Basic.", "FusionCost.", "FamilyUpper.", "Foundation.")
 
 # The framing marker the compiled driver prints its single result line with:
 #   AXIOM_AUDIT::<nonce>::{"declFound":...,"axioms":[...],"importRoots":[...],...}
@@ -207,11 +220,14 @@ class _ToolchainConfig:
     # Pinned read-only import roots (the package build libs + the toolchain lib);
     # the WRITABLE project build lib is deliberately EXCLUDED.
     trusted_roots: tuple[Path, ...]
-    # Read-only copy of EmpiricistLean/Basic.olean, outside any sandbox workdir.
-    basic_olean: Path
-    # The trusted lib dir containing that copy (its `EmpiricistLean/` subdir).
+    # Read-only copies of the trusted EmpiricistLean foundation oleans (one per
+    # module in `_TRUSTED_EMPIRICIST_MODULES` -- Basic.olean, Foundation.olean),
+    # outside any sandbox workdir. An import resolving to one of THESE exact paths is
+    # trusted; any other EmpiricistLean olean is not.
+    trusted_oleans: frozenset[Path]
+    # The trusted lib dir containing those copies (its `EmpiricistLean/` subdir).
     trusted_lib_dir: Path
-    # Distinct top-level module roots reachable via the trusted roots + Basic.
+    # Distinct top-level module roots reachable via the trusted roots + the lib.
     allowed_roots: frozenset[str]
 
 
@@ -276,7 +292,7 @@ class LeanVerifier:
     model."""
 
     name = "lean"
-    version = "3.2"
+    version = "3.3"
 
     def __init__(self, project_dir: Path | None = None) -> None:
         self._project_dir = project_dir or _DEFAULT_PROJECT_DIR
@@ -303,9 +319,13 @@ class LeanVerifier:
     def binary_hash(self) -> str:
         """blake3 over this module's source + the compiled driver's source
         (AxiomAudit.lean) + the leanchecker pin manifest + the project's
-        lean-toolchain, lake-manifest.json, and lakefile.toml bytes. Read fresh
-        from disk on every access, so any of those changing invalidates an existing
-        certification stamp."""
+        lean-toolchain, lake-manifest.json, and lakefile.toml bytes + every COMMITTED
+        EmpiricistLean source module (Basic/FusionCost/FamilyUpper/Foundation). The
+        committed sources are folded in because their built oleans are allow-listed by
+        the residue sweep and the TRUSTED ones (Basic, Foundation) are staged onto the
+        gate's frozen import path -- so editing any of them changes the trust surface
+        and must mint a new verifier identity. Read fresh from disk on every access,
+        so any of those changing invalidates an existing certification stamp."""
         hasher = blake3()
         hasher.update(inspect.getsource(sys.modules[__name__]).encode("utf-8"))
         hasher.update(self._driver_src.read_bytes())
@@ -313,6 +333,10 @@ class LeanVerifier:
         hasher.update((self._project_dir / "lean-toolchain").read_bytes())
         hasher.update((self._project_dir / "lake-manifest.json").read_bytes())
         hasher.update((self._project_dir / "lakefile.toml").read_bytes())
+        # Committed EmpiricistLean source modules, in a STABLE (sorted) order so the
+        # hash is deterministic regardless of the frozenset's iteration order.
+        for name in sorted(_COMMITTED_SOURCE_FILES):
+            hasher.update((self._module_dir / name).read_bytes())
         return hasher.hexdigest()
 
     def applicable(self, kind: str) -> bool:
@@ -601,16 +625,17 @@ class LeanVerifier:
 
     def _restricted_lean_path(self, work: Path, cfg: _ToolchainConfig) -> str:
         """LEAN_PATH for the untrusted compile/deps gates = pinned read-only roots +
-        the trusted Basic lib + the ephemeral scratch dir. The WRITABLE project build
-        lib is EXCLUDED, so a sibling poison olean planted there is unreachable
-        (Lever 2)."""
+        the trusted foundation lib (Basic + Foundation) + the ephemeral scratch dir.
+        The WRITABLE project build lib is EXCLUDED, so a sibling poison olean planted
+        there is unreachable (Lever 2)."""
         roots = [*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir), str(work)]
         return os.pathsep.join(roots)
 
     def _frozen_lean_path(self, frozen_dir: Path, cfg: _ToolchainConfig) -> str:
         """LEAN_PATH for the two KERNEL gates (c)/(d) = pinned read-only roots + the
-        trusted Basic lib + the READ-ONLY FROZEN snapshot dir (NOT the writable
-        `work`). Both gates resolve the scratch module <tok> from the frozen snapshot,
+        trusted foundation lib (Basic + Foundation) + the READ-ONLY FROZEN snapshot
+        dir (NOT the writable `work`). Both gates resolve the scratch module <tok> from
+        the frozen snapshot,
         so a compile-time child rewriting `work/<tok>.olean` cannot reach what they
         check -- the load-bearing half of the 5th-break fix."""
         roots = [*(str(r) for r in cfg.trusted_roots), str(cfg.trusted_lib_dir), str(frozen_dir)]
@@ -652,10 +677,11 @@ class LeanVerifier:
         self, deps_stdout: str, cfg: _ToolchainConfig, work: Path
     ) -> list[str]:
         """Gate (b2): classify each `lean --deps` resolved import olean path. An
-        import is TRUSTED iff its olean sits under a pinned read-only root or is
-        exactly the trusted `EmpiricistLean.Basic` copy. A path under the ephemeral
-        workdir (a same-call planted sibling) or anywhere else -> UNTRUSTED. Returns
-        the list of untrusted resolved paths (empty == all imports pinned)."""
+        import is TRUSTED iff its olean sits under a pinned read-only root or is one of
+        the trusted EmpiricistLean foundation copies (Basic.olean/Foundation.olean).
+        A path under the ephemeral workdir (a same-call planted sibling) or anywhere
+        else -> UNTRUSTED. Returns the list of untrusted resolved paths (empty == all
+        imports pinned)."""
         untrusted: list[str] = []
         for raw in deps_stdout.splitlines():
             line = raw.strip()
@@ -666,7 +692,7 @@ class LeanVerifier:
             except OSError:
                 untrusted.append(line)
                 continue
-            if p == cfg.basic_olean:
+            if p in cfg.trusted_oleans:
                 continue
             if any(self._is_under(p, root) for root in cfg.trusted_roots):
                 continue
@@ -679,19 +705,20 @@ class LeanVerifier:
     ) -> dict[str, Any] | None:
         """Gate (d) backstop: over the driver's TRANSITIVE import closure, reject
         (a) any top-level ROOT that is not pinned-trusted (allowing the scratch's own
-        module root), (b) any `EmpiricistLean.*` import other than
-        `EmpiricistLean.Basic`, and (c) [Lever 4] any resolved import olean whose PATH
-        is not under a pinned-trusted root (mirroring gate b2). The PATH check is the
-        one that catches a planted `Mathlib/Fake.olean` a name-only root check would
-        wave through on the `Mathlib` root alone. Returns a details dict on violation,
-        else None."""
+        module root), (b) any `EmpiricistLean.*` import NOT in the trusted set
+        `_TRUSTED_EMPIRICIST_MODULES` (Basic/Foundation), and (c) [Lever 4] any
+        resolved import olean whose PATH is not under a pinned-trusted root (mirroring
+        gate b2). The PATH check is the one that catches a planted `Mathlib/Fake.olean`
+        a name-only root check would wave through on the `Mathlib` root alone. Returns
+        a details dict on violation, else None."""
         roots = result.get("importRoots") or []
         allowed = cfg.allowed_roots | {module_name}
         bad_roots = [r for r in roots if r not in allowed]
         emp = result.get("empiricistImports") or []
-        bad_emp = [m for m in emp if m != _TRUSTED_EMPIRICIST_MODULE]
+        bad_emp = [m for m in emp if m not in _TRUSTED_EMPIRICIST_MODULES]
         # Lever 4: every RESOLVED import olean path must sit under a pinned-trusted
-        # root, or be the trusted Basic copy, or the frozen scratch olean itself.
+        # root, or be one of the trusted foundation copies, or the frozen scratch
+        # olean itself.
         bad_paths: list[str] = []
         for raw in result.get("importPaths") or []:
             if not raw:
@@ -701,7 +728,7 @@ class LeanVerifier:
             except OSError:
                 bad_paths.append(raw)
                 continue
-            if p == cfg.basic_olean or p == frozen_olean:
+            if p in cfg.trusted_oleans or p == frozen_olean:
                 continue
             if any(self._is_under(p, root) for root in cfg.trusted_roots):
                 continue
@@ -830,25 +857,29 @@ class LeanVerifier:
             if p not in trusted_roots:
                 trusted_roots.append(p)
 
-        # Stage the read-only trusted Basic.olean copy (fresh, so a Basic rebuild is
-        # reflected), outside any sandbox workdir.
-        trusted_emp = self._trusted_lib_dir / "EmpiricistLean"
-        trusted_emp.mkdir(parents=True, exist_ok=True)
-        basic_src = self._build_lib / "EmpiricistLean" / "Basic.olean"
-        basic_dst = (trusted_emp / "Basic.olean").resolve()
-        if basic_src.exists():
-            # Atomic publish (temp + os.replace): a concurrent fresh verifier reading
-            # the trusted Basic while this instance restages it must never see a torn
-            # file. os.replace is atomic within the same directory.
-            tmp_dst = trusted_emp / f".Basic.olean.{uuid.uuid4().hex}.tmp"
-            shutil.copyfile(basic_src, tmp_dst)
-            os.replace(tmp_dst, basic_dst)
+        # Stage a read-only trusted copy of EVERY trusted-foundation olean
+        # (Basic.olean, Foundation.olean), fresh so a rebuild is reflected, outside any
+        # sandbox workdir. Iterating `_TRUSTED_EMPIRICIST_MODULES` makes adding a 3rd
+        # trusted module a one-liner (add it to the set + its committed source/build
+        # entries). Each copy is atomic (temp + os.replace within the same dir) so a
+        # concurrent fresh verifier restaging never sees a torn file.
+        trusted_oleans: set[Path] = set()
+        for module in _TRUSTED_EMPIRICIST_MODULES:
+            rel = Path(*module.split(".")).with_suffix(".olean")  # EmpiricistLean/X.olean
+            src = self._build_lib / rel
+            dst = (self._trusted_lib_dir / rel).resolve()
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if src.exists():
+                tmp_dst = dst.parent / f".{dst.name}.{uuid.uuid4().hex}.tmp"
+                shutil.copyfile(src, tmp_dst)
+                os.replace(tmp_dst, dst)
+            trusted_oleans.add(dst)
 
         allowed_roots = self._scan_allowed_roots(trusted_roots, self._trusted_lib_dir.resolve())
 
         return _ToolchainConfig(
             lean_bin=lean_bin, leanchecker_bin=leanchecker_bin, sysroot=sysroot,
-            trusted_roots=tuple(trusted_roots), basic_olean=basic_dst,
+            trusted_roots=tuple(trusted_roots), trusted_oleans=frozenset(trusted_oleans),
             trusted_lib_dir=self._trusted_lib_dir.resolve(), allowed_roots=allowed_roots,
         )
 
