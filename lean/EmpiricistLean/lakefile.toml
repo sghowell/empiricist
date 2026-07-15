@@ -27,7 +27,7 @@ name = "EmpiricistLean"
 # alongside FusionCost (name collision). It is instead built as its own first-class
 # library module via this glob, so `lake build EmpiricistLean` produces its olean
 # without importing it into the root.
-globs = ["EmpiricistLean", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp", "EmpiricistLean.FusionRule"]
+globs = ["EmpiricistLean", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp", "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm"]
 
 # Compiled axiom-audit driver: the SOLE axiom authority for the FORMALIZED trust
 # gate (M8 soundness fix). Only imports `Lean`, so it builds in seconds; the
