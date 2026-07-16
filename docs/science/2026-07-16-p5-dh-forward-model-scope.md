@@ -67,3 +67,30 @@ prerequisites, in the project's discipline:
 
 Until then, the concrete twin mechanism is proven for the smallest essential case
 (`c4_producibleUpToLC`), and the general theorem awaits the model extension.
+
+## UPDATE (same day): the twin-merge primitive is engine-verified — path de-risked
+
+The open sub-question above is resolved **positively**, and more cheaply than expected: the
+false-twin-merge is *already* a two-engine-verified 1-fusion primitive. It is the
+`role="center"` case of the very same `moves.merge_fresh_ghz3` fusion whose `role="leaf"` case
+is the pendant (`ghz3LeafMerge`). Reading the rewrite: fusing blob qubit `a` with the fresh
+GHZ3's **center** attaches *both* surviving leaves to `N(a)` (non-adjacent to each other) —
+i.e. `a` is replaced by two false twins = **G + falseTwin(a)**. The Lean model simply never
+formalized the center role.
+
+Decisive checks (400 random connected blobs, n=3..7):
+
+- `merge_fresh_ghz3(G,a,"center") ≡ addFalseTwin(G,a)` up to LC — **400/400**.
+- `StimEngine ≡ GF2Engine` agree with the center-merge closed form — **400/400** (the D6-style
+  two-engine warrant, now confirmed specifically for the false-twin role; the existing
+  `test_merge_rule_matches_both_engines_fuzz` already fuzzes both roles).
+- **All 175 extremal DH orbits — including all 82 non-tree ones — are `tier0`**, i.e. reachable
+  by *disjoint* merges only: {leaf=pendant, center=false-twin} + LC, no intra-fusion.
+
+So {pendant, false-twin} + LC reaches **all** of DH. The "unprovable in the current model"
+limit was only because the center role was omitted. **The model extension is now a clean,
+engine-justified formalization:** add `ghz3CenterMerge` (= the center rewrite) with an iso to
+`addFalseTwin`, add the `centerMerge` constructor to `ProducibleBy`, re-verify `F ≥ N−3` (still
++1 vertex / +1 fusion — the component-merge counting is unchanged), and prove `DH ⟹ F=N−3` as
+a Bandelt–Mulder induction (pendant + false-twin primitives; true-twin via
+`addTrueTwin H u ~LC addPendant(localComplement H u) u`).
