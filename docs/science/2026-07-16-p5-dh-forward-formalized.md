@@ -66,11 +66,36 @@ lifting. All of it is Fable-authored Lean, developed hole-by-hole through the ga
 | `CenterMerge` | `ghz3CenterMerge` + iso to `addFalseTwin` | promoted (PR#32) |
 | `TrueTwin` | `addTrueTwin` + the pendant↔true-twin LC identity | promoted (PR#33) |
 | `ProducibleExt` | `ProducibleByExt` + `producibleByExt_c4` | promoted (PR#34) |
-| `DHForward` | `PendantTwinBuildable` + `dh_forward` + `dh_min_fusions` | capstone |
+| `DHCharacterization` | `PendantTwinBuildable` (+ `lc`) + `dh_forward` + `dh_reverse` + `dh_characterization` + `dh_min_fusions` | capstone |
 
-## What remains open
+## The reverse direction — formalized at the model level
 
-The **reverse** direction, `F=N−3 ⟹ distance-hereditary`, needs rank-width / vertex-minor
-machinery that mathlib does not have, and stays open. The characterization as a whole is a
-Fable-generated CONJECTURED artifact grounded on all 585 orbits; its forward half is now a
-theorem.
+`dh_characterization` (Fable-authored, gate-certified):
+
+> `ProducibleByExt (N−3) G  ↔  PendantTwinBuildable G` — a graph is producible at the fusion
+> floor in the extended model **iff** it is distance-hereditary.
+
+The reverse (`dh_reverse : ProducibleByExt m G → PendantTwinBuildable G`) is a direct structural
+induction: `base → core`, `leafMerge → pendant` and `centerMerge → falseTwin` (via the
+faithfulness isos), `lc → lc`, `iso → iso`. It required adding an `lc` constructor to
+`PendantTwinBuildable` — this does **not** change the class: the pendant/twin build class is
+already the distance-hereditary graphs (Bandelt–Mulder), and DH is closed under local
+complementation (rank-width 1 is an LC-invariant, Oum/Bouchet), so `lc` only makes the closure
+manifest and turns the reverse's `lc` case into a one-line constructor instead of a ~10-lemma
+transport argument.
+
+**How this relates to the physical `F=N−3 ⟹ DH`.** The bridge is a vertex-counting argument,
+rigorous but not Lean-formalized here: a schedule producing an `N`-vertex graph uses `g` GHZ₃
+resources and `f` fusions with `N + 2f = 3g`, and each fusion is either a disjoint merge (`+1`
+vertex, `−1` component) or an intra-fusion (`+0` vertices, `+0` components). Reaching `N`
+vertices needs exactly `N−3` disjoint merges, so `f = N−3` forces **zero intra-fusions** — i.e.
+`F=N−3` is realized by disjoint merges + local Cliffords only, which is exactly `ProducibleByExt`.
+Hence physical `F(G)=N−3 ⟹ ProducibleByExt(N−3) G ⟹ DH`. The reason this last step is not a
+single Lean theorem: intra-fusion has **no closed-form graph rewrite** (the domain computes it
+engine-only), so a general-schedule model that would let Lean state "`F=N−3`" directly cannot be
+built; and the classical route (non-DH ⟹ `F>N−3`) needs rank-width machinery mathlib lacks.
+
+**Net:** both directions of the *model* characterization `ProducibleByExt(N−3) ⟺ DH` are now
+machine-verified; the physical `F=N−3 ⟺ DH` follows via the (paper) counting bridge. The
+original Fable-generated conjecture, grounded on all 585 orbits, is now — at the model level — a
+theorem in both directions.
