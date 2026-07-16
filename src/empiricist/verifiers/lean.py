@@ -171,7 +171,8 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
     {"EmpiricistLean.Basic", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp",
      "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm",
      "EmpiricistLean.DoubleStar",
-     "EmpiricistLean.CenterMerge"}
+     "EmpiricistLean.CenterMerge",
+     "EmpiricistLean.TrueTwin"}
 )
 
 # The COMMITTED source modules that legitimately live in the project module dir,
@@ -189,10 +190,10 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
 # oleans here does not widen the import-trust surface.
 _COMMITTED_SOURCE_FILES = frozenset(
     {"Basic.lean", "FusionCost.lean", "FamilyUpper.lean", "Foundation.lean",
-     "LocalComp.lean", "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean"}
+     "LocalComp.lean", "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean", "TrueTwin.lean"}
 )
 _COMMITTED_BUILD_PREFIXES = (
-    "Basic.", "FusionCost.", "FamilyUpper.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.", "DoubleStar.", "CenterMerge."
+    "Basic.", "FusionCost.", "FamilyUpper.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.", "DoubleStar.", "CenterMerge.", "TrueTwin."
 )
 
 # The framing marker the compiled driver prints its single result line with:
