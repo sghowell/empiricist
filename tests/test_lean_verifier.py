@@ -554,13 +554,13 @@ def test_foundation_is_a_usable_trusted_import(verifier):
 @slow_lean
 @requires_lake
 def test_nontrusted_empiricist_module_still_rejected_by_import_trust(verifier):
-    """The whitelist is a PRECISE SET {Basic, Foundation}, NOT "any EmpiricistLean.*".
-    Stage the REAL, committed-but-NON-trusted `EmpiricistLean.FamilyUpper` olean onto
-    the trusted lib dir (alongside Basic/Foundation) so `import EmpiricistLean.FamilyUpper`
-    RESOLVES, then verify a scratch importing it. The import-trust gate rejects it --
-    it is not in the trusted set -> FAIL(import_trust) -- even though Foundation, a
-    sibling olean in the SAME dir, is accepted. Promotion widened the set to exactly
-    {Basic, Foundation}; it did NOT open the door to every EmpiricistLean module."""
+    """The whitelist is a PRECISE SET (the promoted Fable-authored foundation), NOT
+    "any EmpiricistLean.*". Stage the REAL, committed-but-NON-trusted
+    `EmpiricistLean.NonTrusted` olean onto the trusted lib dir (alongside the trusted
+    foundation) so `import EmpiricistLean.NonTrusted` RESOLVES, then verify a scratch
+    importing it. The import-trust gate rejects it -- it is not in the trusted set ->
+    FAIL(import_trust) -- even though Foundation, a sibling olean in the SAME dir, is
+    accepted. Being committed (residue-allow-listed) does NOT make a module trusted."""
     # Force readiness so the toolchain cfg + trusted lib dir exist and are staged.
     verifier.verify(
         "namespace Empiricist\ntheorem t : True := trivial\nend Empiricist\n",
@@ -568,20 +568,20 @@ def test_nontrusted_empiricist_module_still_rejected_by_import_trust(verifier):
     )
     cfg = verifier._cfg
     assert cfg is not None
-    family_src = _OLEAN_DIR / "FamilyUpper.olean"
-    assert family_src.exists(), "FamilyUpper.olean not built (run `lake build EmpiricistLean`)"
-    staged = cfg.trusted_lib_dir / "EmpiricistLean" / "FamilyUpper.olean"
-    shutil.copyfile(family_src, staged)
+    nontrusted_src = _OLEAN_DIR / "NonTrusted.olean"
+    assert nontrusted_src.exists(), "NonTrusted.olean not built (run `lake build EmpiricistLean`)"
+    staged = cfg.trusted_lib_dir / "EmpiricistLean" / "NonTrusted.olean"
+    shutil.copyfile(nontrusted_src, staged)
     try:
         harvest = (
-            "import EmpiricistLean.FamilyUpper\n"
+            "import EmpiricistLean.NonTrusted\n"
             "namespace Empiricist\ntheorem t2 : True := trivial\nend Empiricist\n"
         )
         r = verifier.verify(harvest, decl="Empiricist.t2", timeout_s=120)
         assert r.verdict == Verdict.FAIL, r.details
         assert r.details["gate"] == "import_trust", r.details
         assert r.details["untrusted_imports"], r.details
-        assert any("FamilyUpper" in p for p in r.details["untrusted_imports"]), r.details
+        assert any("NonTrusted" in p for p in r.details["untrusted_imports"]), r.details
     finally:
         staged.unlink(missing_ok=True)
 

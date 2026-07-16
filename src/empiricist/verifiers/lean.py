@@ -91,9 +91,9 @@ Lean got a writable, non-sandboxed environment at elaboration.
   foundation copies); gate (d)'s driver reports the TRANSITIVE closure and the
   harness rejects any import ROOT that is not a pinned-trusted root and any
   `EmpiricistLean.*` import NOT in the trusted set (`_TRUSTED_EMPIRICIST_MODULES` =
-  {Basic, Foundation}; nothing else -- not FusionCost, not FamilyUpper -- is
-  trusted). So a poison that somehow becomes reachable and is imported is rejected
-  (FAIL import_trust) even if Lever 1 had a gap.
+  the promoted Fable-authored foundation; a committed-but-non-trusted module such as
+  the `NonTrusted` fixture is NOT trusted). So a poison that somehow becomes reachable
+  and is imported is rejected (FAIL import_trust) even if Lever 1 had a gap.
 
 - LEVER 3 (hardening, residue sweep + fail-closed). Each call uses a UNIQUE
   ephemeral dir (uuid4), removed in `finally`. After the call we SWEEP the shared
@@ -163,8 +163,8 @@ _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
 # FOUNDATION): the `Basic` scaffold lemma and the promoted Fable-authored
 # `Foundation` fusion lower bound. An EmpiricistLean.* import is TRUSTED iff it is a
 # MEMBER of this set; any OTHER EmpiricistLean.* import -- a planted
-# `EmpiricistLean.Poison`, or even a committed-but-non-trusted `EmpiricistLean.
-# FusionCost`/`FamilyUpper` -- is rejected by the import-trust gate. Adding a future
+# `EmpiricistLean.Poison`, or even a committed-but-non-trusted
+# `EmpiricistLean.NonTrusted` fixture -- is rejected by the import-trust gate. Adding a future
 # trusted-foundation module is a one-line addition here (plus its committed
 # source/build entries below); the trusted-lib copy iterates over this set.
 _TRUSTED_EMPIRICIST_MODULES = frozenset(
@@ -179,22 +179,24 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
 # The COMMITTED source modules that legitimately live in the project module dir,
 # and their build-product basename prefixes. The residue sweep (Lever 3) flags
 # anything OUTSIDE this set as escaped-jail residue (a planted `Poison.olean`, a
-# leftover `Scratch_*`). `FusionCost` (M10, minimum-fusion lower bound) and
-# `FamilyUpper` (M11, the path family's exact value `F = N-3`) are self-contained
-# mathlib+Basic proofs submitted to verify() as SOURCE like every other claim, so
-# they are NOT trusted imports -- but their committed source + built oleans must not
-# be mistaken for residue. `Foundation` (the promoted Fable-authored fusion lower
+# leftover `Scratch_*`). `NonTrusted` is a trivial committed-but-non-trusted fixture
+# (the import-trust security test stages its olean to confirm the gate rejects a
+# non-trusted EmpiricistLean import); it is NOT a trusted import -- but its committed
+# source + built olean must not be mistaken for residue. `Foundation` (the promoted
+# Fable-authored fusion lower
 # bound) IS a trusted import (it is in `_TRUSTED_EMPIRICIST_MODULES`) whose olean is
 # staged into the trusted lib; its committed source belongs here too. The build lib
 # stays OFF the restricted LEAN_PATH (Lever 2) and gate (d) still rejects any
 # EmpiricistLean import not in the trusted set, so allowlisting the non-trusted
 # oleans here does not widen the import-trust surface.
 _COMMITTED_SOURCE_FILES = frozenset(
-    {"Basic.lean", "FusionCost.lean", "FamilyUpper.lean", "Foundation.lean",
-     "LocalComp.lean", "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean", "TrueTwin.lean", "ProducibleExt.lean"}
+    {"Basic.lean", "NonTrusted.lean", "Foundation.lean", "LocalComp.lean",
+     "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean",
+     "TrueTwin.lean", "ProducibleExt.lean"}
 )
 _COMMITTED_BUILD_PREFIXES = (
-    "Basic.", "FusionCost.", "FamilyUpper.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.", "DoubleStar.", "CenterMerge.", "TrueTwin.", "ProducibleExt."
+    "Basic.", "NonTrusted.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.",
+    "DoubleStar.", "CenterMerge.", "TrueTwin.", "ProducibleExt."
 )
 
 # The framing marker the compiled driver prints its single result line with:
@@ -337,9 +339,9 @@ class LeanVerifier:
         """blake3 over this module's source + the compiled driver's source
         (AxiomAudit.lean) + the leanchecker pin manifest + the project's
         lean-toolchain, lake-manifest.json, and lakefile.toml bytes + every COMMITTED
-        EmpiricistLean source module (Basic/FusionCost/FamilyUpper/Foundation). The
+        EmpiricistLean source module (Basic/NonTrusted/Foundation/...). The
         committed sources are folded in because their built oleans are allow-listed by
-        the residue sweep and the TRUSTED ones (Basic, Foundation) are staged onto the
+        the residue sweep and the TRUSTED ones are staged onto the
         gate's frozen import path -- so editing any of them changes the trust surface
         and must mint a new verifier identity. Read fresh from disk on every access,
         so any of those changing invalidates an existing certification stamp."""
