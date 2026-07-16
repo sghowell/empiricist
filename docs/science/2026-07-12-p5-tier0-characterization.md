@@ -1,5 +1,11 @@
 # P5: a structural characterization of the minimum-fusion extremal class
 
+> **CORRECTION / SPEC NOTE (2026-07-15):** this note's hypothesis was Opus-authored
+> (out of spec). Fable-5 has since independently re-generated it from the data — see
+> `2026-07-15-p5-dh-characterization-fable.md`. Also: the exact/open split below is
+> **175/410**, not 185/400 (arithmetic error; the characterization is unaffected).
+
+
 **Date:** 2026-07-12 · **Problem:** P5(ii)/(iii), structure · **Method:** data-mining
 the VERIFIED_N tablebase (585 LC-orbits, n≤9) for an LC-invariant characterizing
 `F(G)=N−3`.
@@ -12,8 +18,8 @@ deep, well-studied graph-state complexity invariant.
 
 > **`F(G) = N − 3` ⟺ G is distance-hereditary (equivalently, rank-width 1).**
 
-Checked on the entire tablebase: **185/185 exact rows** satisfy `F=N−3 ⟺ DH`, and
-**0/400 open rows** (all proven `F > N−3`) are distance-hereditary. No exceptions.
+Checked on the entire tablebase: **175/175 exact rows** satisfy `F=N−3 ⟺ DH`, and
+**0/410 open rows** (all proven `F > N−3`) are distance-hereditary. No exceptions.
 
 Distance-hereditary graphs — those reducible to a point by repeatedly deleting
 pendant vertices and twins, equivalently the graphs of **rank-width 1** — are a
@@ -35,7 +41,7 @@ converse fails).
 ## What is NOT true — rank-width does not determine F beyond the extremal class
 
 The tempting generalization `F(G) = N − 3 + 3·(rank-width(G) − 1)` (making the mod-3
-ladder tier equal `rw−1`) **is false.** It holds on all 185 exact rows (rank-width
+ladder tier equal `rw−1`) **is false.** It holds on all 175 exact rows (rank-width
 pinned to 1 for Tier-0 via DH, to 2 for Tier-1 via not-DH + linear-rank-width 2), and
 it correctly predicted two live results (the 2×4 cluster has `rw=2`→`F=N`, verified;
 the n=6 beyond-frontier orbit has `rw=3`→`F=N+3`, verified). **But** there is an n=7
