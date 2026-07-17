@@ -95,7 +95,9 @@ def verify_scheme_agreed(
     try:
         ra = evaluate_scheme(scheme, PermanentEngine())
         rb = evaluate_scheme(scheme, FockEngine())
-    except (ValueError, TypeError) as e:
+    # Deliberately broad: ANY engine raise on a validated scheme is a
+    # stop-the-world machinery alarm (P5 precedent: stab_fusion never raises).
+    except Exception as e:
         return AgreedResult(
             "ERROR", None,
             f"engine exception (machinery bug, not a disagreement): {e}",

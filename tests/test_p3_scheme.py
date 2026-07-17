@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from empiricist.domain.p3.engine_permanent import PermanentEngine
 from empiricist.domain.p3.interferometer import Mesh
@@ -229,12 +230,13 @@ def test_verify_agreed_typeerror_garbage_invalid():
     assert r.verdict == "INVALID"
 
 
-def test_verify_agreed_engine_exception_is_error(monkeypatch):
+@pytest.mark.parametrize("exc_type", [ValueError, RuntimeError, IndexError])
+def test_verify_agreed_engine_exception_is_error(monkeypatch, exc_type):
     from empiricist.domain.p3 import verify as vmod
 
     class CrashingEngine(vmod.FockEngine):
         def output_distribution(self, mesh, state):
-            raise ValueError("internal engine bug")
+            raise exc_type("internal engine bug")
 
     monkeypatch.setattr(vmod, "FockEngine", CrashingEngine)
     r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
