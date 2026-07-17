@@ -121,3 +121,39 @@ def test_engine_a_vacuum_and_multiphoton():
     assert abs(d2[(2, 0)] - 0.25) < 1e-12
     assert abs(d2[(1, 1)] - 0.5) < 1e-12
     assert abs(d2[(0, 2)] - 0.25) < 1e-12
+
+
+def test_hom_dip_engine_b():
+    from empiricist.domain.p3.engine_fock import FockEngine
+    m = Mesh(n_modes=2, elements=[("bs", 0, 1, np.pi / 4, 0.0)])
+    dist = FockEngine().output_distribution(m, {(1, 1): 1.0})
+    assert abs(dist.get((1, 1), 0.0)) < 1e-12
+    assert abs(dist[(2, 0)] - 0.5) < 1e-12
+    assert abs(dist[(0, 2)] - 0.5) < 1e-12
+
+
+def test_engines_agree_fuzz():
+    from empiricist.domain.p3.engine_fock import FockEngine
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    from empiricist.domain.p3.fock import patterns
+    rng = np.random.default_rng(7)
+    for trial in range(30):
+        n_modes = int(rng.integers(2, 7))
+        n_photons = int(rng.integers(1, 4))
+        els = []
+        for _ in range(int(rng.integers(1, 10))):
+            i, j = sorted(rng.choice(n_modes, size=2, replace=False).tolist())
+            els.append(("bs", i, j, float(rng.uniform(0, np.pi)), float(rng.uniform(0, 2 * np.pi))))
+        if rng.random() < 0.5:
+            els.append(("phase", int(rng.integers(0, n_modes)), float(rng.uniform(0, 2 * np.pi))))
+        mesh = Mesh(n_modes=n_modes, elements=els)
+        basis = patterns(n_photons, n_modes)
+        amps = rng.normal(size=len(basis)) + 1j * rng.normal(size=len(basis))
+        amps /= np.linalg.norm(amps)
+        state = {b: complex(a) for b, a in zip(basis, amps)}  # noqa: B905 (verbatim spec)
+        da = PermanentEngine().output_distribution(mesh, state)
+        db = FockEngine().output_distribution(mesh, state)
+        keys = set(da) | set(db)
+        for k in keys:
+            assert abs(da.get(k, 0.0) - db.get(k, 0.0)) < 1e-8, (trial, k)
+        assert abs(sum(da.values()) - 1.0) < 1e-9
