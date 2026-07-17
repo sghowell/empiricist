@@ -5,10 +5,20 @@ from empiricist.llm.roles import ROLES, active_roles
 
 
 def test_all_seven_roles_present():
-    assert set(ROLES) == {
+    assert {
         "prospector", "toolwright", "searcher", "conjecturer",
         "prover", "critic", "formalizer",
-    }
+    } <= set(ROLES)
+
+
+def test_p3_searcher_role_present():
+    """M20a Task 4: the P3 campaign's searcher role, resolved lazily by
+    `search/p3_loop.py`'s `P3SearchLoop.run` (not one of the spec §5.4
+    "seven roles", so it is pinned separately here)."""
+    r = ROLES["p3_searcher"]
+    assert r.active is True
+    assert r.k == 1
+    assert r.effort is Effort.HIGH
 
 
 def test_roles_are_frozen():

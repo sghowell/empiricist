@@ -27,17 +27,16 @@ violation) is the same "skip + feedback" class as INVALID, but recorded as
 its own "SCREENED" outcome so the report distinguishes "the model's JSON
 didn't even convert" from "it converted but failed physics".
 
-**The role is resolved lazily, not at construction/import time.**
-`ROLES["p3_searcher"]` does not exist yet as of this module -- M20a Task 4
-adds it to `llm/roles.py`. Binding `P3SearchLoop` to `ROLES["p3_searcher"]`
-eagerly (at `__init__` or import time) would make every test -- and every
-import of this module -- depend on Task 4 landing first. Instead,
+**The role is resolved lazily, not at construction/import time.** Binding
+`P3SearchLoop` to `ROLES["p3_searcher"]` eagerly (at `__init__` or import
+time) would make every test -- and every import of this module -- depend on
+`llm/roles.py` carrying that entry (it landed in M20a Task 4). Instead,
 `P3SearchLoop.__init__` accepts an optional `role` parameter defaulting to
 `None`; `run()` resolves `ROLES["p3_searcher"]` lazily, only at the point it
 actually needs to call `client.complete` (i.e. never in tests that inject a
 stub role). Tests inject a duck-typed stand-in for `llm.roles.Role` (only
-`.name` matters to `FakeLLMClient`); once Task 4 lands, real campaigns simply
-omit `role=` and get `ROLES["p3_searcher"]` for free.
+`.name` matters to `FakeLLMClient`); real campaigns simply omit `role=` and
+get `ROLES["p3_searcher"]` for free.
 
 Because each `client.complete` call is a FRESH model context (F2: no
 cross-call session state, spec §5.4/llm/client.py), `build_prompt` re-states
@@ -158,8 +157,8 @@ class P3SearchLoop:
         )
 
     async def run(self, task: P3SearchTask) -> P3SearchReport:
-        # Lazy resolution (module docstring): ROLES["p3_searcher"] does not exist
-        # until M20a Task 4 lands. Tests inject `role=` and never touch ROLES.
+        # Lazy resolution (module docstring): resolved here, not at __init__/
+        # import time. Tests inject `role=` and never touch ROLES.
         role = self._role if self._role is not None else ROLES["p3_searcher"]
 
         # Fresh per-run() nonce (the documented formalize-loop incident: P3

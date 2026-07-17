@@ -1,9 +1,10 @@
 """Tests for `search/p3_loop.py`'s `P3SearchLoop` (M20a Task 3): propose ->
 screen -> verify -> ingest/feedback. Fully offline -- a `FakeLLMClient`
 (scripted `BellSchemeOut`-shaped results) exercises the LOOP LOGIC without a
-real model call or the (not-yet-existing, Task 4) `ROLES["p3_searcher"]`; a
-stub `Role`-shaped object is injected instead (mirrors
-`test_formalize_loop.py`'s `FakeVerifier` stand-in pattern).
+real model call; most tests inject a stub `Role`-shaped object instead of
+`ROLES["p3_searcher"]` (mirrors `test_formalize_loop.py`'s `FakeVerifier`
+stand-in pattern). A dedicated test below exercises the real lazy resolution
+of `ROLES["p3_searcher"]` (M20a Task 4, `llm/roles.py`).
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Run
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import Effort, LLMResult
-from empiricist.llm.roles import Role
+from empiricist.llm.roles import ROLES, Role
 from empiricist.search.p3_loop import P3SearchLoop, P3SearchReport, P3SearchTask
 from empiricist.store import Store
 
@@ -283,20 +284,34 @@ def test_invalid_claim_treated_as_screen_class_not_alarm(tmp_path):
     lg.close()
 
 
-# -- role resolution: lazy, and documents the Task 4 dependency -------------
+# -- role resolution: ROLES["p3_searcher"] now exists (M20a Task 4) ---------
 
 
-def test_default_role_none_resolves_lazily_and_fails_loudly_until_task4(tmp_path):
-    """ROLES["p3_searcher"] does not exist until M20a Task 4 adds it. Until
-    then, running without an injected `role=` fails loudly (KeyError) at the
-    point of use inside `run()`, rather than at import/construction time and
-    rather than silently substituting some other role."""
+def test_p3_searcher_role_exists_active_k1_high_effort():
+    """M20a Task 4 added `ROLES["p3_searcher"]` to `llm/roles.py`: active,
+    k == 1 (one scheme per round, no wave fan-out), effort HIGH."""
+    role = ROLES["p3_searcher"]
+    assert role.active is True
+    assert role.k == 1
+    assert role.effort is Effort.HIGH
+
+
+def test_default_role_none_resolves_lazily_to_p3_searcher(tmp_path):
+    """Now that `ROLES["p3_searcher"]` exists, running without an injected
+    `role=` no longer raises KeyError: `run()` resolves it lazily and reaches
+    the first `client.complete` call with it. `FakeLLMClient.calls` records
+    the role each call actually received, so this pins that the LOOP -- not a
+    test stub -- is the one resolving the real registered role."""
     lg, st = make_env(tmp_path)
-    client = FakeLLMClient([])
+    client = FakeLLMClient([])  # empty script: NO_ARTIFACT every round, no real scheme needed
     loop = P3SearchLoop(client, lg, st, max_rounds=1)  # no role= injected
 
-    with pytest.raises(KeyError):
-        run(loop.run(P3SearchTask(name="t7", goal="g", context="c")))
+    report = run(loop.run(P3SearchTask(name="t7", goal="g", context="c")))
+
+    assert report.ok is False
+    assert [h[0] for h in report.history] == ["NO_ARTIFACT"]
+    assert len(client.calls) == 1
+    assert client.calls[0][0] == "p3_searcher"
     lg.close()
 
 
