@@ -21,7 +21,7 @@ beyond this convention definition itself.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -32,7 +32,35 @@ Element = tuple[str, int, int | float, float, float]
 @dataclass(frozen=True)
 class Mesh:
     n_modes: int
-    elements: list[Element] = field(default_factory=list)
+    elements: tuple[Element, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.n_modes < 1:
+            raise ValueError("n_modes must be >= 1")
+        normalized: list[Element] = []
+        for el in self.elements:
+            el = tuple(el)
+            kind = el[0]
+            if kind == "bs":
+                if len(el) != 5:
+                    raise ValueError(f"bs element needs 5 entries, got {el!r}")
+                _, i, j, theta, phi = el
+                i, j = int(i), int(j)
+                if i == j:
+                    raise ValueError(f"beamsplitter needs distinct modes, got i == j == {i}")
+                if not (0 <= i < self.n_modes and 0 <= j < self.n_modes):
+                    raise ValueError(f"mode index out of range in {el!r}")
+                normalized.append(("bs", i, j, float(theta), float(phi)))
+            elif kind == "phase":
+                if len(el) not in (3, 5):
+                    raise ValueError(f"phase element needs 3 (or padded 5) entries, got {el!r}")
+                i = int(el[1])
+                if not (0 <= i < self.n_modes):
+                    raise ValueError(f"mode index out of range in {el!r}")
+                normalized.append(("phase", i, float(el[2]), 0.0, 0.0))
+            else:
+                raise ValueError(f"unknown mesh element kind {kind!r}")
+        object.__setattr__(self, "elements", tuple(normalized))
 
 
 def _element_unitary(n: int, el: Element) -> np.ndarray:
