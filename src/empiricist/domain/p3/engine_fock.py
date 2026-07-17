@@ -69,8 +69,8 @@ class FockEngine:
                 raise ValueError(
                     f"input pattern {pat!r} has {len(pat)} modes, mesh has {mesh.n_modes}"
                 )
-            if any(n < 0 for n in pat):
-                raise ValueError(f"negative occupation in {pat!r}")
+            if any((not isinstance(n, int)) or n < 0 for n in pat):
+                raise ValueError(f"occupations must be non-negative integers, got {pat!r}")
         n_photons = sum(next(iter(input_state)))
         for pat in input_state:
             if sum(pat) != n_photons:

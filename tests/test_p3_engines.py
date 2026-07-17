@@ -3,6 +3,17 @@ import numpy as np
 from empiricist.domain.p3.interferometer import Mesh, mesh_unitary
 
 
+def test_engines_reject_noninteger_occupations():
+    import pytest
+
+    from empiricist.domain.p3.engine_fock import FockEngine
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    m = Mesh(n_modes=2, elements=[("phase", 0, 0.7)])
+    for eng in (PermanentEngine(), FockEngine()):
+        with pytest.raises(ValueError):
+            eng.output_distribution(m, {(2.0, 0.0): 1.0})
+
+
 def test_single_bs_unitary():
     # Convention: a†_0 -> c a†_0 + s a†_1, a†_1 -> -s a†_0 + c a†_1 (phi = 0);
     # columns of U are the images of the input modes.
