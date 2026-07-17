@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import asyncio
 import math
+import sqlite3
 
 import pytest
 
 from empiricist.domain.p3.verify import AgreedResult
+from empiricist.executor.runner import DuplicateRunError
 from empiricist.ledger.db import Ledger
+from empiricist.ledger.models import Run
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import Effort, LLMResult
 from empiricist.llm.roles import Role
@@ -38,6 +41,27 @@ def _bsm_dict(**overrides):
     }
     d.update(overrides)
     return d
+
+
+class RunRecordingFakeClient(FakeLLMClient):
+    """FakeLLMClient that ALSO opens a runs row per call with the caller's
+    run_id, exactly the way the real `ClaudeCodeClient.complete` does
+    (`ledger.start_run` -> `DuplicateRunError` on collision) -- so a reused
+    run_id surfaces as the same failure it would produce in a live campaign."""
+
+    async def complete(self, role, prompt, *, session_id=None, system_prompt=None,
+                       schema=None, run_id=None, ledger=None):
+        if ledger is not None and run_id is not None:
+            try:
+                ledger.start_run(Run(
+                    run_id=run_id, move="SAMPLE", role=role.name, model=role.model,
+                ))
+            except sqlite3.IntegrityError as e:
+                raise DuplicateRunError(run_id) from e
+        return await super().complete(
+            role, prompt, session_id=session_id, system_prompt=system_prompt,
+            schema=schema, run_id=run_id, ledger=ledger,
+        )
 
 
 def make_result(parsed: dict | None) -> LLMResult:
@@ -90,6 +114,37 @@ def test_good_scheme_round_one_ingests_at_verified_n(tmp_path):
     evs = lg.evidence_for(report.artifact_id)
     assert len(evs) == 1
     assert evs[0].verifier == "p3_scheme_agreed"
+    # the CHECKED claim (the task targets, not the scheme dict's own claimed_*
+    # fields) is recorded with the evidence -- the certificate is claim +
+    # achievement
+    assert evs[0].details["claimed_p_avg"] == 0.5
+    assert evs[0].details["claimed_p_min"] is None
+    assert evs[0].details["claimed_max_leakage"] == 0.0
+    lg.close()
+
+
+# -- run-id freshness: two run() calls with the SAME task never collide ------
+
+
+def test_two_runs_same_task_same_ledger_do_not_collide_on_run_id(tmp_path):
+    """P3 campaigns are overnight/killable: a re-launched run() with the same
+    task name must mint fresh run_ids (per-run() nonce), not collide with the
+    previous invocation's runs rows (the documented formalize-loop incident)."""
+    lg, st = make_env(tmp_path)
+    client = RunRecordingFakeClient(
+        [make_result(_bsm_dict()), make_result(_bsm_dict())],
+    )
+    loop = P3SearchLoop(client, lg, st, max_rounds=2, role=_STUB_ROLE)
+    task = P3SearchTask(name="same-name", goal="g", context="c", target_p_avg=0.5)
+
+    r1 = run(loop.run(task))
+    r2 = run(loop.run(task))  # must NOT raise DuplicateRunError
+
+    assert r1.ok is True
+    assert r2.ok is True
+    # the duplicate scheme short-circuits to the SAME artifact (idempotent
+    # ingest), but both model calls got their own fresh runs rows
+    assert r1.artifact_id == r2.artifact_id
     lg.close()
 
 
@@ -114,17 +169,23 @@ def test_overclaimed_target_fails_twice_tracks_best_and_feeds_back(tmp_path):
     assert report.f3_alarm is False
     assert [h[0] for h in report.history] == ["FAIL", "FAIL"]
     assert "FAIL" in report.history[0][1]
-    assert "0.5" in report.history[0][1]
 
     assert report.best is not None
     assert report.best_summary["p_avg"] == pytest.approx(0.5)
+
+    # the feedback's ACHIEVED summary carries the exact raw p_avg -- the same
+    # float the verifier's own detail string uses, so the two never contradict
+    # (a rounded "p_avg=0.75" next to a detail saying "0.7499999... < 0.75"
+    # would read as a self-contradiction to the model)
+    exact_p_avg = str(report.best_summary["p_avg"])
+    assert f"p_avg={exact_p_avg}" in report.history[0][1]
 
     # round-2 PROMPT (what the model actually sees) carries round-1's outcome
     # and the achieved p_avg -- concrete, not vague, feedback.
     assert len(client.calls) == 2
     round2_prompt = client.calls[1][1]
     assert "FAIL" in round2_prompt
-    assert "0.5" in round2_prompt
+    assert exact_p_avg in round2_prompt
     lg.close()
 
 

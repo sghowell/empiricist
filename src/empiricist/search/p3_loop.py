@@ -49,6 +49,8 @@ verifier feedback + prior module source.
 
 from __future__ import annotations
 
+import asyncio
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -82,7 +84,10 @@ _PROMPT_INSTRUCTIONS = (
 
 @dataclass(frozen=True)
 class P3SearchTask:
-    name: str          # short id for the goal (used in run_id / provenance)
+    # short id for the goal (a run_id/provenance component). Need NOT be
+    # globally fresh: run() mints a per-invocation nonce into every run_id,
+    # so re-running the same task never collides on runs rows.
+    name: str
     goal: str           # natural-language: WHAT to find, e.g. "a k=0 scheme with p_avg >= 1/2"
     context: str         # domain context block for the prompt (physics background, conventions)
     target_p_min: float | None = None    # claim checked against verify_scheme_agreed
@@ -157,6 +162,12 @@ class P3SearchLoop:
         # until M20a Task 4 lands. Tests inject `role=` and never touch ROLES.
         role = self._role if self._role is not None else ROLES["p3_searcher"]
 
+        # Fresh per-run() nonce (the documented formalize-loop incident: P3
+        # campaigns are overnight/killable, and a re-launched run() with the
+        # same task.name must never collide with the previous invocation's
+        # runs rows -- run_id is UNIQUE in the ledger).
+        run_nonce = uuid.uuid4().hex[:8]
+
         target_metric = "p_min" if task.target_p_min is not None else "p_avg"
 
         history: list[_Round] = []
@@ -165,10 +176,11 @@ class P3SearchLoop:
         best_metric_value: float | None = None
 
         for round_num in range(1, self._max_rounds + 1):
+            rid = f"p3search-{task.name}-{run_nonce}-r{round_num}"
             prompt = self.build_prompt(task, history, best_summary)
             result = await self._client.complete(
                 role, prompt, schema=BellSchemeOut,
-                ledger=self._ledger, run_id=f"p3search-{task.name}-r{round_num}",
+                ledger=self._ledger, run_id=rid,
             )
 
             if result is None or not result.has_artifact:
@@ -183,7 +195,11 @@ class P3SearchLoop:
                 history.append(_Round("SCREENED", str(exc)))
                 continue
 
-            r = verify_scheme_agreed(
+            # Pure, thread-safe function -- dispatched to a worker thread so
+            # the event loop stays responsive if run() is ever multiplexed
+            # (matches formalize/loop.py's asyncio.to_thread convention).
+            r = await asyncio.to_thread(
+                verify_scheme_agreed,
                 scheme,
                 claimed_p_min=task.target_p_min,
                 claimed_p_avg=task.target_p_avg,
@@ -194,7 +210,14 @@ class P3SearchLoop:
                 art = ingest_scheme_artifact(
                     self._ledger, self._store, scheme_json=raw, result=r,
                     title=f"P3 scheme: {task.goal[:80]}",
-                    run_id=f"p3search-{task.name}-r{round_num}",
+                    run_id=rid,
+                    # the CHECKED claim (the task targets handed to
+                    # verify_scheme_agreed above, NOT the scheme dict's own
+                    # claimed_* fields) -- recorded with the evidence because
+                    # the certificate is claim + achievement
+                    claimed_p_min=task.target_p_min,
+                    claimed_p_avg=task.target_p_avg,
+                    claimed_max_leakage=task.max_leakage,
                 )
                 history.append(_Round("PASS", r.detail))
                 return P3SearchReport(
@@ -221,18 +244,15 @@ class P3SearchLoop:
                         "p_avg": r.report.p_avg,
                         "leakage": r.leakage,
                     }
-                # Round for the model-facing feedback string only (best_summary
-                # above keeps the exact floats) -- float noise like
-                # 0.4999999999999999 must read as the concrete "0.5" the model
-                # can reason against.
-                rounded_vec = {
-                    b: round(v, 6) for b, v in r.report.success_by_state.items()
-                }
+                # Raw floats everywhere, deliberately: r.detail quotes the
+                # exact achieved values, and a rounded summary next to it can
+                # self-contradict on a near-miss ("p_avg 0.7499999... <
+                # claimed 0.75. Achieved ... p_avg=0.75"). Self-consistency
+                # beats prettiness; the model handles full precision.
                 feedback = (
-                    f"FAIL: {r.detail}. Achieved success_by_state={rounded_vec}, "
-                    f"p_min={round(r.report.p_min, 6)}, "
-                    f"p_avg={round(r.report.p_avg, 6)}, "
-                    f"leakage={round(r.leakage, 6)}."
+                    f"FAIL: {r.detail}. Achieved success_by_state="
+                    f"{dict(r.report.success_by_state)}, p_min={r.report.p_min}, "
+                    f"p_avg={r.report.p_avg}, leakage={r.leakage}."
                 )
                 history.append(_Round("FAIL", feedback))
                 continue
