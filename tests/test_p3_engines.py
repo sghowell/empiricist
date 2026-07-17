@@ -69,3 +69,23 @@ def test_composition_order_pinned():
     u = mesh_unitary(m)
     expected = np.array([[1j * c, -1j * c], [c, c]])
     assert np.allclose(u, expected, atol=1e-12)
+
+
+def test_hom_dip_engine_a():
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    m = Mesh(n_modes=2, elements=[("bs", 0, 1, np.pi / 4, 0.0)])
+    eng = PermanentEngine()
+    dist = eng.output_distribution(m, {(1, 1): 1.0})
+    assert abs(dist.get((1, 1), 0.0)) < 1e-12          # HOM: no coincidences
+    assert abs(dist[(2, 0)] - 0.5) < 1e-12
+    assert abs(dist[(0, 2)] - 0.5) < 1e-12
+    assert abs(sum(dist.values()) - 1.0) < 1e-12
+
+
+def test_superposed_input_engine_a():
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    m = Mesh(n_modes=2, elements=[])
+    eng = PermanentEngine()
+    amp = 1 / np.sqrt(2)
+    dist = eng.output_distribution(m, {(1, 0): amp, (0, 1): amp})
+    assert abs(dist[(1, 0)] - 0.5) < 1e-12 and abs(dist[(0, 1)] - 0.5) < 1e-12
