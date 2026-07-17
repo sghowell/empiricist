@@ -66,6 +66,27 @@ def test_ingest_pass_scheme_lands_verified_n(env):
     assert evs[0].details["success_by_state"] == result.report.success_by_state
 
 
+def test_ingest_records_claims_alongside_achievement(env):
+    lg, st = env
+    scheme_json = _bsm_dict()
+    scheme = screen_scheme(scheme_json)
+    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
+    assert result.verdict == "PASS"
+
+    art = ingest_scheme_artifact(
+        lg, st, scheme_json=scheme_json, result=result,
+        title="k=0 standard BSM at p_avg 1/2", claimed_p_avg=0.5,
+    )
+
+    # the evidence row carries the CLAIM the verifier checked, not just the
+    # achievement -- the declared leakage budget is THE certificate parameter
+    # (verify.py: "unambiguous up to leakage <= <declared budget>")
+    details = lg.evidence_for(art.id)[0].details
+    assert details["claimed_p_avg"] == 0.5
+    assert details["claimed_p_min"] is None
+    assert details["claimed_max_leakage"] == 0.0
+
+
 def test_ingest_refuses_non_pass(env):
     lg, st = env
     scheme_json = _bsm_dict()
@@ -108,4 +129,18 @@ def test_ingest_rejects_unserializable_scheme_json(env):
     with pytest.raises(ValueError):
         ingest_scheme_artifact(
             lg, st, scheme_json=bad_scheme_json, result=result, title="bad json",
+        )
+
+
+def test_ingest_rejects_nan_in_scheme_json(env):
+    lg, st = env
+    scheme_json = _bsm_dict()
+    scheme = screen_scheme(scheme_json)
+    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
+
+    # allow_nan=False: NaN must raise, never silently emit non-strict JSON
+    nan_scheme_json = _bsm_dict(claimed_p_avg=float("nan"))
+    with pytest.raises(ValueError):
+        ingest_scheme_artifact(
+            lg, st, scheme_json=nan_scheme_json, result=result, title="nan json",
         )

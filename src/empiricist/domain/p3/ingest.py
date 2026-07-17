@@ -57,17 +57,20 @@ from empiricist.verifiers.p3_scheme import P3SchemeVerifier
 
 
 def _canonical_scheme_json(scheme_json: dict) -> bytes:
-    """Canonical CAS content for `scheme_json` -- sorted-key, separator-tight
-    JSON, so dict insertion order never perturbs the digest (same convention
-    as `search.conjecture._canonical_conjecture_json`). Raises `ValueError`
-    (not a raw `TypeError`) on anything `json.dumps` cannot serialize: a
-    caller error, not a schema violation the screen would have caught."""
+    """Canonical CAS content for `scheme_json` -- sorted-key, separator-tight,
+    STRICT JSON (`allow_nan=False`: NaN/Infinity raise rather than silently
+    emitting non-standard tokens that other parsers reject), so dict insertion
+    order never perturbs the digest (same convention as
+    `search.conjecture._canonical_conjecture_json`). Raises `ValueError`
+    (never a raw `TypeError`) on anything `json.dumps` cannot serialize
+    strictly: a caller error, not a schema violation the screen would have
+    caught."""
     try:
         return json.dumps(
-            scheme_json, sort_keys=True, separators=(",", ":")
+            scheme_json, sort_keys=True, separators=(",", ":"), allow_nan=False
         ).encode("utf-8")
-    except TypeError as exc:
-        raise ValueError(f"scheme_json is not JSON-serializable: {exc}") from exc
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"scheme_json is not strictly JSON-serializable: {exc}") from exc
 
 
 def ingest_scheme_artifact(
@@ -78,6 +81,9 @@ def ingest_scheme_artifact(
     result: AgreedResult,
     title: str,
     run_id: str | None = None,
+    claimed_p_min: float | None = None,
+    claimed_p_avg: float | None = None,
+    claimed_max_leakage: float = 0.0,
 ) -> Artifact:
     """Ingest a PASS-verified P3 scheme as a `construction` artifact at
     `VERIFIED_N`, with the `EvidenceRow` that justifies it.
@@ -85,8 +91,21 @@ def ingest_scheme_artifact(
     Refuses (`ValueError`) unless `result.verdict == "PASS"` -- a FAIL/ERROR/
     INVALID result is never recorded above the trust boundary this helper
     exists to gate (an ERROR result in particular is the F3 stop-the-world
-    alarm; a caller must never route it here). `scheme_json` must be
+    alarm; a caller must never route it here). `scheme_json` must be strictly
     JSON-serializable; see `_canonical_scheme_json`.
+
+    The evidence row carries the claim AND the achievement; the CAS carries
+    the scheme. `claimed_p_min`/`claimed_p_avg`/`claimed_max_leakage` are the
+    values the caller passed to `verify_scheme_agreed` to produce `result` --
+    they are recorded in the evidence details (same keys as
+    `P3SchemeVerifier.verify`'s details schema) because the declared leakage
+    budget is THE certificate parameter under verify.py's normative semantics
+    ("unambiguous up to leakage <= <declared budget>"): a PASS is meaningless
+    to a ledger reader without the claim it certifies. P5 gets away with
+    CAS-only claims because there the CAS content IS the checked claim; here
+    `scheme_json`'s `claimed_*` fields and the values actually handed to the
+    verifier are structurally decoupled, so the checked values must be
+    recorded explicitly.
 
     Idempotent: a second call with the same canonical `scheme_json` returns
     the FIRST-ingested artifact (its original `title`) and records no second
@@ -99,6 +118,8 @@ def ingest_scheme_artifact(
         )
 
     content = _canonical_scheme_json(scheme_json)
+    # Deliberately the same blake3-hexdigest convention as store.put, so this
+    # id equals the one ingest_artifact would derive from `content`.
     art_id = blake3(content).hexdigest()
     try:
         return ledger.get_artifact(art_id)  # duplicate: short-circuit, no new evidence
@@ -129,6 +150,11 @@ def ingest_scheme_artifact(
                 "p_avg": report.p_avg,
                 "leakage": result.leakage,
                 "detail": result.detail,
+                # the checked claim (keys mirror P3SchemeVerifier.verify's
+                # details schema): the certificate is claim + achievement
+                "claimed_p_min": claimed_p_min,
+                "claimed_p_avg": claimed_p_avg,
+                "claimed_max_leakage": claimed_max_leakage,
             },
         ),
         new_status=Status.VERIFIED_N,
