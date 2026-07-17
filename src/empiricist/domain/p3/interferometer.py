@@ -21,6 +21,7 @@ beyond this convention definition itself.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -29,8 +30,25 @@ import numpy as np
 Element = tuple[str, int, int | float, float, float]
 
 
+def _index(x: object, el: tuple) -> int:
+    xf = float(x)  # type: ignore[arg-type]
+    if not xf.is_integer():
+        raise ValueError(f"mode index must be integral, got {x!r} in {el!r}")
+    return int(xf)
+
+
+def _angle(x: object, el: tuple) -> float:
+    xf = float(x)  # type: ignore[arg-type]
+    if not math.isfinite(xf):
+        raise ValueError(f"angle must be finite, got {x!r} in {el!r}")
+    return xf
+
+
 @dataclass(frozen=True)
 class Mesh:
+    """Validated, immutable mesh. Numeric strings in element entries are
+    coerced via float() (JSON-adjacent leniency)."""
+
     n_modes: int
     elements: tuple[Element, ...] = ()
 
@@ -44,20 +62,21 @@ class Mesh:
             if kind == "bs":
                 if len(el) != 5:
                     raise ValueError(f"bs element needs 5 entries, got {el!r}")
-                _, i, j, theta, phi = el
-                i, j = int(i), int(j)
+                i, j = _index(el[1], el), _index(el[2], el)
                 if i == j:
                     raise ValueError(f"beamsplitter needs distinct modes, got i == j == {i}")
                 if not (0 <= i < self.n_modes and 0 <= j < self.n_modes):
                     raise ValueError(f"mode index out of range in {el!r}")
-                normalized.append(("bs", i, j, float(theta), float(phi)))
+                normalized.append(("bs", i, j, _angle(el[3], el), _angle(el[4], el)))
             elif kind == "phase":
                 if len(el) not in (3, 5):
                     raise ValueError(f"phase element needs 3 (or padded 5) entries, got {el!r}")
-                i = int(el[1])
+                if len(el) == 5 and not (el[3] == 0.0 and el[4] == 0.0):
+                    raise ValueError(f"phase element padding must be 0.0, got {el!r}")
+                i = _index(el[1], el)
                 if not (0 <= i < self.n_modes):
                     raise ValueError(f"mode index out of range in {el!r}")
-                normalized.append(("phase", i, float(el[2]), 0.0, 0.0))
+                normalized.append(("phase", i, _angle(el[2], el), 0.0, 0.0))
             else:
                 raise ValueError(f"unknown mesh element kind {kind!r}")
         object.__setattr__(self, "elements", tuple(normalized))

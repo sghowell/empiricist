@@ -37,6 +37,24 @@ def test_mesh_rejects_degenerate_and_out_of_range():
         Mesh(n_modes=2, elements=[("spin", 0, 1, 0.3, 0.0)])
 
 
+def test_mesh_rejects_nonintegral_and_nonfinite():
+    import math
+
+    import pytest
+    with pytest.raises(ValueError):
+        Mesh(n_modes=3, elements=[("bs", 0.7, 1.9, 0.3, 0.0)])
+    with pytest.raises(ValueError):
+        Mesh(n_modes=3, elements=[("phase", 1.9, 0.5)])
+    with pytest.raises(ValueError):
+        Mesh(n_modes=2, elements=[("bs", 0, 1, float("nan"), 0.0)])
+    with pytest.raises(ValueError):
+        Mesh(n_modes=2, elements=[("bs", 0, 1, 0.3, math.inf)])
+    with pytest.raises(ValueError):
+        Mesh(n_modes=2, elements=[("phase", 0, float("nan"))])
+    with pytest.raises(ValueError):
+        Mesh(n_modes=2, elements=[("phase", 0, 0.5, 7.7, 8.8)])
+
+
 def test_mesh_is_immutable_and_hashable():
     m = Mesh(n_modes=2, elements=[("bs", 0, 1, 0.3, 0.1)])
     assert isinstance(m.elements, tuple)
