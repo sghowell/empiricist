@@ -144,6 +144,13 @@ def test_verify_agreed_leakage_budget():
     assert r1.report.leakage > 0.0
 
 
+def test_verify_agreed_result_carries_max_leakage():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    r = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "PASS"
+    assert r.leakage == 0.0
+
+
 def test_verify_agreed_error_on_disagreement(monkeypatch):
     from empiricist.domain.p3 import verify as vmod
 
