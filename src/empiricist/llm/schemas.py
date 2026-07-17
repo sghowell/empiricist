@@ -37,6 +37,44 @@ class CritiqueOut(_Closed):
     edges_checked: list[str]
 
 
+# -- P3 (Bell-measurement schemes): the Constructor's structured output --------
+# `BellSchemeOut` is the model-facing shape for a linear-optical Bell scheme:
+# the interferometer mesh, an optional ancilla input state, and the claims the
+# model is making about it. `MeshElement`/`AncillaTerm` are `_Closed`
+# sub-models rather than bare tuples: pydantic handles nested models more
+# precisely than untyped tuples, and the JSON a model emits reads more clearly
+# with named fields. `MeshElement` covers BOTH mesh element kinds via unused
+# fields (`j`/`phi` ignored for "phase"; `theta` doubles as `alpha`) rather
+# than a discriminated union -- the same CLI-schema-safe, flat-tagged
+# convention `search/schemas.py` documents for its `StepOut`.
+# `domain.p3.scheme.scheme_from_out` converts a validated `BellSchemeOut` into
+# a `BellScheme`. Per the M4 discipline this schema guarantees SHAPE only --
+# `verify_scheme_agreed` is the sole arbiter of physics truth.
+class MeshElement(_Closed):
+    kind: Literal["bs", "phase"]
+    i: int
+    j: int = 0            # unused for "phase"
+    theta: float = 0.0    # alpha for "phase"
+    phi: float = 0.0      # unused for "phase"
+
+
+class AncillaTerm(_Closed):
+    pattern: list[int]
+    re: float
+    im: float
+
+
+class BellSchemeOut(_Closed):
+    n_modes: int
+    n_ancilla_photons: int
+    ancilla: list[AncillaTerm]      # [] means no ancilla (4-mode schemes only)
+    mesh: list[MeshElement]
+    claimed_p_min: float | None = None
+    claimed_p_avg: float | None = None
+    claimed_max_leakage: float = 0.0
+    notes: str = ""
+
+
 def json_schema_for(model: type[BaseModel]) -> dict[str, Any]:
     """The model's JSON schema, ready to pass to `claude --json-schema`.
 
