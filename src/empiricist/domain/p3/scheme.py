@@ -70,9 +70,20 @@ class BellScheme:
             raise ValueError("mesh/scheme mode mismatch")
         if self.ancilla:
             norm = sum(abs(a) ** 2 for a in self.ancilla.values())
-            if abs(norm - 1.0) > 1e-9:
+            # NaN-proof form: a NaN amplitude makes the norm NaN, and the
+            # naive `> 1e-9` comparison is False for NaN -- inverting keeps
+            # a malformed input from riding through to a vacuous PASS.
+            if not (abs(norm - 1.0) <= 1e-9):
                 raise ValueError("ancilla not normalized")
             for pat in self.ancilla:
+                # Screen BEFORE the sum check: a negative entry can cancel in
+                # the photon sum (e.g. (-1, 2) sums to k=1) and would otherwise
+                # only surface as an engine raise -- which the agreed verifier
+                # classifies as stop-the-world ERROR, not INVALID.
+                if any(p < 0 for p in pat):
+                    raise ValueError(
+                        "ancilla pattern occupations must be non-negative"
+                    )
                 if len(pat) != self.n_modes - 4:
                     raise ValueError("ancilla pattern on wrong number of modes")
                 if sum(pat) != self.n_ancilla_photons:

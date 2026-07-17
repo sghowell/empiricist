@@ -93,6 +93,38 @@ def test_scheme_from_out_rejects_unnormalized_ancilla():
         scheme_from_out(out)
 
 
+def _ancilla_dict(pattern: list[int], re: float) -> dict:
+    # A 6-mode, k=1 scheme with a single ancilla term -- schema-valid SHAPE
+    # whatever pattern/re carry; validate() decides whether it is well-formed.
+    return {
+        "n_modes": 6,
+        "n_ancilla_photons": 1,
+        "ancilla": [{"pattern": pattern, "re": re, "im": 0.0}],
+        "mesh": [_bs_el(0, 2), _bs_el(1, 3)],
+    }
+
+
+def test_scheme_from_out_rejects_negative_pattern():
+    # pattern [-1, 2] passes the length check AND the photon-sum check
+    # (-1 + 2 == 1 == k); without an explicit non-negativity screen it would
+    # reach the engines, whose raise verify_scheme_agreed classifies as a
+    # stop-the-world ERROR -- a model-emittable campaign halt.
+    d = _ancilla_dict(pattern=[-1, 2], re=1.0)
+    out = BellSchemeOut.model_validate(d)
+    with pytest.raises(ValueError, match="non-negative"):
+        scheme_from_out(out)
+
+
+def test_scheme_from_out_rejects_nan_amplitude():
+    # NaN in re makes the norm NaN; the naive `abs(norm - 1) > 1e-9` form is
+    # False for NaN and would let the malformed input through to a vacuous
+    # PASS. The NaN-proof inverted comparison must reject it.
+    d = _ancilla_dict(pattern=[1, 0], re=float("nan"))
+    out = BellSchemeOut.model_validate(d)
+    with pytest.raises(ValueError, match="not normalized"):
+        scheme_from_out(out)
+
+
 def test_bell_scheme_out_rejects_extra_fields():
     d = {
         "n_modes": 4,
