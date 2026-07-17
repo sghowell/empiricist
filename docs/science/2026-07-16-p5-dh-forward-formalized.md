@@ -99,3 +99,25 @@ built; and the classical route (non-DH ⟹ `F>N−3`) needs rank-width machinery
 machine-verified; the physical `F=N−3 ⟺ DH` follows via the (paper) counting bridge. The
 original Fable-generated conjecture, grounded on all 585 orbits, is now — at the model level — a
 theorem in both directions.
+
+## UPDATE: the counting bridge is now a Lean theorem (single-blob model)
+
+The remark above is superseded in part. The obstacle it named — intra-fusion has no closed-form
+graph rewrite — is sidestepped rather than solved: to exclude intra-fusions at the floor, no
+rewrite is needed. A new inductive `BlobSchedule` extends the production model with an `intra`
+constructor that **over-approximates** an intra-blob fusion: from a graph on `V` it may produce
+*any* graph on a carrier with two fewer elements, at the cost of one fusion. Over-approximating
+only strengthens the floor theorem. Formalized (module `Bridge`, gate-certified, clean axioms):
+
+- `BlobSchedule.natCard_le` — any `BlobSchedule f G` has `Nat.card V ≤ f + 3` (a merge gains one
+  vertex per fusion; an intra loses two vertices while spending one).
+- `blobSchedule_floor` — `BlobSchedule f G` with `card V = f + 3` implies `ProducibleByExt f G`:
+  at the floor the intra case is impossible (its sub-derivation would violate `natCard_le`).
+- `floor_schedule_iff_dh` — for `3 ≤ N`: `BlobSchedule (N−3) G ↔ PendantTwinBuildable G`.
+
+So even in a schedule model that allows intra-fusions generous enough to produce arbitrary
+graphs, the fusion floor is reached exactly by the distance-hereditary graphs. The remaining
+boundary between this theorem and the physical minimum is now **only the single-blob normal
+form**: reducing an arbitrary multi-component schedule to a single growing blob, justified by
+the commutation of fusions on disjoint qubit pairs (domain-level, engine-checked; not
+formalized).
