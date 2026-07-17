@@ -1,0 +1,573 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\F}{\mathrm{F}}
+\newcommand{\GHZ}{\mathrm{GHZ}_3}
+\newcommand{\LC}{\mathrm{LC}}
+\newcommand{\rw}{\mathrm{rw}}
+\newcommand{\Prod}{\mathsf{Prod}}
+\newcommand{\N}{N}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\bf Distance-hereditary graphs characterize\\ minimum-fusion synthesis of graph states\\[4pt]
+\large A machine-discovered result with a formally verified core}
+
+\author{Sean Howell\\[2pt]
+\small \texttt{sean.g.howell@gmail.com}}
+
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+In fusion-based quantum computation a graph state $|G\rangle$ on $\N$ qubits is assembled from
+small entangled resource states by destructive two-qubit fusion measurements. We study the
+minimum number $\F(G)$ of fusions required in the model whose resource is the three-qubit
+Greenberger--Horne--Zeilinger state and whose fusion is the type-II Bell measurement (the
+$\GHZ$ model). Counting qubits and connected components gives the universal bound
+$\F(G)\ge \N-3$ for connected targets. We determine exactly which graphs attain it:
+$\F(G)=\N-3$ if and only if $G$ is \emph{distance-hereditary}---equivalently, of rank-width at
+most one; equivalently, $C_5$-vertex-minor-free.
+
+The result was produced by an autonomous formal-methods harness rather than by hand. A language
+model (Fable~5), permitted to emit only machine-checkable artifacts and never given execution
+access, classified all $585$ local-complementation orbits of connected graphs on at most nine
+vertices by whether they attain the bound, every certificate accepted by two independent
+stabilizer engines; proposed the distance-hereditary characterization from the $44$ labeled
+orbits on at most seven vertices, after which all $541$ held-out orbits on eight and nine
+vertices proved consistent; and formalized the core of the result in Lean~4 against an
+adversarially hardened trust gate. Formalizing the forward direction
+(distance-hereditary $\Rightarrow \F=\N-3$) required extending the production model with a second
+fusion primitive, itself verified against both engines; the reverse direction is a Lean theorem at
+the level of that model, and an exact counting argument lifts it to the physical minimum. Under
+the harness's discipline no claim is recorded above the status of a heuristic without a machine
+artifact, and the mathematics, the conjecture, and the Lean proofs were authored by the model.
+\end{abstract}
+
+\section{Introduction}
+
+Fusion-based quantum computation (FBQC) builds fault-tolerant computation from a supply of small,
+identical entangled \emph{resource states} that are stitched together by \emph{fusions}:
+destructive joint measurements of two qubits~\cite{fbqc}. Because the resource states and the
+fusions are the physical cost drivers of a photonic architecture, a basic question for any target
+entangled state is how few fusions suffice to prepare it. For graph states---the stabilizer states
+in one-to-one correspondence with simple graphs~\cite{graphstates}---this is a combinatorial
+optimization over the graph.
+
+We work in a specific instance, which we call the $\GHZ$ model: the resource is the three-qubit
+GHZ state $|\GHZ\rangle=\tfrac{1}{\sqrt2}(|000\rangle+|111\rangle)$, whose graph is the
+three-vertex path, and each fusion is a type-II (destructive) Bell measurement. Since a stabilizer
+state is defined only up to single-qubit Clifford operations, the natural cost is a function of
+the local-Clifford orbit. Writing $\N=|V(G)|$, we set
+\[
+  \F(G)\;=\;\text{the least number of fusions producing a state locally Clifford equivalent to }|G\rangle,
+\]
+starting from a fresh supply of $|\GHZ\rangle$ states, with single-qubit Clifford operations free
+throughout.
+
+A short accounting of qubits and connected components gives a universal lower bound
+$\F(G)\ge \N-3$ (Section~\ref{sec:model}). The graphs meeting it form the extremal class of the
+problem, and our main result identifies that class exactly.
+
+\begin{theorem}[Characterization]\label{thm:main}
+For a connected graph $G$ on $\N\ge 3$ vertices in the $\GHZ$ model,
+\[
+  \F(G)=\N-3 \quad\Longleftrightarrow\quad G \text{ is distance-hereditary.}
+\]
+\end{theorem}
+
+Distance-hereditary graphs~\cite{bandeltmulder,howorka} are exactly the graphs of rank-width at
+most one~\cite{oum-rw}, the graphs with no vertex-minor isomorphic to the five-cycle $C_5$, and
+the graphs obtainable from a single vertex by repeated addition of pendant vertices and twins.
+Rank-width is invariant under local complementation~\cite{oum-rw,bouchet}, and $\F$ is invariant
+under local Clifford operations; the characterization thus matches the fusion cost to a
+local-Clifford-invariant measure of the entanglement structure of $|G\rangle$.
+
+\paragraph{Contributions.} The mathematical content of the paper is Theorem~\ref{thm:main} and its
+constituent parts:
+\begin{enumerate}[nosep,leftmargin=1.4em]
+\item a certified classification of all $585$ connected local-complementation orbits with
+      $\N\le 9$ by whether $\F=\N-3$, together with exact values strictly above the bound for
+      thirteen orbits; every certificate carries a witness accepted by two independent stabilizer
+      engines (Section~\ref{sec:tablebase});
+\item Lean~4 proofs of the universal lower bound and of $\F=\N-3$ for paths, stars, all trees,
+      complete graphs $K_\N$, and complete bipartite graphs $K_{m,n}$
+      (Section~\ref{sec:families});
+\item a Lean~4 proof of the forward direction of Theorem~\ref{thm:main}
+      (distance-hereditary $\Rightarrow \F=\N-3$), obtained by extending the production model with
+      a second, engine-verified fusion primitive (Section~\ref{sec:forward}); and
+\item a Lean~4 equivalence identifying the graphs producible in the extended model at the floor
+      with the distance-hereditary graphs, together with the counting argument that lifts its
+      reverse direction to the physical minimum (Section~\ref{sec:reverse}).
+\end{enumerate}
+
+The paper also documents the method. Every item above was discovered or written by an autonomous
+harness driving a single language model under an explicit epistemic discipline: no statement is
+recorded above the status \textsc{heuristic} without an accompanying machine artifact, the model
+that does the mathematics never executes anything itself, and the formalization is checked by a
+trust gate that was hardened against adversarial submissions. We describe the harness in
+Section~\ref{sec:methods} because the provenance bears on how the results should be read.
+
+\paragraph{What is proved, and in what sense.} Because these distinctions matter for a
+machine-aided result, we state them plainly and keep to them throughout.
+\begin{itemize}[nosep,leftmargin=1.4em]
+\item \emph{Lean theorem}: a statement checked by the Lean~4 kernel and a hardened gate, using only
+      the axioms \code{propext}, \code{Classical.choice}, \code{Quot.sound}, against
+      \textsc{mathlib} pinned at \code{v4.31.0}. The lower bound, the five families, the forward
+      direction, and the model-level equivalence are of this kind.
+\item \emph{Engine-verified}: a fact about the physical fusion operation confirmed by two
+      independently implemented stabilizer simulators that share no code. The two fusion primitives
+      used by the production model are of this kind; inside Lean they are graph rewrites, and their
+      right to be called ``one fusion'' rests on the engine agreement rather than on a derivation
+      of qubit semantics in Lean.
+\item \emph{Prose argument}: the counting bridge of Section~\ref{sec:reverse}, which shows that a
+      schedule attaining $f=\N-3$ has a shape realizable in the extended model. It is proved here
+      at the ordinary standard of rigor of a mathematics paper but is not formalized; the remark in
+      Section~\ref{sec:reverse} explains why.
+\end{itemize}
+Theorem~\ref{thm:main} combines all three. Independently of its proof, the biconditional was
+checked against the certified tablebase on all $585$ orbits and holds with no exception.
+
+\section{The \texorpdfstring{$\GHZ$}{GHZ3} fusion model and the lower bound}\label{sec:model}
+
+\paragraph{Graph states and local complementation.} To a simple graph $G=(V,E)$ one associates the
+stabilizer state $|G\rangle=\prod_{\{u,v\}\in E}\mathrm{CZ}_{uv}\,|{+}\rangle^{\otimes V}$. Local
+Clifford equivalence of graph states is generated by \emph{local complementation}: complementing at
+a vertex $v$ toggles the adjacency of every pair of neighbors of $v$~\cite{vandennest,bouchet}. We
+write $G\sim_{\LC}H$ for the resulting equivalence and note that both $\F$ and the rank-width of $G$
+are constant on $\sim_{\LC}$ orbits.
+
+\paragraph{Resource and fusion.} The resource $|\GHZ\rangle$ has graph the three-vertex path $P_3$.
+A type-II fusion destructively measures the two-qubit Paulis $X\otimes Z$ and $Z\otimes X$ on a
+pair of qubits; on a graph state it removes the two measured vertices and rewires their
+neighborhoods, up to Pauli byproducts that are absorbed into the local-Clifford equivalence.
+Because intermediate and final states are tracked only up to local Cliffords, fusion conventions
+that differ by single-qubit Cliffords on the measured pair yield the same cost $\F$.
+
+\paragraph{Model dependence.} The value $\F$ is specific to this resource and this fusion. Other
+natural models---for instance models with emitter-generated caterpillar resources---assign
+different values, and the extremal class can differ between models. We fix the $\GHZ$ model
+throughout and use externally tabulated values from other models only as soft cross-checks, never
+as ground truth.
+
+\paragraph{The universal lower bound.} Suppose a schedule consumes $g$ copies of $|\GHZ\rangle$ and
+performs $f$ fusions to produce a connected $\N$-vertex graph state. Each resource contributes
+three qubits and each fusion consumes two, so
+\begin{equation}\label{eq:qubits}
+  3g-2f=\N.
+\end{equation}
+The $g$ resources begin as $g$ connected components and the target is a single component.
+Components merge only when a fusion consumes one qubit from each of two distinct components, and a
+resource that never merges into the final component must instead have all three of its qubits
+consumed by fusions, which costs more than merging it; an induction over the schedule gives
+$f\ge g-1$. Substituting $g\le f+1$ into~\eqref{eq:qubits} yields
+$\N=3g-2f\le 3(f+1)-2f=f+3$, hence
+
+\begin{proposition}[Universal lower bound]\label{prop:lb}
+$\F(G)\ge \N-3$ for every connected $G$ on $\N$ vertices.
+\end{proposition}
+
+This is the content of the Lean declaration \code{fusion\_cost\_lower\_bound}. The component
+bookkeeping is not assumed but derived from a merge model of the schedule; in particular the Lean
+proof covers the degenerate steps in which a fusion splits a component or consumes one outright,
+which the one-line argument above glosses over.
+
+\section{The Empiricist harness}\label{sec:methods}
+
+The results were obtained by a harness (``Empiricist'') that drives a language model, Fable~5,
+through research tasks while forbidding it any unverified step. Four of its design commitments bear
+on how the results should be read.
+
+\paragraph{An append-only epistemic ledger.} Every artifact---a computed value, a construction, a
+conjecture, a Lean module---enters a ledger at a status in the ordered set
+\[
+  \textsc{refuted}<\textsc{heuristic}<\textsc{conjectured}<\textsc{verified}_{\N}<\textsc{certified}<\textsc{formalized},
+\]
+and rises only when accompanied by an evidence row from a verifier. \textsc{refuted} is terminal.
+Nothing the model merely asserts is recorded above \textsc{heuristic}. Artifacts are addressed by
+content hash and certificates embed exact version pins, so results are reproducible from the ledger
+alone.
+
+\paragraph{The model never executes.} Fable~5 emits structured JSON---a conjecture, a construction,
+or a complete Lean module---and the harness runs every program in a sandbox. This keeps the
+boundary between a model's suggestion and a checked fact sharp, and it is what lets us attribute
+the mathematics to the model while still calling the results verified. The harness itself---ledger,
+executor, verifiers, gate---is conventional software.
+
+\paragraph{Two independent physical verifiers.} Fusion outcomes are checked by two stabilizer
+engines that share no code: a tableau simulator built on \textsc{stim}~\cite{stim} and a GF(2)
+bitmask implementation written independently from the physical specification. A fusion move is
+accepted only when both engines agree on the resulting stabilizer state up to local Clifford
+equivalence; disagreement is treated as a fault that halts the campaign. The closed-form graph
+rewrite for each resource merge is trusted only because it matches both engines on a fuzz test
+against random input states, cross-checked against \textsc{nauty}'s canonical
+forms~\cite{nauty}.
+
+\paragraph{A hardened Lean trust gate.} A submitted Lean~4~\cite{lean4} module is elaborated in a
+sandbox with network and process creation denied and an ephemeral write jail, against a frozen
+read-only snapshot of a pinned \textsc{mathlib}~\cite{mathlib}. The kernel result is re-checked by
+an independent checker; the axiom set is required to lie within
+$\{\code{propext},\code{Classical.choice},\code{Quot.sound}\}$; every import must resolve to a
+member of an explicit trusted set; and the build directory is swept for residue after elaboration.
+The gate was developed against successive rounds of adversarial red-teaming (poisoned olean files,
+time-of-check/time-of-use swaps, axiom-hiding elaborators), with each exploit repaired before the
+gate was used in production.
+
+\paragraph{The formalization loop.} To formalize a statement the model emits a complete Lean module
+as JSON; the gate either accepts it or returns structured diagnostics, including the exact proof
+obligations remaining at unfilled holes. The model revises across rounds until the module passes.
+The loop uses no shell and no interactive proof assistant on the model's side; the model develops a
+proof by reading goal states the gate reports, not by running Lean.
+
+\section{The certified tablebase}\label{sec:tablebase}
+
+The harness organized the connected graphs with $3\le\N\le 9$ into local-complementation orbits
+(relabeling and local complementation identified); there are $585$. For each orbit the ledger
+records whether $\F=\N-3$, with a machine certificate either way: when the orbit is extremal, a
+fusion schedule with $\N-3$ fusions whose outcome both engines accept, meeting the lower bound of
+Proposition~\ref{prop:lb}; when it is not, a certified refutation of every schedule at the floor.
+(By the counting argument of Section~\ref{sec:reverse}, a schedule with $\N-3$ fusions consumes
+$\N-2$ resources and every one of its fusions joins two components, so the floor schedules form a
+finite space; each fusion outcome in the exhaustion is computed by both engines.) The resulting
+object---$585$ rows, each an orbit representative with its verdict and certificates---is a single
+content-addressed artifact at status $\textsc{verified}_\N$.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrrrrrr}
+\toprule
+$\N$ & 3 & 4 & 5 & 6 & 7 & 8 & 9 & total\\
+\midrule
+connected orbits           & 1 & 2 & 4 & 11 & 26 & 101 & 440 & 585\\
+extremal ($\F=\N-3$)       & 1 & 2 & 3 &  8 & 15 &  42 & 104 & 175\\
+non-extremal ($\F>\N-3$)   & 0 & 0 & 1 &  3 & 11 &  59 & 336 & 410\\
+\bottomrule
+\end{tabular}
+\caption{Connected local-complementation orbits by vertex count, split by whether the orbit attains
+the universal minimum $\F=\N-3$. The extremal set has $175$ orbits; all are distance-hereditary.}
+\label{tab:counts}
+\end{table}
+
+Table~\ref{tab:counts} records the split. Two further outcomes of the campaign are worth noting.
+First, exact values strictly above the floor were closed for thirteen orbits. Ten sit one tier up,
+at $\F=\N$ (one orbit at $\N=5$, two at $\N=6$, seven at $\N=7$), and were closed by deterministic
+search. Three sit two tiers up, at $\F=\N+3$, and were closed by model-proposed schedules: a
+six-vertex three-regular orbit at $\F=9$, realized with eight resources, nine fusions, and three
+local-complementation steps, and two seven-vertex orbits at $\F=10$; each schedule was
+independently re-verified by both engines. Second, the natural refinement
+$\F=\N-3+3(\rw(G)-1)$, which would make the fusion cost a linear function of rank-width, is false:
+a seven-vertex orbit of rank-width two carries a certified bound $\F\ge \N+3=10$, whereas the
+formula predicts $\F=\N=7$. Rank-width captures the extremal boundary exactly but does not
+determine the cost above it.
+
+\section{The extremal class is distance-hereditary}\label{sec:characterization}
+
+\paragraph{Discovery.} The harness presented the model with the complete labeled catalogue of the
+$44$ orbits with $\N\le 7$, each as an edge list tagged extremal or not, with no invariant, class
+name, or hint in the prompt beyond the true observation that the target property is a
+local-complementation invariant. The model proposed that the extremal orbits are exactly the
+distance-hereditary graphs, supplying the standard equivalent characterizations (metric, rank-width
+at most one, forbidden induced house/gem/domino/long-cycle, and pendant/twin reducibility), the
+relevant invariance results~\cite{bandeltmulder,oum-rw,bouchet}, and the identification of the
+smallest obstruction: the unique non-extremal five-vertex orbit is the local-complementation orbit
+of $C_5$.
+
+\paragraph{Grounding.} A deterministic checker---Bandelt--Mulder pendant/twin elimination, which
+reduces a graph to a single vertex if and only if it is distance-hereditary---was run on all $585$
+orbits and compared against the extremal label. The classification $\F=\N-3\Leftrightarrow$
+distance-hereditary holds with zero exceptions, including on the $541$ held-out orbits with
+$\N\in\{8,9\}$ that the model never saw. The proposal was recorded as a \textsc{conjectured}
+artifact, promoted from \textsc{heuristic} by this grounding.
+
+Every family for which we prove $\F=\N-3$ in Section~\ref{sec:families} is distance-hereditary,
+which is why each attains the bound: trees, complete graphs, and complete bipartite graphs all
+have rank-width at most one.
+
+\section{Formalized families and the lower bound}\label{sec:families}
+
+The Lean development begins with Proposition~\ref{prop:lb}, formalized as a self-contained module,
+and with a production predicate. $\Prod_k(G)$ holds when the concrete graph $G$ is obtained from
+$P_3$ by $k$ successive \emph{leaf-merges}, up to isomorphism; a leaf-merge attaches one pendant
+vertex, and its graph rewrite is proved in Lean to be isomorphic to that of the physical resource
+merge at a leaf qubit, whose physical meaning is engine-verified (Section~\ref{sec:methods}). The
+predicate deliberately has no local-complementation constructor, so it generates exactly the
+trees; local equivalence enters only when a statement about $\F$ is made.
+
+\begin{theorem}[Families]\label{thm:families}
+In the $\GHZ$ model, $\F(G)=\N-3$ for $G$ a path, a star, any tree, a complete graph $K_\N$, or a
+complete bipartite graph $K_{m,n}$. Each is a Lean theorem: the lower bound is
+Proposition~\ref{prop:lb}, and the upper bound exhibits a graph $H\sim_{\LC}G$ with
+$\Prod_{\N-3}(H)$.
+\end{theorem}
+
+The proofs reduce each family to a producible tree up to local complementation: $K_\N$ is one local
+complementation from a star, $K_{m,n}$ is three from a double star, and trees are produced directly
+by leaf-removal induction, of which paths and stars are special cases. The statements are faithful
+in a strict sense: each carries the general lower bound in its own statement---quantifying over
+arbitrary fusion schedules, not only the exhibited construction---so that a theorem cannot be true
+for a vacuous or circular reason.
+
+\begin{remark}[Induction must track concrete graphs]\label{rem:naive}
+Although every statement about $\F$ is invariant under local complementation, the inductions cannot
+be conducted on $\sim_{\LC}$ orbits, because pendant addition does not descend to orbits:
+$P_3\sim_{\LC}K_3$, yet attaching a pendant to the center of $P_3$ yields the four-vertex star,
+while attaching a pendant to a vertex of $K_3$ yields the paw, which is LC-equivalent to $P_4$ and
+not to the star. The Lean development therefore carries exact graphs through every induction and
+applies local complementation only explicitly.
+\end{remark}
+
+\section{The forward direction of the characterization}\label{sec:forward}
+
+Theorem~\ref{thm:families} covers exactly the graphs locally equivalent to a tree: since $\Prod$
+generates the trees and nothing else, it can witness the floor only on the local-complementation
+orbit of a tree. This is a strict subclass of the distance-hereditary graphs. A direct check on
+the tablebase shows that of the $175$ extremal orbits, $93$ contain a tree in their
+local-complementation orbit and $82$ do not---two at $\N=6$, four at $\N=7$, nineteen at $\N=8$,
+and fifty-seven at $\N=9$. (The orbit enumerations behind these counts ran to completion; a safety
+cap of $200000$ graphs per orbit was never reached.) The forward direction of
+Theorem~\ref{thm:main} is therefore not provable in that model.
+
+\paragraph{The missing primitive.} The obstruction is a missing operation, not a difficult proof.
+The physical resource merge fuses one qubit $a$ of the current state with one qubit of a fresh
+$|\GHZ\rangle$, and up to the symmetry of $P_3$ there are two choices: the fused resource qubit is
+a leaf or the center. The leaf choice attaches a pendant. The center choice removes the fused
+state vertex $a$ and introduces the two resource leaves, each adjacent to exactly the former
+neighborhood of $a$ and not to each other; up to relabeling this is $\mathrm{addFalseTwin}(G,a)$.
+In Lean the center-merge rewrite is proved isomorphic to false-twin addition
+(\code{ghz3CenterMerge\_iso\_addFalseTwin}); physically, the closed form matches the engine
+outcome up to local Clifford equivalence on $400$ of $400$ random input states, with the two
+engines agreeing with each other on all $400$---the same discipline already applied to the
+leaf-merge. The center merge is a genuine one-fusion primitive; the production model had simply
+never included it.
+
+\paragraph{The extended model.} We formalize the production predicate $\Prod^{+}_k$ generated by
+five constructors: the base $P_3$; the leaf-merge (pendant) and center-merge (false twin), each
+adding one vertex and one fusion; local complementation, which is free; and graph isomorphism.
+Because distance-hereditary graphs are closed under pendant addition, twin addition, local
+complementation, and isomorphism, every $\Prod^{+}$-producible graph is distance-hereditary. The
+converse is the content of the forward direction.
+
+\begin{theorem}[Forward direction, formalized]\label{thm:forward}
+Let $\mathsf{DH}$ denote the class generated from the connected three-vertex graphs ($P_3$ and
+$K_3$) by pendant, false-twin, and true-twin additions, closed under isomorphism; these are
+exactly the connected distance-hereditary graphs on at least three
+vertices~\cite{bandeltmulder}. Then, as a Lean theorem,
+\[
+  G\in\mathsf{DH}\ \Longrightarrow\ \Prod^{+}_{\N-3}(G),
+\]
+and hence, with Proposition~\ref{prop:lb}, $\F(G)=\N-3$.
+\end{theorem}
+
+The proof is a structural induction on the Bandelt--Mulder build, carrying the exact graph as
+Remark~\ref{rem:naive} requires. A pendant addition maps to a leaf-merge; a false-twin addition
+maps to a center-merge; a true-twin addition is realized as local complementation, then a
+leaf-merge, then local complementation, using the graph identity
+\[
+  \mathrm{lc}\big(\mathrm{addPendant}(G,u),\,u\big)\;=\;\mathrm{addTrueTwin}\big(\mathrm{lc}(G,u),\,u\big)
+\]
+together with the involutivity of local complementation. No search for a witness is needed:
+tracking the exact graph through the extended model turns each build step into one constructor.
+This is what makes the theorem short once the extended model is in place, and it is the step at
+which the ``locally equivalent to a tree'' obstruction dissolves.
+
+\section{The reverse direction}\label{sec:reverse}
+
+The reverse direction is proved at the level of the extended model and then lifted to the physical
+minimum by counting.
+
+\begin{theorem}[Model characterization, formalized]\label{thm:reverse}
+As a Lean theorem,
+\[
+  \Prod^{+}_{\N-3}(G)\ \Longleftrightarrow\ G\in\mathsf{DH}.
+\]
+\end{theorem}
+
+The right-to-left implication is Theorem~\ref{thm:forward}. The left-to-right implication is a
+structural induction on $\Prod^{+}$: the base is a three-vertex core, the leaf-merge and
+center-merge map back to a pendant and a false twin through the same faithfulness isomorphisms
+used above, and local complementation and isomorphism map to themselves. Making the last two steps
+immediate requires recording that $\mathsf{DH}$ is closed under local complementation; since
+rank-width at most one is a local-complementation invariant this does not enlarge the class, and
+it replaces what would otherwise be a family of transport identities by a single constructor.
+
+\paragraph{From the model to the physical minimum.} Theorem~\ref{thm:reverse} concerns the extended
+model; the passage to $\F$ is an exact counting argument. Suppose a schedule attains
+$f=\F(G)=\N-3$ using $g$ resources. By~\eqref{eq:qubits}, $3g=\N+2f=3\N-6$, so $g=\N-2$, and the
+component bound $f\ge g-1=\N-3$ holds with equality. Equality forces every fusion to consume one
+qubit from each of two distinct components: there are no intra-component fusions. Since a fusion
+destroys both of its qubits, the $\N-3$ fusions act on pairwise disjoint qubit pairs and commute;
+assigning to each fusion the pair of resources owning its qubits yields a connected graph on the
+$\N-2$ resources with $\N-3$ edges---a tree. Reordering the fusions along a root-first traversal
+of this tree gives an equivalent schedule in which every fusion merges one fresh resource into a
+single growing component. Up to the free local Cliffords, a fresh resource carries the graph $P_3$
+or its local complement $K_3$, so each merge fuses the growing state with a leaf of $P_3$, the
+center of $P_3$, or a vertex of $K_3$; on graphs these realize a pendant, a false twin, or a true
+twin respectively, and all three are available in $\Prod^{+}$ (the true twin via the identity of
+Section~\ref{sec:forward}), while local Cliffords on the growing state are local complementations,
+free in $\Prod^{+}$. The reordered schedule is therefore a $\Prod^{+}$ derivation. Hence
+$\F(G)=\N-3$ implies $\Prod^{+}_{\N-3}(G)$, and with Theorem~\ref{thm:reverse}, $G$ is
+distance-hereditary. Combined with Theorem~\ref{thm:forward} this proves Theorem~\ref{thm:main}.
+
+\begin{remark}
+The counting bridge is not internalized as a single Lean theorem, for a concrete reason: an
+intra-component fusion has no closed-form graph rewrite---the harness computes it only through the
+stabilizer engines---so a general-schedule model in which Lean could state ``$\F(G)=\N-3$''
+directly is not available. The alternative classical route to the reverse direction (every graph
+that is not distance-hereditary has $\F>\N-3$) would run through rank-width lower
+bounds~\cite{oum-rw,oum-seymour}, and rank-width is not present in \textsc{mathlib}. The counting
+argument above avoids both obstacles at the standard of rigor of this paper, at the price of
+leaving the bridge outside Lean.
+\end{remark}
+
+\section{Discussion}
+
+\paragraph{The modeled boundary.} The two fusion primitives are the one place where the formal
+development rests on something other than the Lean kernel. Inside Lean they are graph rewrites;
+their right to be called ``one fusion'' comes from agreement between two independent stabilizer
+engines and a canonical-form cross-check, not from a derivation of qubit semantics in Lean. This is
+a deliberate boundary, stated rather than hidden: the combinatorial optimization is proved, and the
+physical primitive it optimizes over is pinned down by redundant simulation. A fully
+first-principles account would formalize the stabilizer formalism and the Bell measurement in Lean
+and re-derive the two rewrites; that is a separate and larger undertaking.
+
+\paragraph{Discovery under discipline.} The characterization was proposed by the model from labeled
+data and then survived an exhaustive deterministic check; the forward direction was formalized by
+the model against a gate it could not talk its way past. The discipline has a measurable payoff
+beyond trust: the deterministic recheck of the characterization corrected an arithmetic error in an
+earlier hand-written note (the extremal/non-extremal split is $175/410$, not $185/400$), and the
+faithfulness requirement on Theorem~\ref{thm:families} caught a near-circular statement in which
+the construction class had been silently baked into the claim. A workflow that permits unchecked
+assertion would have surfaced neither.
+
+\paragraph{Open questions.} Three stand out. First, the physical reverse direction as a single Lean
+theorem, which appears to require either a formalized intra-component fusion rewrite or rank-width
+in \textsc{mathlib}. Second, a finer invariant governing $\F$ above the extremal boundary, where
+rank-width is insufficient (Section~\ref{sec:tablebase}). Third, the complexity of computing $\F$:
+the characterization makes the decision problem $\F(G)\stackrel{?}{=}\N-3$ solvable in polynomial
+time, since distance-hereditary graphs are recognizable in polynomial time via pendant/twin
+elimination~\cite{bandeltmulder}, but the complexity of computing $\F$ in general is open.
+
+\section{Conclusion}
+
+In the $\GHZ$ fusion model the graphs that attain the universal minimum fusion count are precisely
+the distance-hereditary graphs. The characterization was proposed by a language model from
+certified data, holds with no exception on all $585$ connected local-complementation orbits with at
+most nine vertices, and is formalized in Lean~4 in the forward direction and, in the reverse
+direction, at the level of a production model that an exact counting argument connects to the
+physical minimum. The development was carried out end to end by an autonomous harness under a
+discipline that records nothing above a heuristic without a machine artifact; that discipline is
+both how the result was obtained and the sense in which it should be trusted.
+
+\appendix
+\section{Principal Lean declarations}
+
+Table~\ref{tab:lean} lists the main formalized statements. All are checked by the hardened gate and
+use only the axioms $\{\code{propext},\code{Classical.choice},\code{Quot.sound}\}$. The foundation
+modules are committed and reusable; the theorem modules are recorded as gate-certified ledger
+artifacts.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+declaration & statement & role\\
+\midrule
+\code{fusion\_cost\_lower\_bound} & $\F(G)\ge \N-3$ (schedule form) & Prop.~\ref{prop:lb}\\
+\code{pathGraph\_min\_fusions}    & $\F(\text{path}_\N)=\N-3$        & Thm.~\ref{thm:families}\\
+\code{star\_min\_fusions}         & $\F(\text{star}_\N)=\N-3$        & Thm.~\ref{thm:families}\\
+\code{tree\_min\_fusions}         & $\F(T)=\N-3$ for all trees       & Thm.~\ref{thm:families}\\
+\code{complete\_min\_fusions}     & $\F(K_\N)=\N-3$                  & Thm.~\ref{thm:families}\\
+\code{completeBipartite\_min\_fusions} & $\F(K_{m,n})=\N-3$          & Thm.~\ref{thm:families}\\
+\code{ghz3CenterMerge\_iso\_addFalseTwin} & center-merge $=$ false twin & Sec.~\ref{sec:forward}\\
+\code{dh\_forward} / \code{dh\_min\_fusions} & $\mathsf{DH}\Rightarrow \Prod^{+}_{\N-3}$ & Thm.~\ref{thm:forward}\\
+\code{dh\_characterization}       & $\Prod^{+}_{\N-3}(G)\Leftrightarrow G\in\mathsf{DH}$ & Thm.~\ref{thm:reverse}\\
+\bottomrule
+\end{tabular}
+\caption{Principal formalized declarations, against \textsc{mathlib} pinned at \code{v4.31.0}.}
+\label{tab:lean}
+\end{table}
+
+\begin{thebibliography}{10}
+
+\bibitem{fbqc}
+S.~Bartolucci, P.~Birchall, H.~Bomb\'in, et al.,
+\newblock Fusion-based quantum computation,
+\newblock \emph{Nature Communications} \textbf{14}, 912 (2023).
+
+\bibitem{graphstates}
+M.~Hein, J.~Eisert, and H.~J.~Briegel,
+\newblock Multiparty entanglement in graph states,
+\newblock \emph{Physical Review A} \textbf{69}, 062311 (2004).
+
+\bibitem{vandennest}
+M.~Van den Nest, J.~Dehaene, and B.~De Moor,
+\newblock Graphical description of the action of local Clifford transformations on graph states,
+\newblock \emph{Physical Review A} \textbf{69}, 022316 (2004).
+
+\bibitem{bouchet}
+A.~Bouchet,
+\newblock Graphic presentations of isotropic systems,
+\newblock \emph{Journal of Combinatorial Theory, Series B} \textbf{45}, 58--76 (1988).
+
+\bibitem{bandeltmulder}
+H.-J.~Bandelt and H.~M.~Mulder,
+\newblock Distance-hereditary graphs,
+\newblock \emph{Journal of Combinatorial Theory, Series B} \textbf{41}, 182--208 (1986).
+
+\bibitem{howorka}
+E.~Howorka,
+\newblock A characterization of distance-hereditary graphs,
+\newblock \emph{The Quarterly Journal of Mathematics} \textbf{28}, 417--420 (1977).
+
+\bibitem{oum-rw}
+S.~Oum,
+\newblock Rank-width and vertex-minors,
+\newblock \emph{Journal of Combinatorial Theory, Series B} \textbf{95}, 79--100 (2005).
+
+\bibitem{oum-seymour}
+S.~Oum and P.~Seymour,
+\newblock Approximating clique-width and branch-width,
+\newblock \emph{Journal of Combinatorial Theory, Series B} \textbf{96}, 514--528 (2006).
+
+\bibitem{lean4}
+L.~de Moura and S.~Ullrich,
+\newblock The Lean~4 theorem prover and programming language,
+\newblock in \emph{Automated Deduction -- CADE 28}, Springer, 625--635 (2021).
+
+\bibitem{mathlib}
+The mathlib Community,
+\newblock The Lean mathematical library,
+\newblock in \emph{Proc.\ 9th ACM SIGPLAN Int.\ Conf.\ on Certified Programs and Proofs (CPP)}, 367--381 (2020).
+
+\bibitem{stim}
+C.~Gidney,
+\newblock Stim: a fast stabilizer circuit simulator,
+\newblock \emph{Quantum} \textbf{5}, 497 (2021).
+
+\bibitem{nauty}
+B.~D.~McKay and A.~Piperno,
+\newblock Practical graph isomorphism, II,
+\newblock \emph{Journal of Symbolic Computation} \textbf{60}, 94--112 (2014).
+
+\end{thebibliography}
+
+\end{document}
