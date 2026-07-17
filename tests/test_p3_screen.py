@@ -55,6 +55,12 @@ def test_screen_rejects_oversize_ancilla_terms():
         screen_scheme(_bsm_dict(n_modes=6, n_ancilla_photons=1, ancilla=terms))
 
 
+def test_screen_rejects_huge_mode_index():
+    el = {"kind": "bs", "i": 10**500, "j": 0, "theta": 0.1, "phi": 0.0}
+    with pytest.raises(ScreenReject):
+        screen_scheme(_bsm_dict(mesh=[el]))
+
+
 def test_screen_rejects_invalid_scheme_as_screenreject():
     # validation failures (here: schema-invalid extra field is NOT the screen's job,
     # but a converter-level ValueError IS): unnormalized ancilla

@@ -47,5 +47,5 @@ def screen_scheme(raw: dict) -> BellScheme:
             raise ScreenReject("ancilla pattern photon count exceeds cap")
     try:
         return scheme_from_out(out)
-    except (ValueError, TypeError) as exc:
+    except Exception as exc:  # any converter defect (e.g. OverflowError on huge ints)
         raise ScreenReject(f"invalid scheme: {exc}") from exc
