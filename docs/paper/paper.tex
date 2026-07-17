@@ -56,10 +56,13 @@ orbits on at most seven vertices, after which all $541$ held-out orbits on eight
 vertices proved consistent; and formalized the core of the result in Lean~4 against an
 adversarially hardened trust gate. Formalizing the forward direction
 (distance-hereditary $\Rightarrow \F=\N-3$) required extending the production model with a second
-fusion primitive, itself verified against both engines; the reverse direction is a Lean theorem at
-the level of that model, and an exact counting argument lifts it to the physical minimum. Under
-the harness's discipline no claim is recorded above the status of a heuristic without a machine
-artifact, and the mathematics, the conjecture, and the Lean proofs were authored by the model.
+fusion primitive, itself verified against both engines; the reverse direction is a Lean theorem in
+a single-blob schedule model that over-approximates intra-blob fusions, where a formalized counting
+argument shows that no schedule at the floor can use one, and the only step left to the physical
+minimum is the reduction of an arbitrary schedule to a single growing blob by commutation of
+fusions on disjoint qubit pairs. Under the harness's discipline no claim is recorded above the
+status of a heuristic without a machine artifact, and the mathematics, the conjecture, and the
+Lean proofs were authored by the model.
 \end{abstract}
 
 \section{Introduction}
@@ -114,9 +117,11 @@ constituent parts:
 \item a Lean~4 proof of the forward direction of Theorem~\ref{thm:main}
       (distance-hereditary $\Rightarrow \F=\N-3$), obtained by extending the production model with
       a second, engine-verified fusion primitive (Section~\ref{sec:forward}); and
-\item a Lean~4 equivalence identifying the graphs producible in the extended model at the floor
-      with the distance-hereditary graphs, together with the counting argument that lifts its
-      reverse direction to the physical minimum (Section~\ref{sec:reverse}).
+\item a Lean~4 equivalence identifying the graphs producible at the universal floor with the
+      distance-hereditary graphs, in a single-blob schedule model whose \code{intra} constructor
+      over-approximates intra-blob fusions (\code{floor\_schedule\_iff\_dh}); the lift to the
+      physical minimum now rests only on the single-blob normal form, a reordering justified by
+      the commutation of fusions on disjoint qubit pairs (Section~\ref{sec:reverse}).
 \end{enumerate}
 
 The paper also documents the method. Every item above was discovered or written by an autonomous
@@ -132,16 +137,19 @@ machine-aided result, we state them plainly and keep to them throughout.
 \item \emph{Lean theorem}: a statement checked by the Lean~4 kernel and a hardened gate, using only
       the axioms \code{propext}, \code{Classical.choice}, \code{Quot.sound}, against
       \textsc{mathlib} pinned at \code{v4.31.0}. The lower bound, the five families, the forward
-      direction, and the model-level equivalence are of this kind.
+      direction, the model-level equivalence, and the counting bridge in the single-blob schedule
+      model of Section~\ref{sec:reverse} are of this kind.
 \item \emph{Engine-verified}: a fact about the physical fusion operation confirmed by two
       independently implemented stabilizer simulators that share no code. The two fusion primitives
       used by the production model are of this kind; inside Lean they are graph rewrites, and their
       right to be called ``one fusion'' rests on the engine agreement rather than on a derivation
       of qubit semantics in Lean.
-\item \emph{Prose argument}: the counting bridge of Section~\ref{sec:reverse}, which shows that a
-      schedule attaining $f=\N-3$ has a shape realizable in the extended model. It is proved here
-      at the ordinary standard of rigor of a mathematics paper but is not formalized; the remark in
-      Section~\ref{sec:reverse} explains why.
+\item \emph{Prose argument}: the single-blob normal form of Section~\ref{sec:reverse}, which shows
+      that an arbitrary multi-component schedule can be reordered, by commutation of fusions on
+      disjoint qubit pairs, into one that grows a single blob. It is proved here at the ordinary
+      standard of rigor of a mathematics paper and rests on a domain-level, engine-checked
+      reduction; it is not formalized. The counting bridge itself, previously in this category, is
+      now a Lean theorem in the single-blob model (Section~\ref{sec:reverse}).
 \end{itemize}
 Theorem~\ref{thm:main} combines all three. Independently of its proof, the biconditional was
 checked against the certified tablebase on all $585$ orbits and holds with no exception.
@@ -409,32 +417,65 @@ rank-width at most one is a local-complementation invariant this does not enlarg
 it replaces what would otherwise be a family of transport identities by a single constructor.
 
 \paragraph{From the model to the physical minimum.} Theorem~\ref{thm:reverse} concerns the extended
-model; the passage to $\F$ is an exact counting argument. Suppose a schedule attains
-$f=\F(G)=\N-3$ using $g$ resources. By~\eqref{eq:qubits}, $3g=\N+2f=3\N-6$, so $g=\N-2$, and the
-component bound $f\ge g-1=\N-3$ holds with equality. Equality forces every fusion to consume one
-qubit from each of two distinct components: there are no intra-component fusions. Since a fusion
-destroys both of its qubits, the $\N-3$ fusions act on pairwise disjoint qubit pairs and commute;
-assigning to each fusion the pair of resources owning its qubits yields a connected graph on the
-$\N-2$ resources with $\N-3$ edges---a tree. Reordering the fusions along a root-first traversal
-of this tree gives an equivalent schedule in which every fusion merges one fresh resource into a
-single growing component. Up to the free local Cliffords, a fresh resource carries the graph $P_3$
-or its local complement $K_3$, so each merge fuses the growing state with a leaf of $P_3$, the
-center of $P_3$, or a vertex of $K_3$; on graphs these realize a pendant, a false twin, or a true
-twin respectively, and all three are available in $\Prod^{+}$ (the true twin via the identity of
-Section~\ref{sec:forward}), while local Cliffords on the growing state are local complementations,
-free in $\Prod^{+}$. The reordered schedule is therefore a $\Prod^{+}$ derivation. Hence
-$\F(G)=\N-3$ implies $\Prod^{+}_{\N-3}(G)$, and with Theorem~\ref{thm:reverse}, $G$ is
-distance-hereditary. Combined with Theorem~\ref{thm:forward} this proves Theorem~\ref{thm:main}.
+model, in which every fusion attaches a fresh resource. The gap between that model and the physical
+minimum has two parts: a schedule may perform \emph{intra-blob} fusions, consuming two qubits of
+the same component, and it may grow several components in parallel before merging them. The first
+part is now internalized in Lean. We formalize a schedule model $\mathsf{BlobSchedule}_f(G)$ (Lean
+inductive \code{BlobSchedule}, module \code{Bridge}) with the five constructors of $\Prod^{+}$
+together with a sixth, \code{intra}, which over-approximates an intra-blob fusion: from a graph on
+a carrier $V$ it may produce \emph{any} graph on a carrier whose cardinality is smaller by two, at
+the cost of one fusion, with no rewrite assumed. Whatever an intra-blob fusion does physically---it
+removes the two measured qubits and rewires the rest in a way the harness computes only through the
+engines---it is an instance of this constructor. Two counting facts then close the case in Lean.
+The lemma \code{BlobSchedule.natCard\_le} shows that any $\mathsf{BlobSchedule}_f(G)$ has at most
+$f+3$ vertices: each merge gains one vertex per fusion, and an intra-fusion loses two vertices
+while still spending a fusion. The theorem \code{blobSchedule\_floor} shows that at the floor
+$|V|=f+3$ the \code{intra} case is impossible---its sub-derivation would violate the lemma---so a
+floor schedule collapses into $\Prod^{+}_f$. Combined with Theorem~\ref{thm:reverse} this yields:
+
+\begin{theorem}[Counting bridge, formalized]\label{thm:bridge}
+As a Lean theorem (\code{floor\_schedule\_iff\_dh}), for $\N\ge 3$,
+\[
+  \mathsf{BlobSchedule}_{\N-3}(G)\ \Longleftrightarrow\ G\in\mathsf{DH}.
+\]
+\end{theorem}
+
+Even a model generous enough to let an intra-fusion produce an arbitrary graph on two fewer
+vertices cannot use one at the floor, and the floor is attained exactly by the distance-hereditary
+graphs.
+
+The second part---the \emph{single-blob normal form}---is the one step that remains a prose
+argument. Suppose a physical schedule attains $f=\F(G)=\N-3$ using $g$ resources. Since a fusion
+destroys both of its qubits, the fusions of a schedule act on pairwise disjoint qubit pairs and
+commute. Reordering the inter-component fusions along a root-first traversal of the merge structure
+on the resources, and placing each intra-component fusion after the resources carrying its qubits
+have been attached, gives an equivalent schedule in which every fusion either merges one fresh
+resource into a single growing blob or acts inside that blob. Up to the free local Cliffords a
+fresh resource carries the graph $P_3$ or its local complement $K_3$, so each merge fuses the
+growing state with a leaf of $P_3$, the center of $P_3$, or a vertex of $K_3$; on graphs these
+realize a pendant, a false twin, or a true twin respectively, all available in the model (the true
+twin via the identity of Section~\ref{sec:forward}), local Cliffords on the growing state are free
+local complementations, and each intra-blob fusion is an instance of \code{intra}. The reordered
+schedule is therefore a $\mathsf{BlobSchedule}_{\N-3}$ derivation, and Theorem~\ref{thm:bridge}
+gives that $G$ is distance-hereditary. (At the floor, \eqref{eq:qubits} gives $g=\N-2$ and the
+component bound holds with equality, so in fact every fusion joins two components; but the argument
+no longer depends on that exclusion, which now lives inside Lean as \code{blobSchedule\_floor}.)
+Combined with Theorem~\ref{thm:forward} this proves Theorem~\ref{thm:main}.
 
 \begin{remark}
-The counting bridge is not internalized as a single Lean theorem, for a concrete reason: an
-intra-component fusion has no closed-form graph rewrite---the harness computes it only through the
-stabilizer engines---so a general-schedule model in which Lean could state ``$\F(G)=\N-3$''
-directly is not available. The alternative classical route to the reverse direction (every graph
-that is not distance-hereditary has $\F>\N-3$) would run through rank-width lower
-bounds~\cite{oum-rw,oum-seymour}, and rank-width is not present in \textsc{mathlib}. The counting
-argument above avoids both obstacles at the standard of rigor of this paper, at the price of
-leaving the bridge outside Lean.
+The previous version of this paper reported the counting bridge as a prose argument, not
+internalized as a single Lean theorem, on the ground that an intra-component fusion has no
+closed-form graph rewrite---the harness computes it only through the stabilizer engines---so no
+Lean model of schedules with intra-fusions seemed available. The over-approximation in
+\code{BlobSchedule} sidesteps that obstacle: excluding an intra-fusion at the floor requires no
+rewrite at all, only the vertex count, which is exactly what \code{BlobSchedule.natCard\_le} and
+\code{blobSchedule\_floor} record. What remains outside Lean is only the single-blob normal
+form---the reduction of an arbitrary multi-component schedule to a single growing blob, justified
+by the commutation of fusions on disjoint qubit pairs; it is a domain-level reduction, checked by
+the engines, and not formalized. The alternative classical route to the reverse direction (every
+graph that is not distance-hereditary has $\F>\N-3$) would still run through rank-width lower
+bounds~\cite{oum-rw,oum-seymour}, and rank-width is not present in \textsc{mathlib}; the
+over-approximation makes that route unnecessary for this step.
 \end{remark}
 
 \section{Discussion}
@@ -457,11 +498,15 @@ faithfulness requirement on Theorem~\ref{thm:families} caught a near-circular st
 the construction class had been silently baked into the claim. A workflow that permits unchecked
 assertion would have surfaced neither.
 
-\paragraph{Open questions.} Three stand out. First, the physical reverse direction as a single Lean
-theorem, which appears to require either a formalized intra-component fusion rewrite or rank-width
-in \textsc{mathlib}. Second, a finer invariant governing $\F$ above the extremal boundary, where
-rank-width is insufficient (Section~\ref{sec:tablebase}). Third, the complexity of computing $\F$:
-the characterization makes the decision problem $\F(G)\stackrel{?}{=}\N-3$ solvable in polynomial
+\paragraph{Open questions.} Three stand out. First, the remaining step of the physical reverse
+direction: the single-blob normal form. The obstacle identified in the previous version of this
+paper---that an intra-component fusion has no closed-form rewrite---is gone, sidestepped by the
+over-approximation of Section~\ref{sec:reverse}; what remains open is to formalize the reduction of
+an arbitrary multi-component schedule to a single growing blob, that is, a Lean model of general
+schedules together with the reordering argument by commutation of fusions on disjoint qubit pairs.
+Second, a finer invariant governing $\F$ above the extremal boundary, where rank-width is
+insufficient (Section~\ref{sec:tablebase}). Third, the complexity of computing $\F$: the
+characterization makes the decision problem $\F(G)\stackrel{?}{=}\N-3$ solvable in polynomial
 time, since distance-hereditary graphs are recognizable in polynomial time via pendant/twin
 elimination~\cite{bandeltmulder}, but the complexity of computing $\F$ in general is open.
 
@@ -471,10 +516,12 @@ In the $\GHZ$ fusion model the graphs that attain the universal minimum fusion c
 the distance-hereditary graphs. The characterization was proposed by a language model from
 certified data, holds with no exception on all $585$ connected local-complementation orbits with at
 most nine vertices, and is formalized in Lean~4 in the forward direction and, in the reverse
-direction, at the level of a production model that an exact counting argument connects to the
-physical minimum. The development was carried out end to end by an autonomous harness under a
-discipline that records nothing above a heuristic without a machine artifact; that discipline is
-both how the result was obtained and the sense in which it should be trusted.
+direction, as a floor theorem for a single-blob schedule model that over-approximates intra-blob
+fusions; the one step connecting that theorem to the physical minimum---the reduction of an
+arbitrary schedule to a single growing blob---remains a prose argument backed by the engines. The
+development was carried out end to end by an autonomous harness under a discipline that records
+nothing above a heuristic without a machine artifact; that discipline is both how the result was
+obtained and the sense in which it should be trusted.
 
 \appendix
 \section{Principal Lean declarations}
@@ -500,6 +547,7 @@ declaration & statement & role\\
 \code{ghz3CenterMerge\_iso\_addFalseTwin} & center-merge $=$ false twin & Sec.~\ref{sec:forward}\\
 \code{dh\_forward} / \code{dh\_min\_fusions} & $\mathsf{DH}\Rightarrow \Prod^{+}_{\N-3}$ & Thm.~\ref{thm:forward}\\
 \code{dh\_characterization}       & $\Prod^{+}_{\N-3}(G)\Leftrightarrow G\in\mathsf{DH}$ & Thm.~\ref{thm:reverse}\\
+\code{floor\_schedule\_iff\_dh}   & $\mathsf{BlobSchedule}_{\N-3}(G)\Leftrightarrow G\in\mathsf{DH}$ & Thm.~\ref{thm:bridge}\\
 \bottomrule
 \end{tabular}
 \caption{Principal formalized declarations, against \textsc{mathlib} pinned at \code{v4.31.0}.}
