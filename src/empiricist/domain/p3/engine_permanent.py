@@ -49,7 +49,19 @@ class PermanentEngine:
     def output_distribution(
         self, mesh: Mesh, input_state: FockState
     ) -> dict[tuple[int, ...], float]:
+        """Assumes a normalized input amplitude vector; probabilities are
+        reported as computed (a non-normalized input yields a non-normalized
+        distribution)."""
         u = mesh_unitary(mesh)
+        if not input_state:
+            raise ValueError("empty input_state")
+        for pat in input_state:
+            if len(pat) != mesh.n_modes:
+                raise ValueError(
+                    f"input pattern {pat!r} has {len(pat)} modes, mesh has {mesh.n_modes}"
+                )
+            if any(n < 0 for n in pat):
+                raise ValueError(f"negative occupation in {pat!r}")
         n_photons = sum(next(iter(input_state)))
         for pat in input_state:
             if sum(pat) != n_photons:
@@ -63,6 +75,8 @@ class PermanentEngine:
                 per = _permanent(_submatrix(u, s, t))
                 amp += a_t * per / np.sqrt(factorial_prod(s) * factorial_prod(t))
             p = abs(amp) ** 2
+            # prune threshold; the cross-engine comparator must treat missing
+            # keys as 0.0 (union-of-keys), never compare key sets
             if p > 1e-15:
                 out[s] = float(p)
         return out

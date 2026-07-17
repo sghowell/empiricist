@@ -89,3 +89,35 @@ def test_superposed_input_engine_a():
     amp = 1 / np.sqrt(2)
     dist = eng.output_distribution(m, {(1, 0): amp, (0, 1): amp})
     assert abs(dist[(1, 0)] - 0.5) < 1e-12 and abs(dist[(0, 1)] - 0.5) < 1e-12
+
+
+def test_engine_a_rejects_malformed_inputs():
+    import pytest
+
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    eng = PermanentEngine()
+    m2 = Mesh(n_modes=2, elements=[])
+    with pytest.raises(ValueError):
+        eng.output_distribution(m2, {})
+    with pytest.raises(ValueError):
+        eng.output_distribution(m2, {(1, 1, 0): 1.0})
+    with pytest.raises(ValueError):
+        eng.output_distribution(Mesh(n_modes=3, elements=[]), {(1, 1): 1.0})
+    with pytest.raises(ValueError):
+        eng.output_distribution(m2, {(1, -1): 1.0})
+    with pytest.raises(ValueError):
+        eng.output_distribution(m2, {(1, 1): 0.5, (2, 0): 0.5, (1, 0): 0.5})  # mixed photon number
+
+
+def test_engine_a_vacuum_and_multiphoton():
+    from empiricist.domain.p3.engine_permanent import PermanentEngine
+    eng = PermanentEngine()
+    # vacuum passes through
+    d0 = eng.output_distribution(Mesh(n_modes=3, elements=[]), {(0, 0, 0): 1.0})
+    assert d0 == {(0, 0, 0): 1.0}
+    # |2,0> through a balanced BS: textbook 1/4, 1/2, 1/4
+    mbs = Mesh(n_modes=2, elements=[("bs", 0, 1, np.pi / 4, 0.0)])
+    d2 = eng.output_distribution(mbs, {(2, 0): 1.0})
+    assert abs(d2[(2, 0)] - 0.25) < 1e-12
+    assert abs(d2[(1, 1)] - 0.5) < 1e-12
+    assert abs(d2[(0, 2)] - 0.25) < 1e-12
