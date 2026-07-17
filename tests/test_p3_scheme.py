@@ -107,3 +107,54 @@ def test_scheme_validation():
     with pytest.raises(ValueError):
         BellScheme(n_modes=5, n_ancilla_photons=1, ancilla={(1, 0): 1.0},
                    mesh=Mesh(n_modes=5, elements=[])).validate()  # pattern length != m-4
+
+
+def _standard_bsm() -> BellScheme:
+    return BellScheme(
+        n_modes=4, n_ancilla_photons=0, ancilla={},
+        mesh=Mesh(n_modes=4, elements=[("bs", 0, 2, np.pi / 4, 0.0),
+                                       ("bs", 1, 3, np.pi / 4, 0.0)]),
+    )
+
+
+def test_verify_agreed_pass_and_fail():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    ok = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert ok.verdict == "PASS"
+    assert abs(ok.report.p_avg - 0.5) < 1e-10
+    miss = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.75)
+    assert miss.verdict == "FAIL"
+
+
+def test_verify_agreed_leakage_budget():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    eps = 1e-6
+    leaky = BellScheme(
+        n_modes=4, n_ancilla_photons=0, ancilla={},
+        mesh=Mesh(n_modes=4, elements=[("bs", 0, 1, eps, 0.0),
+                                       ("bs", 0, 2, np.pi / 4, 0.0),
+                                       ("bs", 1, 3, np.pi / 4, 0.0)]),
+    )
+    # default budget 0.0: the leaky scheme cannot PASS even though p_avg = 0.5
+    r0 = verify_scheme_agreed(leaky, claimed_p_avg=0.5)
+    assert r0.verdict == "FAIL"
+    # declared budget: PASS, and the claim carries its bound
+    r1 = verify_scheme_agreed(leaky, claimed_p_avg=0.5, claimed_max_leakage=1e-11)
+    assert r1.verdict == "PASS"
+    assert r1.report.leakage > 0.0
+
+
+def test_verify_agreed_error_on_disagreement(monkeypatch):
+    from empiricist.domain.p3 import verify as vmod
+
+    class LyingEngine(vmod.FockEngine):
+        def output_distribution(self, mesh, state):
+            d = super().output_distribution(mesh, state)
+            k = next(iter(d))
+            d[k] = d[k] + 0.5  # corrupt one probability
+            return d
+
+    monkeypatch.setattr(vmod, "FockEngine", LyingEngine)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+    assert "disagree" in r.detail
