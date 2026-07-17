@@ -60,6 +60,8 @@ class PermanentEngine:
                 raise ValueError(
                     f"input pattern {pat!r} has {len(pat)} modes, mesh has {mesh.n_modes}"
                 )
+            # bool coercion (True -> 1) is accepted; numpy ints are rejected by
+            # the isinstance check -- both intentional under JSON provenance.
             if any((not isinstance(n, int)) or n < 0 for n in pat):
                 raise ValueError(f"occupations must be non-negative integers, got {pat!r}")
         n_photons = sum(next(iter(input_state)))

@@ -5,8 +5,11 @@ Dual-rail encoding on modes 0..3 (qubit A rails 0,1; qubit B rails 2,3):
   |psi+-> = (|1,0,0,1> +- |0,1,1,0>)/sqrt(2)
 The ancilla is a k-photon Fock superposition on modes 4..m-1. The assignment f
 is DERIVED: pattern n is assigned to B iff Pr[n|B] > tol and Pr[n|B'] <= tol
-for the other three -- so schemes are unambiguous by construction and the only
-reported quantities are the per-state success probabilities.
+for the other three (tol = _AMBIG_TOL). The tolerance only governs assignment
+ROBUSTNESS -- honesty is carried by the `leakage` field: sub-tol probability
+mass from the non-assigned Bell states on assigned patterns is accumulated and
+reported, and `unambiguous` is derived from it (leakage <= _LEAK_FLOOR), never
+asserted by construction.
 
 Metrics (design decision): p_min = min_B (the problem's p) AND p_avg = mean_B
 (the literature's figure -- e.g. Grice's boosted scheme is avg 3/4 but min 1/2).
@@ -22,6 +25,10 @@ from .interferometer import Mesh
 
 BELL_LABELS = ("phi+", "phi-", "psi+", "psi-")
 _AMBIG_TOL = 1e-11
+# Numerically-unambiguous threshold for the derived `unambiguous` flag:
+# deliberately below the 1e-9 claim tolerance and above engine noise. Distinct
+# from _AMBIG_TOL, which only governs assignment robustness.
+_LEAK_FLOOR = 1e-12
 
 FockState = dict[tuple[int, ...], complex]
 
@@ -70,8 +77,14 @@ class BellScheme:
                     raise ValueError("ancilla pattern on wrong number of modes")
                 if sum(pat) != self.n_ancilla_photons:
                     raise ValueError("ancilla photon number mismatch")
-        elif self.n_ancilla_photons != 0:
-            raise ValueError("k > 0 requires an ancilla state")
+        else:
+            if self.n_ancilla_photons != 0:
+                raise ValueError("k > 0 requires an ancilla state")
+            if self.n_modes > 4:
+                raise ValueError(
+                    "n_modes > 4 requires an explicit ancilla state "
+                    "(use a zero-photon pattern for vacuum modes)"
+                )
 
 
 @dataclass(frozen=True)
@@ -79,7 +92,11 @@ class SchemeReport:
     success_by_state: dict[str, float]
     p_min: float
     p_avg: float
-    unambiguous: bool           # always True for the derived f; kept for the record
+    # Total probability mass on assigned patterns attributable to non-assigned
+    # Bell states -- an upper bound on the misidentification probability; a
+    # published claim must carry it.
+    leakage: float
+    unambiguous: bool           # derived: leakage <= _LEAK_FLOOR
     distributions: dict[str, dict[tuple[int, ...], float]]
 
 
@@ -90,13 +107,17 @@ def evaluate_scheme(scheme: BellScheme, engine) -> SchemeReport:
         for label, state in bell_input_states(scheme.n_modes, scheme.ancilla).items()
     }
     success = dict.fromkeys(BELL_LABELS, 0.0)
+    leakage = 0.0
     all_patterns = set().union(*dists.values())
     for pat in all_patterns:
         probs = {b: dists[b].get(pat, 0.0) for b in BELL_LABELS}
         supported = [b for b, p in probs.items() if p > _AMBIG_TOL]
         if len(supported) == 1:
-            success[supported[0]] += probs[supported[0]]
+            winner = supported[0]
+            success[winner] += probs[winner]
+            leakage += sum(probs[b] for b in BELL_LABELS if b != winner)
     p_min = min(success.values())
     p_avg = sum(success.values()) / 4.0
     return SchemeReport(success_by_state=success, p_min=p_min, p_avg=p_avg,
-                        unambiguous=True, distributions=dists)
+                        leakage=leakage, unambiguous=leakage <= _LEAK_FLOOR,
+                        distributions=dists)

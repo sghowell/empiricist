@@ -46,6 +46,53 @@ def test_engines_agree_on_standard_bsm():
         assert abs(ra.success_by_state[b] - rb.success_by_state[b]) < 1e-10
 
 
+def test_standard_bsm_has_zero_leakage():
+    scheme = BellScheme(
+        n_modes=4, n_ancilla_photons=0, ancilla={},
+        mesh=Mesh(n_modes=4, elements=[("bs", 0, 2, np.pi / 4, 0.0),
+                                       ("bs", 1, 3, np.pi / 4, 0.0)]),
+    )
+    r = evaluate_scheme(scheme, PermanentEngine())
+    assert r.leakage == 0.0
+    assert r.unambiguous
+
+
+def test_near_degenerate_coupling_reports_leakage():
+    # The reviewer's exploit: a weak bs(0,1,eps) hides a 2e-12 misidentification
+    # below _AMBIG_TOL; the leakage field must expose it and unambiguous must be False.
+    # Measured leakage for this placement: 2.0e-12 total (5e-13 on each of 4 patterns).
+    eps = 1e-6
+    scheme = BellScheme(
+        n_modes=4, n_ancilla_photons=0, ancilla={},
+        mesh=Mesh(n_modes=4, elements=[("bs", 0, 1, eps, 0.0),
+                                       ("bs", 0, 2, np.pi / 4, 0.0),
+                                       ("bs", 1, 3, np.pi / 4, 0.0)]),
+    )
+    r = evaluate_scheme(scheme, PermanentEngine())
+    assert r.leakage > 1e-13
+    assert not r.unambiguous
+
+
+def test_vacuum_ancilla_modes_require_explicit_ancilla():
+    import pytest
+    with pytest.raises(ValueError):
+        BellScheme(n_modes=6, n_ancilla_photons=0, ancilla={},
+                   mesh=Mesh(n_modes=6, elements=[])).validate()
+    # The explicit-vacuum form validates and evaluates: the standard BSM embedded
+    # in 6 modes with two idle vacuum ancilla modes gives per-B (0, 0, 1, 1).
+    scheme = BellScheme(
+        n_modes=6, n_ancilla_photons=0, ancilla={(0, 0): 1.0},
+        mesh=Mesh(n_modes=6, elements=[("bs", 0, 2, np.pi / 4, 0.0),
+                                       ("bs", 1, 3, np.pi / 4, 0.0)]),
+    )
+    scheme.validate()
+    r = evaluate_scheme(scheme, PermanentEngine())
+    assert abs(r.success_by_state["phi+"]) < 1e-10
+    assert abs(r.success_by_state["phi-"]) < 1e-10
+    assert abs(r.success_by_state["psi+"] - 1.0) < 1e-10
+    assert abs(r.success_by_state["psi-"] - 1.0) < 1e-10
+
+
 def test_scheme_validation():
     import pytest
     with pytest.raises(ValueError):
