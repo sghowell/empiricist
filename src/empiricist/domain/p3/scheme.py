@@ -87,6 +87,42 @@ class BellScheme:
                 )
 
 
+def scheme_from_out(out) -> BellScheme:
+    """Convert a model-facing scheme description into a validated `BellScheme`.
+
+    `out` is duck-typed to `llm.schemas.BellSchemeOut` rather than imported
+    directly: the domain layer must never import `llm` (layering runs
+    llm -> domain, never the reverse -- see `search/schemas.py`'s identical
+    choice for `to_construction`). Any object exposing the same shape works:
+    `n_modes`, `n_ancilla_photons`, `ancilla` (a sequence of objects with
+    `.pattern`/`.re`/`.im`), `mesh` (a sequence of objects with
+    `.kind`/`.i`/`.j`/`.theta`/`.phi`).
+
+    Per the M4 discipline this converter does no physics validation of its
+    own: it defers entirely to `Mesh.__post_init__` and `BellScheme.validate`
+    -- but it DOES call `validate()` before returning, so a malformed scheme
+    fails fast here, at conversion time, rather than surfacing later inside
+    `verify_scheme_agreed`. `ValueError` propagates to the caller uncaught
+    (the campaign loop's millisecond screen tier is what catches it).
+    """
+    elements: list[tuple] = []
+    for el in out.mesh:
+        if el.kind == "bs":
+            elements.append(("bs", el.i, el.j, el.theta, el.phi))
+        else:  # "phase" (the only other kind BellSchemeOut/MeshElement allows)
+            elements.append(("phase", el.i, el.theta))
+    mesh = Mesh(n_modes=out.n_modes, elements=tuple(elements))
+    ancilla = {tuple(term.pattern): complex(term.re, term.im) for term in out.ancilla}
+    scheme = BellScheme(
+        n_modes=out.n_modes,
+        n_ancilla_photons=out.n_ancilla_photons,
+        ancilla=ancilla,
+        mesh=mesh,
+    )
+    scheme.validate()
+    return scheme
+
+
 @dataclass(frozen=True)
 class SchemeReport:
     success_by_state: dict[str, float]
