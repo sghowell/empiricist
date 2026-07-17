@@ -1,0 +1,102 @@
+"""Bell-measurement schemes: dual-rail Bell inputs, derived assignment, metrics.
+
+Dual-rail encoding on modes 0..3 (qubit A rails 0,1; qubit B rails 2,3):
+  |phi+-> = (|1,0,1,0> +- |0,1,0,1>)/sqrt(2)
+  |psi+-> = (|1,0,0,1> +- |0,1,1,0>)/sqrt(2)
+The ancilla is a k-photon Fock superposition on modes 4..m-1. The assignment f
+is DERIVED: pattern n is assigned to B iff Pr[n|B] > tol and Pr[n|B'] <= tol
+for the other three -- so schemes are unambiguous by construction and the only
+reported quantities are the per-state success probabilities.
+
+Metrics (design decision): p_min = min_B (the problem's p) AND p_avg = mean_B
+(the literature's figure -- e.g. Grice's boosted scheme is avg 3/4 but min 1/2).
+Claims must name their metric.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import sqrt
+
+from .interferometer import Mesh
+
+BELL_LABELS = ("phi+", "phi-", "psi+", "psi-")
+_AMBIG_TOL = 1e-11
+
+FockState = dict[tuple[int, ...], complex]
+
+
+def bell_input_states(n_modes: int, ancilla: FockState) -> dict[str, FockState]:
+    """The four Bell (x) ancilla input states on n_modes modes."""
+    anc = ancilla if ancilla else {(): 1.0 + 0.0j}
+    r = 1 / sqrt(2)
+    bell4: dict[str, dict[tuple[int, int, int, int], float]] = {
+        "phi+": {(1, 0, 1, 0): r, (0, 1, 0, 1): r},
+        "phi-": {(1, 0, 1, 0): r, (0, 1, 0, 1): -r},
+        "psi+": {(1, 0, 0, 1): r, (0, 1, 1, 0): r},
+        "psi-": {(1, 0, 0, 1): r, (0, 1, 1, 0): -r},
+    }
+    out: dict[str, FockState] = {}
+    for label, b4 in bell4.items():
+        state: FockState = {}
+        for p4, a4 in b4.items():
+            for pa, aa in anc.items():
+                full = (*p4, *tuple(pa))
+                if len(full) != n_modes:
+                    raise ValueError("ancilla pattern length must be n_modes - 4")
+                state[full] = a4 * aa
+        out[label] = state
+    return out
+
+
+@dataclass(frozen=True)
+class BellScheme:
+    n_modes: int
+    n_ancilla_photons: int
+    ancilla: FockState          # patterns on modes 4..m-1; {} means no ancilla
+    mesh: Mesh
+
+    def validate(self) -> None:
+        if self.n_modes < 4:
+            raise ValueError("a Bell scheme needs at least the 4 dual-rail modes")
+        if self.mesh.n_modes != self.n_modes:
+            raise ValueError("mesh/scheme mode mismatch")
+        if self.ancilla:
+            norm = sum(abs(a) ** 2 for a in self.ancilla.values())
+            if abs(norm - 1.0) > 1e-9:
+                raise ValueError("ancilla not normalized")
+            for pat in self.ancilla:
+                if len(pat) != self.n_modes - 4:
+                    raise ValueError("ancilla pattern on wrong number of modes")
+                if sum(pat) != self.n_ancilla_photons:
+                    raise ValueError("ancilla photon number mismatch")
+        elif self.n_ancilla_photons != 0:
+            raise ValueError("k > 0 requires an ancilla state")
+
+
+@dataclass(frozen=True)
+class SchemeReport:
+    success_by_state: dict[str, float]
+    p_min: float
+    p_avg: float
+    unambiguous: bool           # always True for the derived f; kept for the record
+    distributions: dict[str, dict[tuple[int, ...], float]]
+
+
+def evaluate_scheme(scheme: BellScheme, engine) -> SchemeReport:
+    scheme.validate()
+    dists = {
+        label: engine.output_distribution(scheme.mesh, state)
+        for label, state in bell_input_states(scheme.n_modes, scheme.ancilla).items()
+    }
+    success = dict.fromkeys(BELL_LABELS, 0.0)
+    all_patterns = set().union(*dists.values())
+    for pat in all_patterns:
+        probs = {b: dists[b].get(pat, 0.0) for b in BELL_LABELS}
+        supported = [b for b, p in probs.items() if p > _AMBIG_TOL]
+        if len(supported) == 1:
+            success[supported[0]] += probs[supported[0]]
+    p_min = min(success.values())
+    p_avg = sum(success.values()) / 4.0
+    return SchemeReport(success_by_state=success, p_min=p_min, p_avg=p_avg,
+                        unambiguous=True, distributions=dists)
