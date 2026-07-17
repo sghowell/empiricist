@@ -7,10 +7,9 @@ physics stack drifted, not that a golden needs loosening.
 
 import numpy as np
 
-from empiricist.domain.p3.engine_permanent import PermanentEngine
 from empiricist.domain.p3.interferometer import Mesh
 from empiricist.domain.p3.known_schemes import grice_boosted_bsm, standard_bsm
-from empiricist.domain.p3.scheme import BellScheme, evaluate_scheme
+from empiricist.domain.p3.scheme import BellScheme
 from empiricist.domain.p3.verify import verify_scheme_agreed
 
 
@@ -45,7 +44,12 @@ def test_grice_boosted_bsm_golden():
     assert r_min.verdict == "PASS"
 
 
-def test_no_perfect_bm_sanity():
+def test_no_ancilla_ceiling_sanity():
+    # The ancilla-free ceiling is p*(0) = 1/2 (Calsamiglia-Lutkenhaus,
+    # PRA 63, 020301(R) (2001)); every k=0 scheme must respect it. This pins
+    # the EXACT bound the M20 campaign will attack, not merely "no perfect
+    # BM". Routed through verify_scheme_agreed so each scheme also gets the
+    # cross-engine agreement check for free.
     rng = np.random.default_rng(11)
     for _ in range(10):
         els = []
@@ -54,5 +58,6 @@ def test_no_perfect_bm_sanity():
             els.append(("bs", i, j, float(rng.uniform(0, np.pi)), float(rng.uniform(0, 2 * np.pi))))
         scheme = BellScheme(n_modes=4, n_ancilla_photons=0, ancilla={},
                             mesh=Mesh(n_modes=4, elements=els))
-        rep = evaluate_scheme(scheme, PermanentEngine())
-        assert rep.p_avg < 1.0 - 1e-6
+        r = verify_scheme_agreed(scheme)
+        assert r.verdict == "PASS"
+        assert r.report.p_avg <= 0.5 + 1e-9
