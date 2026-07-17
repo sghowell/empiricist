@@ -1,12 +1,19 @@
 # src/empiricist/domain/p3/verify.py
 """Two-engine agreed verdict for P3 schemes (the F3 discipline).
 
+Four verdicts; verify_scheme_agreed never raises on model-emittable input:
 PASS: the engines agree on every per-Bell-state distribution (per-pattern over
 the UNION of keys, missing -> 0.0, tolerance 1e-8) AND every stated claim is
 achieved (metric tolerance 1e-9; leakage within the DECLARED budget).
 FAIL: engines agree, claim not met -- an honest miss.
 ERROR: the engines disagree -- a physics-model bug, never a search miss; the
 campaign must stop, not retry.
+INVALID: the scheme itself is malformed (validation failure) -- the campaign
+loop SKIPS it (the analog of P5's screened_out); never treated as an engine
+alarm. A negative leakage budget is likewise an INVALID claim, not a FAIL.
+
+`AgreedResult.leakage` is defined only for PASS/FAIL verdicts; -1.0 otherwise
+(on ERROR at least one engine is untrusted).
 
 Leakage policy: `claimed_max_leakage` defaults to 0.0 -- an unambiguity claim
 is exact unless the claimant DECLARES a leakage budget, which is then recorded
@@ -39,11 +46,12 @@ _CLAIM_TOL = 1e-9
 
 @dataclass(frozen=True)
 class AgreedResult:
-    verdict: str                 # "PASS" | "FAIL" | "ERROR"
+    verdict: str                 # "PASS" | "FAIL" | "ERROR" | "INVALID"
     report: SchemeReport | None  # Engine-A report, for downstream recording
     detail: str
     # max(leakage_A, leakage_B) -- the value the budget check used; downstream
-    # recording reads it here, never from the (single-engine) report.
+    # recording reads it here, never from the (single-engine) report. Defined
+    # only for PASS/FAIL; -1.0 on ERROR/INVALID.
     leakage: float
 
 
@@ -54,20 +62,31 @@ def verify_scheme_agreed(
     claimed_p_avg: float | None = None,
     claimed_max_leakage: float = 0.0,
 ) -> AgreedResult:
-    ra = evaluate_scheme(scheme, PermanentEngine())
-    rb = evaluate_scheme(scheme, FockEngine())
-    leakage = max(ra.leakage, rb.leakage)
+    if claimed_max_leakage < 0:
+        return AgreedResult(
+            "INVALID", None, "invalid claim: negative leakage budget", -1.0
+        )
+    try:
+        ra = evaluate_scheme(scheme, PermanentEngine())
+        rb = evaluate_scheme(scheme, FockEngine())
+    except ValueError as e:
+        return AgreedResult("INVALID", None, f"invalid scheme: {e}", -1.0)
+    diffs: list[tuple[str, tuple[int, ...], float, float]] = []
     for b in BELL_LABELS:
         keys = set(ra.distributions[b]) | set(rb.distributions[b])
         for k in keys:
             da = ra.distributions[b].get(k, 0.0)
             db = rb.distributions[b].get(k, 0.0)
             if abs(da - db) > _AGREE_TOL:
-                return AgreedResult(
-                    "ERROR", None,
-                    f"engines disagree on {b} pattern {k}: {da} vs {db}",
-                    leakage,
-                )
+                diffs.append((b, k, da, db))
+    if diffs:
+        diffs.sort()
+        return AgreedResult(
+            "ERROR", None,
+            f"engines disagree on {len(diffs)} pattern(s): {diffs[:8]}",
+            -1.0,
+        )
+    leakage = max(ra.leakage, rb.leakage)
     failures: list[str] = []
     if claimed_p_min is not None and ra.p_min < claimed_p_min - _CLAIM_TOL:
         failures.append(f"p_min {ra.p_min} < claimed {claimed_p_min}")

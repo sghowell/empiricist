@@ -165,3 +165,48 @@ def test_verify_agreed_error_on_disagreement(monkeypatch):
     r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
     assert r.verdict == "ERROR"
     assert "disagree" in r.detail
+
+
+def test_verify_agreed_error_on_phantom_key(monkeypatch):
+    from empiricist.domain.p3 import verify as vmod
+
+    class PhantomEngine(vmod.FockEngine):
+        def output_distribution(self, mesh, state):
+            d = super().output_distribution(mesh, state)
+            d[(9, 9, 9, 9)] = 0.25  # a pattern the other engine lacks
+            return d
+
+    monkeypatch.setattr(vmod, "FockEngine", PhantomEngine)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+
+
+def test_verify_agreed_error_on_missing_key(monkeypatch):
+    from empiricist.domain.p3 import verify as vmod
+
+    class DroppingEngine(vmod.FockEngine):
+        def output_distribution(self, mesh, state):
+            d = super().output_distribution(mesh, state)
+            if d:
+                d.pop(next(iter(d)))
+            return d
+
+    monkeypatch.setattr(vmod, "FockEngine", DroppingEngine)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+
+
+def test_verify_agreed_invalid_scheme_not_error():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    bad = BellScheme(n_modes=4, n_ancilla_photons=0, ancilla={},
+                     mesh=Mesh(n_modes=6, elements=[]))  # mesh/scheme mode mismatch
+    r = verify_scheme_agreed(bad, claimed_p_avg=0.5)
+    assert r.verdict == "INVALID"
+    assert "invalid scheme" in r.detail
+    assert r.leakage == -1.0
+
+
+def test_verify_agreed_negative_budget_invalid():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    r = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5, claimed_max_leakage=-1e-9)
+    assert r.verdict == "INVALID"
