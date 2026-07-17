@@ -6,11 +6,12 @@ PASS: the engines agree on every per-Bell-state distribution (per-pattern over
 the UNION of keys, missing -> 0.0, tolerance 1e-8) AND every stated claim is
 achieved (metric tolerance 1e-9; leakage within the DECLARED budget).
 FAIL: engines agree, claim not met -- an honest miss.
-ERROR: the engines disagree -- a physics-model bug, never a search miss; the
-campaign must stop, not retry.
-INVALID: the scheme itself is malformed (validation failure) -- the campaign
-loop SKIPS it (the analog of P5's screened_out); never treated as an engine
-alarm. A negative leakage budget is likewise an INVALID claim, not a FAIL.
+ERROR: the engines disagree, OR an engine raises on a VALIDATED scheme (a
+machinery bug, mirrors P5's verify_error) -- a physics-model or machinery
+bug, never a search miss; the campaign must stop, not retry.
+INVALID: the scheme or the claim itself is malformed (scheme validation
+failure; non-finite or negative claim values) -- the campaign loop SKIPS it
+(the analog of P5's screened_out); never treated as an engine alarm.
 
 `AgreedResult.leakage` is defined only for PASS/FAIL verdicts; -1.0 otherwise
 (on ERROR at least one engine is untrusted).
@@ -34,11 +35,18 @@ This verifier certifies achievability-with-declared-leakage only.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from .engine_fock import FockEngine
 from .engine_permanent import PermanentEngine
-from .scheme import BELL_LABELS, BellScheme, SchemeReport, evaluate_scheme
+from .scheme import (
+    BELL_LABELS,
+    BellScheme,
+    SchemeReport,
+    bell_input_states,
+    evaluate_scheme,
+)
 
 _AGREE_TOL = 1e-8
 _CLAIM_TOL = 1e-9
@@ -62,22 +70,45 @@ def verify_scheme_agreed(
     claimed_p_avg: float | None = None,
     claimed_max_leakage: float = 0.0,
 ) -> AgreedResult:
-    if claimed_max_leakage < 0:
+    # NaN-proof: `not (x >= 0.0)` catches NaN and negatives in one comparison;
+    # +inf passes `>= 0.0`, so reject it explicitly.
+    if math.isinf(claimed_max_leakage) or not (claimed_max_leakage >= 0.0):
         return AgreedResult(
-            "INVALID", None, "invalid claim: negative leakage budget", -1.0
+            "INVALID", None,
+            "invalid claim: leakage budget must be a finite non-negative number",
+            -1.0,
         )
+    for name, val in (("claimed_p_min", claimed_p_min),
+                      ("claimed_p_avg", claimed_p_avg)):
+        if val is not None and not math.isfinite(val):
+            return AgreedResult(
+                "INVALID", None, f"invalid claim: {name} must be finite", -1.0
+            )
+    # Malformed-scheme screening (INVALID) is exactly what these two calls
+    # reach; an exception past this point is an ENGINE bug (ERROR), never
+    # conflated with a bad input.
+    try:
+        scheme.validate()
+        bell_input_states(scheme.n_modes, scheme.ancilla)
+    except (ValueError, TypeError) as e:
+        return AgreedResult("INVALID", None, f"invalid scheme: {e}", -1.0)
     try:
         ra = evaluate_scheme(scheme, PermanentEngine())
         rb = evaluate_scheme(scheme, FockEngine())
-    except ValueError as e:
-        return AgreedResult("INVALID", None, f"invalid scheme: {e}", -1.0)
+    except (ValueError, TypeError) as e:
+        return AgreedResult(
+            "ERROR", None,
+            f"engine exception (machinery bug, not a disagreement): {e}",
+            -1.0,
+        )
     diffs: list[tuple[str, tuple[int, ...], float, float]] = []
     for b in BELL_LABELS:
         keys = set(ra.distributions[b]) | set(rb.distributions[b])
         for k in keys:
             da = ra.distributions[b].get(k, 0.0)
             db = rb.distributions[b].get(k, 0.0)
-            if abs(da - db) > _AGREE_TOL:
+            # NaN-proof form: a NaN probability can never silently "agree".
+            if not (abs(da - db) <= _AGREE_TOL):
                 diffs.append((b, k, da, db))
     if diffs:
         diffs.sort()

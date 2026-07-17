@@ -210,3 +210,33 @@ def test_verify_agreed_negative_budget_invalid():
     from empiricist.domain.p3.verify import verify_scheme_agreed
     r = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5, claimed_max_leakage=-1e-9)
     assert r.verdict == "INVALID"
+
+
+def test_verify_agreed_nonfinite_claims_invalid():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    for bad in (float("nan"), float("inf")):
+        r = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5, claimed_max_leakage=bad)
+        assert r.verdict == "INVALID", bad
+    r = verify_scheme_agreed(_standard_bsm(), claimed_p_avg=float("nan"))
+    assert r.verdict == "INVALID"
+
+
+def test_verify_agreed_typeerror_garbage_invalid():
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    bad = BellScheme(n_modes=6, n_ancilla_photons=1, ancilla={5: 1.0},
+                     mesh=Mesh(n_modes=6, elements=[]))
+    r = verify_scheme_agreed(bad, claimed_p_avg=0.5)
+    assert r.verdict == "INVALID"
+
+
+def test_verify_agreed_engine_exception_is_error(monkeypatch):
+    from empiricist.domain.p3 import verify as vmod
+
+    class CrashingEngine(vmod.FockEngine):
+        def output_distribution(self, mesh, state):
+            raise ValueError("internal engine bug")
+
+    monkeypatch.setattr(vmod, "FockEngine", CrashingEngine)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+    assert "machinery" in r.detail
