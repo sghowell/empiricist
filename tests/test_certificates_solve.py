@@ -74,6 +74,33 @@ def test_rationalize_two_constraints_passes_checker():
 
 
 # ---------------------------------------------------------------------------
+# Toy 3: a TIGHT problem needing a NONCONSTANT multiplier -- x^4 on
+# {x^2 - 1 = 0} at degree=2 (the true bound is exactly 1: x^4 = 1 on the
+# variety, and the repaired multiplier must carry an x^2 term). Regression
+# for the pre-rounded-bound inconsistency: rounding the bound independently
+# of the Gram violates the variety-forced relation
+# bound - objective(v) == b^T Q b(v) by O(rounding), making the exact
+# multiplier linear system INFEASIBLE -- the bound must instead be solved
+# as a free unknown of the same exact system.
+# ---------------------------------------------------------------------------
+
+TOY3_OBJECTIVE = {(0, 0, 0, 0): Fraction(1)}
+TOY3_CONSTRAINTS = ({(0, 0): Fraction(1), (): Fraction(-1)},)
+TOY3_VARIABLES = ("x",)
+
+
+def test_rationalize_tight_problem_with_nonconstant_multiplier():
+    num_cert = solve_sos(TOY3_OBJECTIVE, TOY3_CONSTRAINTS, TOY3_VARIABLES, degree=2)
+    assert num_cert is not None
+    assert 0.9 < num_cert.bound < 1.1
+    cert = rationalize(num_cert, TOY3_OBJECTIVE, TOY3_CONSTRAINTS, TOY3_VARIABLES)
+    assert cert is not None
+    result = check_certificate(cert)
+    assert result.ok, result
+    assert Fraction(1) <= cert.bound <= Fraction(11, 10)
+
+
+# ---------------------------------------------------------------------------
 # rationalize must never raise, even on a corrupted NumericCertificate.
 # ---------------------------------------------------------------------------
 

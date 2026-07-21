@@ -238,35 +238,31 @@ def solve_sos(
 _BOUND_SLACK = Fraction(1, 1000)
 
 
-def _round_gram_and_bound(
+def _round_gram(
     gram: Sequence[Sequence[float]],
     gram_basis: tuple[Monomial, ...],
-    bound: float,
     denominator_limit: int,
-) -> tuple[tuple[tuple[Fraction, ...], ...], Fraction]:
-    """Round the Gram matrix and the bound to `Fraction`, GENEROUSLY: the
-    certificate only needs to be a VALID upper bound, never a tight one.
+) -> tuple[tuple[Fraction, ...], ...]:
+    """Round the Gram matrix to `Fraction`, with PSD headroom.
 
     Rounding: every Gram entry via `limit_denominator(denominator_limit)`,
     then symmetrized exactly (average with the transpose -- independent
     per-entry rounding can break the exact symmetry `check_certificate`
-    requires even when the float matrix was symmetric); the bound via the
-    same `limit_denominator`.
+    requires even when the float matrix was symmetric).
 
-    Slack: a fixed `1/1000` margin is added to BOTH the bound AND the Gram
-    entry `Q[c][c]` (where `c` is the constant monomial `()`'s index in
-    `gram_basis`, if present). This is not an arbitrary perturbation -- the
-    SAME shift on both sides means the identity's constant-monomial
-    equation is UNCHANGED (`bound` and `b^T Q b`'s constant term both
-    increase by the same amount, canceling in the residual the multipliers
-    must reproduce), so it can never make the subsequent exact repair (see
-    `_rationalize_attempt`) infeasible. And since `Q[c][c] += slack` is a
-    rank-1 PSD update (`Q + slack * e_c e_c^T`, `slack >= 0`), by Weyl's
-    inequality every eigenvalue of `Q` can only increase -- this can only
-    help the PSD check survive rounding error elsewhere, never hurt it. If
-    `()` is not in `gram_basis` (degree-0 problems only omit it in
-    contrived cases), the slack is skipped entirely rather than risk
-    breaking the linear system.
+    Slack: a fixed `1/1000` margin is added to the Gram entry `Q[c][c]`
+    (where `c` is the constant monomial `()`'s index in `gram_basis`, if
+    present), for PSD headroom: `Q[c][c] += slack` is a rank-1 PSD update
+    (`Q + slack * e_c e_c^T`, `slack >= 0`), so by Weyl's inequality every
+    eigenvalue of `Q` can only increase -- it can only help the PSD check
+    survive rounding error elsewhere, never hurt it. The polynomial
+    identity stays exactly balanced because the BOUND IS SOLVED AFTER this
+    slack is applied (`_rationalize_attempt` treats the bound as a free
+    unknown of the exact repair system): on the variety the identity forces
+    `bound = objective(v) + b^T Q b(v)`, and the slack lifts `b^T Q b` by
+    exactly `slack` everywhere (the constant basis monomial evaluates to
+    1), so the solved bound absorbs it automatically. If `()` is not in
+    `gram_basis` (contrived degree-0 cases only), the slack is skipped.
     """
     n = len(gram)
     rounded = [
@@ -274,12 +270,10 @@ def _round_gram_and_bound(
         for a in range(n)
     ]
     sym = [[(rounded[a][b] + rounded[b][a]) / 2 for b in range(n)] for a in range(n)]
-    bound_rat = Fraction(bound).limit_denominator(denominator_limit)
     if () in gram_basis:
         const_idx = gram_basis.index(())
         sym[const_idx][const_idx] += _BOUND_SLACK
-        bound_rat += _BOUND_SLACK
-    return tuple(tuple(row) for row in sym), bound_rat
+    return tuple(tuple(row) for row in sym)
 
 
 def _solve_linear_exact(
@@ -337,16 +331,25 @@ def _rationalize_attempt(
     `retry_worthy` is `True` only when the failure was specifically a PSD
     rejection by the exact checker (rounding pushed the Gram just barely
     non-PSD -- worth retrying with a larger denominator_limit), `False` for
-    anything else (shape mismatches, an unrepairable identity)."""
+    anything else (shape mismatches, an unrepairable identity).
+
+    The BOUND is a free unknown of the exact repair system, NOT a
+    pre-rounded input. Rounding it independently of the Gram would make the
+    system infeasible on tight problems: on the variety the identity forces
+    `bound - objective(v) == b^T Q b(v)` EXACTLY, so with `Q` fixed
+    rational the bound is pinned (up to genuine slack in the system) and
+    any independent rounding of it violates the relation by O(rounding).
+    Solving for it alongside the multiplier coefficients strictly enlarges
+    the repairable set, and soundness is automatic: whatever bound comes
+    out, a checker PASS still proves `objective <= bound` on the variety.
+    """
     n = len(num_cert.gram_basis)
     if len(num_cert.gram) != n or any(len(row) != n for row in num_cert.gram):
         return None, False
     if len(num_cert.multiplier_basis) != len(constraints):
         return None, False
 
-    gram, bound = _round_gram_and_bound(
-        num_cert.gram, num_cert.gram_basis, num_cert.bound, denominator_limit
-    )
+    gram = _round_gram(num_cert.gram, num_cert.gram_basis, denominator_limit)
 
     # b^T Q b, exact, over the (now-rational) rounded Gram.
     gram_poly: Poly = {}
@@ -362,9 +365,10 @@ def _rationalize_attempt(
             else:
                 gram_poly.pop(mono, None)
 
-    # residual := bound - objective - b^T Q b, which the repaired
-    # multipliers must reproduce EXACTLY as sum_i(lambda_i * constraints[i]).
-    residual = poly_sub(poly_sub({(): bound} if bound else {}, objective), gram_poly)
+    # The identity to repair, with both the multipliers AND the bound as
+    # unknowns: sum_i(lambda_i * constraints[i]) - bound * 1 must equal
+    # -objective - b^T Q b exactly, monomial by monomial.
+    residual = poly_sub(poly_sub({}, objective), gram_poly)
 
     mbasis = num_cert.multiplier_basis
     offsets: list[int] = []
@@ -372,6 +376,7 @@ def _rationalize_attempt(
     for mb in mbasis:
         offsets.append(total_cols)
         total_cols += len(mb)
+    bound_col = total_cols  # one extra unknown: the bound itself
 
     col_targets: dict[Monomial, list[tuple[int, Fraction]]] = defaultdict(list)
     for i, (g, mb) in enumerate(zip(constraints, mbasis, strict=True)):
@@ -379,20 +384,27 @@ def _rationalize_attempt(
             for c_mono, c_val in g.items():
                 mono = _mono_mul(basis_mono, c_mono)
                 col_targets[mono].append((offsets[i] + k, c_val))
+    # The bound contributes -bound to the constant monomial's row (it
+    # appears as +bound on the identity's LHS, moved across with the
+    # unknowns). Always include the constant monomial so the bound is
+    # constrained by its row rather than dangling free.
+    col_targets[()].append((bound_col, Fraction(-1)))
 
     all_monos = sorted(set(residual) | set(col_targets), key=lambda m: (len(m), m))
     rows: list[list[Fraction]] = []
     rhs: list[Fraction] = []
     for mono in all_monos:
-        row = [Fraction(0)] * total_cols
+        row = [Fraction(0)] * (total_cols + 1)
         for col, val in col_targets.get(mono, ()):
             row[col] += val
         rows.append(row)
         rhs.append(residual.get(mono, Fraction(0)))
 
-    solution = _solve_linear_exact(rows, rhs, total_cols)
+    solution = _solve_linear_exact(rows, rhs, total_cols + 1)
     if solution is None:
         return None, False  # unrepairable identity -- not a PSD issue
+
+    bound = solution[bound_col]
 
     multipliers: list[Poly] = []
     for i, mb in enumerate(mbasis):
@@ -433,17 +445,22 @@ def rationalize(
     exactly like a genuine repair failure -- mirrors the checker's
     never-raise / total-function discipline.
 
-    Steps: (a) round `num_cert.gram` to `Fraction` at `denominator_limit`
-    and symmetrize exactly; (b) round `num_cert.bound` UP generously (never
-    tight -- see `_round_gram_and_bound`); (c) REPAIR the polynomial identity
-    exactly by solving for the multiplier coefficients via exact
-    Gauss-Jordan elimination over `Fraction` (with `Q` and `bound` now
-    fixed rationals, the multipliers are the only free unknowns, and the
-    system is linear in their coefficients); (d) run the assembled
-    certificate through `check_certificate`. If that specifically fails on
-    `"psd"` (rounding can push a numerically-PSD Gram just barely
+    Steps: (a) round `num_cert.gram` to `Fraction` at `denominator_limit`,
+    symmetrize exactly, and add a small PSD-headroom slack on the
+    constant-monomial diagonal (see `_round_gram`); (b) REPAIR the
+    polynomial identity exactly by solving for the multiplier coefficients
+    AND the bound via exact Gauss-Jordan elimination over `Fraction` (with
+    `Q` fixed rational, the system is linear in those unknowns; the bound
+    must be solved, not pre-rounded -- see `_rationalize_attempt` for why
+    pre-rounding it makes tight problems unrepairable); (c) run the
+    assembled certificate through `check_certificate`. If that specifically
+    fails on `"psd"` (rounding can push a numerically-PSD Gram just barely
     non-semidefinite), retry ONCE at `denominator_limit * 100`. Any other
     failure -- or a second failure -- returns `None`.
+
+    The Gram slack in step (a) lifts the solved bound by the same amount
+    (roughly `1/1000` above the numeric optimum), so returned bounds are
+    valid-but-not-tight by construction.
     """
     try:
         cert, retry_worthy = _rationalize_attempt(
