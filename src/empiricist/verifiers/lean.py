@@ -176,7 +176,8 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
      "EmpiricistLean.ProducibleExt",
      "EmpiricistLean.DHCharacterization",
      "EmpiricistLean.P3Amplitudes",
-     "EmpiricistLean.P3Pauli"}
+     "EmpiricistLean.P3Pauli",
+     "EmpiricistLean.P3L1"}
 )
 
 # The COMMITTED source modules that legitimately live in the project module dir,
@@ -195,12 +196,12 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
 _COMMITTED_SOURCE_FILES = frozenset(
     {"Basic.lean", "NonTrusted.lean", "Foundation.lean", "LocalComp.lean",
      "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean",
-     "TrueTwin.lean", "ProducibleExt.lean", "DHCharacterization.lean", "P3Amplitudes.lean", "P3Pauli.lean"}
+     "TrueTwin.lean", "ProducibleExt.lean", "DHCharacterization.lean", "P3Amplitudes.lean", "P3Pauli.lean", "P3L1.lean"}
 )
 _COMMITTED_BUILD_PREFIXES = (
     "Basic.", "NonTrusted.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.",
     "DoubleStar.", "CenterMerge.", "TrueTwin.", "ProducibleExt.",
-    "DHCharacterization.", "P3Amplitudes.", "P3Pauli."
+    "DHCharacterization.", "P3Amplitudes.", "P3Pauli.", "P3L1."
 )
 
 # The framing marker the compiled driver prints its single result line with:
