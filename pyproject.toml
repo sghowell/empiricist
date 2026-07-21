@@ -21,6 +21,15 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.8",
 ]
+# SDP-solve dependencies for the SEARCH side of the M20c certificate pipeline
+# (certificates/solve.py). Quarantined here (NOT a main dependency, NOT in
+# `dev`) so the trust-boundary checker (certificates/core.py, stdlib-only)
+# and the rest of the harness never require cvxpy/scs. Install with:
+#   uv sync --group certs
+certs = [
+    "cvxpy>=1.4",
+    "scs>=3.2",
+]
 
 [build-system]
 requires = ["hatchling"]
