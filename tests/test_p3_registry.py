@@ -13,8 +13,10 @@ import pytest
 from empiricist.domain.p3.known_schemes import grice_boosted_bsm, standard_bsm
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Verdict
+from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.p3_goldens import P3_GOLDEN_SUITE, certify_p3, p3_suite_hash
 from empiricist.verifiers.p3_scheme import P3SchemeVerifier
+from empiricist.verifiers.registry import certify_with_suite
 
 
 @pytest.fixture()
@@ -69,7 +71,7 @@ def test_binary_hash_changes_if_a_hashed_file_changes(verifier, tmp_path, monkey
 
 def test_golden_suite_contains_a_must_fail_case():
     """A suite that cannot fail certifies nothing (spec §7 mutation-resistance)."""
-    assert any(expected is False for _, _, expected in P3_GOLDEN_SUITE)
+    assert any(expected is Verdict.FAIL for _, _, expected in P3_GOLDEN_SUITE)
 
 
 def test_golden_suite_covers_both_invalid_mechanisms():
@@ -81,9 +83,49 @@ def test_golden_suite_covers_both_invalid_mechanisms():
     verdicts = [
         v.verify(scheme, **kwargs).verdict
         for scheme, kwargs, expected in P3_GOLDEN_SUITE
-        if not expected
+        if expected is Verdict.FAIL
     ]
     assert all(verdict == Verdict.FAIL for verdict in verdicts)
+
+
+def test_golden_suite_covers_positive_near_threshold_leakage(verifier):
+    """Certification must exercise a well-formed scheme whose sub-threshold
+    wrong-label mass violates the default zero-leakage claim."""
+    results = [
+        verifier.verify(scheme, **kwargs)
+        for scheme, kwargs, expected in P3_GOLDEN_SUITE
+        if expected is Verdict.FAIL
+    ]
+    leaky = [result for result in results if result.details.get("leakage", 0.0) > 0.0]
+    assert len(leaky) == 1
+    assert leaky[0].verdict is Verdict.FAIL
+    assert "leakage" in leaky[0].details["detail"]
+
+
+@pytest.mark.parametrize("bad_verdict", [Verdict.ERROR, Verdict.TIMEOUT])
+def test_generic_certification_rejects_error_or_timeout_for_must_fail_case(
+    ledger, bad_verdict
+):
+    """The generic Lean/P3 path also requires exact negative-case verdicts."""
+
+    class ScriptedVerifier:
+        name = f"scripted-{bad_verdict.value.lower()}"
+        version = "1.0"
+        binary_hash = bad_verdict.value.lower() * 8
+
+    outcomes = iter((Verdict.PASS, bad_verdict))
+
+    def run(_verifier, _case):
+        return VerifierResult(verdict=next(outcomes))
+
+    cert = certify_with_suite(
+        ledger,
+        ScriptedVerifier(),
+        [("positive", Verdict.PASS), ("negative", Verdict.FAIL)],
+        run,
+        golden_suite_hash="suite",
+    )
+    assert cert.verdict is Verdict.FAIL
 
 
 # -- Certification: registration + hash mechanics -----------------------------

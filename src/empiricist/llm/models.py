@@ -8,11 +8,15 @@ from typing import Any
 
 # stop_reasons that indicate a usable response (verified against claude v2.1.201:
 # plain text -> end_turn; --json-schema success -> tool_use).
-_OK_STOP_REASONS = frozenset({"end_turn", "tool_use"})
+_OK_STOP_REASONS = frozenset({"end_turn", "tool_use", "completed"})
+
+
+class BillingUnknownError(RuntimeError):
+    """A paid provider call lacks trustworthy usage/cost accounting."""
 
 
 class Effort(StrEnum):
-    """Maps 1:1 to `claude --effort <level>` (Fable 5 depth control; no temperature)."""
+    """Shared role effort values supported by the active model transports."""
 
     LOW = "low"
     MEDIUM = "medium"
@@ -23,7 +27,7 @@ class Effort(StrEnum):
 
 @dataclass(frozen=True)
 class LLMResult:
-    """The parsed outcome of one `claude -p` invocation."""
+    """The parsed outcome of one provider invocation."""
 
     text: str                    # the envelope `result` field
     parsed: dict[str, Any] | None  # `structured_output` when --json-schema was used

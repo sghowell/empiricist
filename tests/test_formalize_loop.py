@@ -8,14 +8,20 @@ Lean toolchain or a real model call.
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 
+import pytest
+from blake3 import blake3
+
+from empiricist.executor.runner import DuplicateRunError
 from empiricist.formalize.loop import FormalizeLoop, FormalizeReport, FormalizeTask
-from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Status, Verdict
+from empiricist.ledger.db import Ledger, PromotionIntegrityError
+from empiricist.ledger.models import Certification, Run, Status, Verdict
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import LLMResult
 from empiricist.store import Store
 from empiricist.verifiers.base import VerifierResult
+from empiricist.verifiers.lean_goldens import lean_suite_hash
 
 _MODULE_V1 = (
     "import Mathlib\n"
@@ -49,6 +55,46 @@ class FakeVerifier:
         return self._scripted[len(self.calls) - 1]
 
 
+class RunRecordingFakeClient(FakeLLMClient):
+    """Fake transport that enforces the real runs.run_id uniqueness boundary."""
+
+    async def complete(
+        self,
+        role,
+        prompt,
+        *,
+        session_id=None,
+        system_prompt=None,
+        schema=None,
+        run_id=None,
+        ledger=None,
+    ):
+        if ledger is not None and run_id is not None:
+            try:
+                ledger.start_run(
+                    Run(
+                        run_id=run_id,
+                        move="SAMPLE",
+                        role=role.name,
+                        model=role.model,
+                    )
+                )
+            except sqlite3.IntegrityError as exc:
+                raise DuplicateRunError(run_id) from exc
+        result = await super().complete(
+            role,
+            prompt,
+            session_id=session_id,
+            system_prompt=system_prompt,
+            schema=schema,
+            run_id=run_id,
+            ledger=ledger,
+        )
+        if ledger is not None and run_id is not None:
+            ledger.finish_run(run_id, exit_code=0, wall_s=0.0)
+        return result
+
+
 def make_result(parsed: dict | None) -> LLMResult:
     return LLMResult(
         text="", parsed=parsed, stop_reason="tool_use" if parsed else "end_turn",
@@ -68,8 +114,39 @@ def run(coro):
 
 def make_env(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
+    lg.add_certification(Certification(
+        verifier=FakeVerifier.name,
+        verifier_version=FakeVerifier.version,
+        binary_hash=FakeVerifier.binary_hash,
+        golden_suite_hash=lean_suite_hash(),
+        verdict=Verdict.PASS,
+    ))
     st = Store(tmp_path / "store")
     return lg, st
+
+
+@pytest.mark.parametrize("suite", [None, "stale-suite"])
+def test_missing_or_stale_certification_fails_before_model_call(tmp_path, suite):
+    lg = Ledger(tmp_path / "ledger.db")
+    st = Store(tmp_path / "store")
+    verifier = FakeVerifier([])
+    if suite is not None:
+        lg.add_certification(Certification(
+            verifier=verifier.name,
+            verifier_version=verifier.version,
+            binary_hash=verifier.binary_hash,
+            golden_suite_hash=suite,
+            verdict=Verdict.PASS,
+        ))
+    client = FakeLLMClient([make_result(out_dict(_MODULE_V2))])
+    loop = FormalizeLoop(client, lg, st, verifier, max_rounds=1)
+
+    with pytest.raises(PromotionIntegrityError):
+        run(loop.run(FormalizeTask(name="uncertified", goal="g", context="c")))
+
+    assert client.calls == []
+    assert verifier.calls == []
+    lg.close()
 
 
 def pass_result(statement="1 = 1", axioms=()):
@@ -77,7 +154,8 @@ def pass_result(statement="1 = 1", axioms=()):
         verdict=Verdict.PASS,
         details={
             "decl": "Empiricist.foo", "axioms": list(axioms),
-            "statement": statement, "statement_hash": "deadbeef",
+            "statement": statement,
+            "statement_hash": blake3(statement.encode("utf-8")).hexdigest(),
         },
     )
 
@@ -89,6 +167,41 @@ def fail_result(gate="diagnostics", **extra):
 
 
 # -- (a) PASS on round 1 --------------------------------------------------
+
+
+def test_rerun_same_task_mints_fresh_run_ids_and_links_evidence(tmp_path):
+    """A stopped/exhausted invocation can resume under the same task name.
+
+    Each ``run()`` invocation must own a fresh provenance namespace while the
+    successful round's evidence still links to that exact provider receipt.
+    """
+    lg, st = make_env(tmp_path)
+    client = RunRecordingFakeClient([
+        make_result(None),
+        make_result(out_dict(_MODULE_V2)),
+    ])
+    verifier = FakeVerifier([pass_result()])
+    loop = FormalizeLoop(client, lg, st, verifier, max_rounds=1)
+    task = FormalizeTask(name="restartable", goal="prove 1=1", context="none")
+
+    first = run(loop.run(task))
+    second = run(loop.run(task))  # must not raise DuplicateRunError
+
+    assert first.ok is False
+    assert second.ok is True
+    run_ids = [
+        row["run_id"]
+        for row in lg.conn.execute("SELECT run_id FROM runs ORDER BY rowid")
+    ]
+    assert len(run_ids) == 2
+    assert run_ids[0] != run_ids[1]
+    assert all(
+        run_id.startswith("formalize-restartable-") and run_id.endswith("-r1")
+        for run_id in run_ids
+    )
+    assert lg.get_artifact(second.artifact_id).run_id == run_ids[1]
+    assert lg.evidence_for(second.artifact_id)[0].run_id == run_ids[1]
+    lg.close()
 
 
 def test_pass_round_one_ingests_formalized_artifact(tmp_path):
@@ -123,6 +236,12 @@ def test_pass_round_one_ingests_formalized_artifact(tmp_path):
     assert len(evidence) == 1
     assert evidence[0].verdict == Verdict.PASS
     assert evidence[0].verifier == "fake_lean"
+    assert evidence[0].claim_id is not None
+    assert evidence[0].golden_suite_hash == lean_suite_hash()
+    claims = lg.claims_for(report.artifact_id)
+    assert len(claims) == 1
+    assert claims[0].statement == "1 = 1"
+    assert claims[0].problem_version == "p5-ghz3-v1"
 
     # the verifier was called with the exact (module_source, decl) pair
     assert verifier.calls == [(_MODULE_V2, "Empiricist.foo")]

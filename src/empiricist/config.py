@@ -34,8 +34,8 @@ class RunConfig:
     search_target_n: int = 8         # SEARCH: which n's open orbits to target
     targets_per_gen: int = 8         # SEARCH: max targets per generation wave
     conjecture_every: int = 3        # scheduler: CONJECTURE cadence (every N gens)
-    max_generations: int | None = None   # scheduler stop condition (None = unbounded)
-    max_cost_usd: float | None = None    # scheduler stop condition (None = unbounded)
+    max_generations: int | None = None   # inclusive cumulative SEARCH-gen limit
+    max_cost_usd: float | None = None    # between-call/wave recorded-cost threshold
     scheduler_patience: int = 3      # scheduler: consecutive no-progress records at a
                                       # move's floor weight (1) before it counts as
                                       # exhausted for the 'stalled_out' stop condition

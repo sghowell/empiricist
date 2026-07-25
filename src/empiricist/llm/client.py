@@ -24,10 +24,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import shlex
 import sqlite3
 import uuid
 from typing import Any, Protocol
 
+from blake3 import blake3
 from pydantic import BaseModel
 
 from empiricist.config import env_fingerprint
@@ -44,6 +46,7 @@ from empiricist.llm.models import LLMResult
 from empiricist.llm.parse import LLMParseError, parse_envelope
 from empiricist.llm.roles import Role
 from empiricist.llm.schemas import json_schema_for
+from empiricist.store import Store
 
 
 class LLMClient(Protocol):
@@ -72,6 +75,7 @@ class ClaudeCodeClient:
         self, *, claude_bin: list[str] | None = None,
         max_concurrency: int = 8, timeout_s: float = 900.0,
         capture_cap: int = 8 * 1024 * 1024,   # model envelopes can be large
+        store: Store | None = None,
     ) -> None:
         self._bin = list(claude_bin) if claude_bin else ["claude"]
         self._max_concurrency = max_concurrency
@@ -82,6 +86,7 @@ class ClaudeCodeClient:
         self._sem_loop: asyncio.AbstractEventLoop | None = None
         self._timeout_s = timeout_s
         self._capture_cap = capture_cap
+        self._store = store
 
     def _sem_for_loop(self) -> asyncio.Semaphore:
         loop = asyncio.get_running_loop()
@@ -121,6 +126,10 @@ class ClaudeCodeClient:
         session id. The client mints a fresh UUID per call (F2: fresh context, no
         cross-call state). Callers cannot pin or resume a session.
         """
+        if ledger is not None and self._store is None:
+            raise ValueError(
+                "ledger-backed Claude calls require a Store for retrievable receipts"
+            )
         cli_session_id = str(uuid.uuid4())   # valid UUID (claude requires it) + F2 fresh context
         sys_prompt = system_prompt if system_prompt is not None else role.system_prompt
         schema_dict = json_schema_for(schema) if schema is not None else None
@@ -128,6 +137,22 @@ class ClaudeCodeClient:
             role, prompt, session_id=cli_session_id, system_prompt=sys_prompt,
             schema=schema_dict,
         )
+        request_receipt = json.dumps(
+            {
+                "model": role.model,
+                "prompt": prompt,
+                "reasoning_effort": role.effort.value,
+                "role": role.name,
+                "schema": schema_dict,
+                "system_prompt": sys_prompt,
+                "tools": [],
+                "transport": "claude-code",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        request_digest = _store_or_hash(self._store, request_receipt)
         started = now_iso()
         rid = run_id or f"sample-{cli_session_id}"
         # Open the runs row BEFORE the call so an in-flight harness crash leaves an
@@ -138,6 +163,11 @@ class ClaudeCodeClient:
             try:
                 ledger.start_run(Run(
                     run_id=rid, move="SAMPLE", role=role.name, model=role.model,
+                    provider="anthropic",
+                    reasoning_effort=role.effort.value,
+                    auth_route="claude_code_cli",
+                    request_digest=request_digest,
+                    argv=shlex.join(argv),
                     env_fingerprint=env_fingerprint(), started=started,
                 ))
             except sqlite3.IntegrityError as e:
@@ -161,6 +191,10 @@ class ClaudeCodeClient:
             raise
 
         result: LLMResult | None = None
+        response_digest = _store_or_hash(
+            self._store,
+            res.stdout.encode("utf-8"),
+        )
         try:
             result = parse_envelope(res.stdout, model=role.model)
         except LLMParseError:
@@ -175,6 +209,7 @@ class ClaudeCodeClient:
                     tokens_out=result.output_tokens if result else 0,
                     cache_read=result.cache_read_tokens if result else 0,
                     cost_usd=result.cost_usd if result else 0.0,
+                    response_digest=response_digest,
                 )
         return result
 
@@ -235,3 +270,7 @@ class AnthropicAPIClient:
             "AnthropicAPIClient is the v0.1 metered-billing path (spec D2); "
             "v0 uses ClaudeCodeClient on the subscription."
         )
+
+
+def _store_or_hash(store: Store | None, content: bytes) -> str:
+    return store.put(content) if store is not None else blake3(content).hexdigest()

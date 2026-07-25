@@ -50,6 +50,7 @@ from empiricist.campaign.state import CampaignState
 from empiricist.config import RunConfig
 from empiricist.ledger.models import Status
 from empiricist.llm.client import LLMClient
+from empiricist.llm.models import BillingUnknownError
 from empiricist.search.loop import F3Alarm
 from empiricist.search.stall import StallDetector
 
@@ -108,6 +109,15 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
             scheduler.record(move, False)
             return consecutive_errors >= cfg.max_consecutive_move_errors
 
+        def note_unknown_billing(move: str, exc: BillingUnknownError) -> None:
+            summary.stop_reason = "billing_unknown"
+            logger.error("campaign: %s stopped for unknown billing: %s", move, exc)
+            state.population.log_event(
+                gen,
+                "billing_unknown",
+                {"move": move, "error": repr(exc)},
+            )
+
         while True:
             spent = state.ledger.spent()
             summary.spent_cost_usd = spent.cost_usd
@@ -134,6 +144,9 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
                     summary.stop_reason = "f3_alarm"
                     summary.spent_cost_usd = state.ledger.spent().cost_usd
                     break
+                except BillingUnknownError as exc:
+                    note_unknown_billing("search", exc)
+                    break
                 except Exception as exc:
                     if note_move_error("search", exc):
                         summary.stop_reason = "move_errors"
@@ -151,6 +164,9 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
             else:  # "conjecture"
                 try:
                     arts = await conjecture_move(state, cfg, client)
+                except BillingUnknownError as exc:
+                    note_unknown_billing("conjecture", exc)
+                    break
                 except Exception as exc:
                     if note_move_error("conjecture", exc):
                         summary.stop_reason = "move_errors"

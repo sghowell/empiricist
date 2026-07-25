@@ -1,4 +1,4 @@
-"""execute(): one audited path for every subprocess Empiricist runs.
+"""execute(): the audited subprocess path for callers that attach a ledger.
 
 Per spec §6: start_new_session (own pgid), scrubbed environment, darwin-safe
 rlimits, sandbox seam, RSS watchdog, wall-clock timeout with killpg, bounded

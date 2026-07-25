@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
@@ -7,7 +9,9 @@ from empiricist.domain.p3.scheme import (
     BELL_LABELS,
     BellScheme,
     bell_input_states,
+    derive_assignment,
     evaluate_scheme,
+    report_from_distributions,
 )
 
 
@@ -166,6 +170,55 @@ def test_verify_agreed_error_on_disagreement(monkeypatch):
     r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
     assert r.verdict == "ERROR"
     assert "disagree" in r.detail
+
+
+def test_verify_agreed_error_when_close_distributions_cross_assignment_boundary(
+    monkeypatch,
+):
+    """A sub-_AGREE_TOL difference may still cross _AMBIG_TOL and change the
+    identifying-pattern assignment. That is semantic disagreement, not PASS."""
+    from empiricist.domain.p3 import verify as vmod
+
+    real_evaluate = vmod.evaluate_scheme
+
+    def boundary_disagreement(scheme, engine):
+        report = real_evaluate(scheme, engine)
+        if not isinstance(engine, vmod.FockEngine):
+            return report
+        distributions = {
+            bell: dict(dist) for bell, dist in report.distributions.items()
+        }
+        assignment = derive_assignment(distributions)
+        pattern = next(pat for pat, winner in assignment.items() if winner == "psi+")
+        # Engine A reports exact zero here. This value is below raw distribution
+        # agreement tolerance (1e-8) but above assignment threshold (1e-11), so
+        # Engine B considers the pattern ambiguous.
+        distributions["phi+"][pattern] = 2e-11
+        return report_from_distributions(distributions)
+
+    monkeypatch.setattr(vmod, "evaluate_scheme", boundary_disagreement)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+    assert "identifying-pattern assignments" in r.detail
+
+
+def test_verify_agreed_error_on_derived_report_disagreement(monkeypatch):
+    """The agreed boundary must compare derived metrics rather than trusting
+    Engine A after the raw distributions have compared close."""
+    from empiricist.domain.p3 import verify as vmod
+
+    real_evaluate = vmod.evaluate_scheme
+
+    def report_disagreement(scheme, engine):
+        report = real_evaluate(scheme, engine)
+        if isinstance(engine, vmod.FockEngine):
+            return replace(report, p_avg=report.p_avg + 1e-4)
+        return report
+
+    monkeypatch.setattr(vmod, "evaluate_scheme", report_disagreement)
+    r = vmod.verify_scheme_agreed(_standard_bsm(), claimed_p_avg=0.5)
+    assert r.verdict == "ERROR"
+    assert "different scheme reports" in r.detail
 
 
 def test_verify_agreed_error_on_phantom_key(monkeypatch):

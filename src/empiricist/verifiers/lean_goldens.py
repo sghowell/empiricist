@@ -1,10 +1,10 @@
 """LEAN_GOLDEN_SUITE: LeanVerifier's own mutation-resistant certification suite
 (spec §7's discipline, applied to a verifier whose `verify()` shape doesn't fit
 `registry.Registry`/`P5_GOLDEN_SUITE` -- see `verifiers/lean.py`'s docstring).
-Every case must produce EXACTLY its `expected_pass` outcome to earn a PASS stamp
-via `certify_lean`.
+Every case must produce its exact `expected_verdict` to earn a PASS stamp via
+`certify_lean`; ERROR/TIMEOUT never satisfy a must-FAIL case.
 
-Cases (source, decl, expected_pass):
+Cases (source, decl, expected_verdict):
 
 1. A trivially-true, error-free lemma -> True (the baseline: the harness CAN
    certify a real proof, not just reject bad ones).
@@ -69,7 +69,7 @@ from typing import TYPE_CHECKING
 from blake3 import blake3
 
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Certification
+from empiricist.ledger.models import Certification, Verdict
 from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.registry import certify_with_suite
 
@@ -392,31 +392,31 @@ _TOCTOU_OLEAN_SWAP_SOURCE = (
     "  | .error _ => pure ()\n"
 )
 
-LEAN_GOLDEN_SUITE: list[tuple[str, str, bool]] = [
-    (_TRUE_SOURCE, "Empiricist.scaffold_true", True),
-    (_SORRY_SOURCE, "Empiricist.scaffold_true", False),
-    (_NATIVE_DECIDE_SOURCE, "Empiricist.nd", False),
-    (_TYPE_ERROR_SOURCE, "Empiricist.bad", False),
-    (_SPOOF_IO_PRINTLN_SOURCE, "Empiricist.one_eq_two", False),
-    (_SPOOF_RUN_CMD_SOURCE, "Empiricist.one_eq_two", False),
-    (_OVERRIDE_ELAB_SOURCE, "Empiricist.one_eq_two", False),
-    (_OVERRIDE_MACRO_SOURCE, "Empiricist.one_eq_two", False),
-    (_INJECT_DRIVER_RESULT_SOURCE, "Empiricist.one_eq_two", False),
-    (_INJECT_SKIP_KERNEL_TC, "Empiricist.boom", False),
-    (_INJECT_ADD_DECL_CORE, "Empiricist.boom", False),
-    (_INJECT_REPLAY, "Empiricist.boom", False),
-    (_TRUE_STATEMENT_SOURCE, "Empiricist.t", True),
-    (_POISON_IMPORT_SOURCE, "Empiricist.grandclaim", False),
-    (_UNEXPECTED_IMPORT_SOURCE, "Empiricist.t", False),
-    (_COMPILE_TIME_WRITE_SOURCE, "Empiricist.one_eq_two", False),
-    (_TOCTOU_OLEAN_SWAP_SOURCE, "Empiricist.evil_claim", False),
+LEAN_GOLDEN_SUITE: list[tuple[str, str, Verdict]] = [
+    (_TRUE_SOURCE, "Empiricist.scaffold_true", Verdict.PASS),
+    (_SORRY_SOURCE, "Empiricist.scaffold_true", Verdict.FAIL),
+    (_NATIVE_DECIDE_SOURCE, "Empiricist.nd", Verdict.FAIL),
+    (_TYPE_ERROR_SOURCE, "Empiricist.bad", Verdict.FAIL),
+    (_SPOOF_IO_PRINTLN_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_SPOOF_RUN_CMD_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_OVERRIDE_ELAB_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_OVERRIDE_MACRO_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_INJECT_DRIVER_RESULT_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_INJECT_SKIP_KERNEL_TC, "Empiricist.boom", Verdict.FAIL),
+    (_INJECT_ADD_DECL_CORE, "Empiricist.boom", Verdict.FAIL),
+    (_INJECT_REPLAY, "Empiricist.boom", Verdict.FAIL),
+    (_TRUE_STATEMENT_SOURCE, "Empiricist.t", Verdict.PASS),
+    (_POISON_IMPORT_SOURCE, "Empiricist.grandclaim", Verdict.FAIL),
+    (_UNEXPECTED_IMPORT_SOURCE, "Empiricist.t", Verdict.FAIL),
+    (_COMPILE_TIME_WRITE_SOURCE, "Empiricist.one_eq_two", Verdict.FAIL),
+    (_TOCTOU_OLEAN_SWAP_SOURCE, "Empiricist.evil_claim", Verdict.FAIL),
 ]
 
 
 def lean_suite_hash() -> str:
     """blake3 hex digest of a canonical JSON repr of LEAN_GOLDEN_SUITE."""
     canon = [
-        {"source": source, "decl": decl, "expected_pass": expected}
+        {"source": source, "decl": decl, "expected_verdict": expected.value}
         for source, decl, expected in LEAN_GOLDEN_SUITE
     ]
     payload = json.dumps(canon, sort_keys=True, separators=(",", ":"))
@@ -425,7 +425,7 @@ def lean_suite_hash() -> str:
 
 def certify_lean(ledger: Ledger, verifier: LeanVerifier) -> Certification:
     """Run LEAN_GOLDEN_SUITE through `verifier.verify(source, decl=decl)` and stamp
-    a Certification (PASS iff every case matches its expected_pass exactly) --
+    a Certification (PASS iff every case matches its exact expected verdict) --
     LeanVerifier's own certify path, parallel to but independent of
     `registry.Registry.certify()`."""
 

@@ -36,15 +36,16 @@ class Registry:
 
     def certify(self, verifier: Verifier) -> Certification:
         """Run every case in P5_GOLDEN_SUITE through `verifier.verify()`.
-        Stamp PASS iff EVERY case's outcome (verdict == PASS) matches its
-        expected outcome exactly -- a verifier that can't correctly FAIL the
+        Stamp PASS iff EVERY case's exact verdict matches its expected
+        verdict -- a verifier that can't correctly FAIL the
         wrong-target golden is exactly as untrustworthy as one that can't
-        PASS the right ones. Writes the stamp to the ledger and returns it.
+        PASS the right ones. ERROR/TIMEOUT never satisfy a must-FAIL case.
+        Writes the stamp to the ledger and returns it.
         """
         all_match = True
-        for construction, expected_pass in P5_GOLDEN_SUITE:
+        for construction, expected_verdict in P5_GOLDEN_SUITE:
             outcome = verifier.verify(construction)
-            if (outcome.verdict == Verdict.PASS) != expected_pass:
+            if outcome.verdict is not expected_verdict:
                 all_match = False
         stamp_verdict = Verdict.PASS if all_match else Verdict.FAIL
         cert = Certification(
@@ -143,7 +144,7 @@ def verify_agreed(registry: Registry, construction: Construction) -> VerifierRes
 def certify_with_suite(
     ledger: Ledger,
     verifier: Any,
-    suite: Sequence[tuple[Any, bool]],
+    suite: Sequence[tuple[Any, Verdict]],
     run: Callable[[Any, Any], VerifierResult],
     *,
     golden_suite_hash: str,
@@ -156,7 +157,7 @@ def certify_with_suite(
     generic engine it factors out for any OTHER verifier with its own
     golden suite.
 
-    `suite` is a list of `(case, expected_pass)` pairs; `run(verifier,
+    `suite` is a list of `(case, expected_verdict)` pairs; `run(verifier,
     case)` must invoke `verifier.verify(...)` appropriately for `case` and
     return its `VerifierResult` -- the caller supplies the glue since a
     "case" has no fixed shape across verifier kinds. `golden_suite_hash`
@@ -164,13 +165,14 @@ def certify_with_suite(
     a changed suite invalidates every existing stamp -- spec §7).
 
     Same all-or-nothing rule as `Registry.certify()`: the stamp is PASS iff
-    EVERY case's outcome (`verdict == PASS`) matches its `expected_pass`
-    exactly. Writes the stamp to `ledger` and returns it.
+    EVERY case's exact verdict matches its expected verdict. In particular,
+    ERROR/TIMEOUT never satisfy a must-FAIL case. Writes the stamp to `ledger`
+    and returns it.
     """
     all_match = True
-    for case, expected_pass in suite:
+    for case, expected_verdict in suite:
         outcome = run(verifier, case)
-        if (outcome.verdict == Verdict.PASS) != expected_pass:
+        if outcome.verdict is not expected_verdict:
             all_match = False
     stamp_verdict = Verdict.PASS if all_match else Verdict.FAIL
     cert = Certification(

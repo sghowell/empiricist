@@ -7,7 +7,7 @@ number it prints comes straight out of the ledger tables the campaign itself
 wrote (spec §4.2: provenance is total).
 
 **Content contract (spec §12):** header (config hash, environment, total
-cost, per-role token/cost); a claims table (every artifact, one row each);
+cost, per-role token/cost); an artifact inventory plus canonical claim records;
 per `VERIFIED_N`/`CERTIFIED`/`FORMALIZED` claim a provenance block (its
 evidence rows, the certification stamps currently in force, a CAS link);
 `CONJECTURED` (statement + falsification effort) and `REFUTED`
@@ -21,19 +21,14 @@ value) -- `artifact.status.rank >= Status.VERIFIED_N.rank` also naturally
 excludes REFUTED (rank -1), which is correct: a REFUTED claim is never a
 promoted one regardless of any earlier status_n it may have carried.
 
-**Certification stamps.** No evidence row in this codebase names a raw
-fusion-verifier ("stab_fusion"/"enum_fusion") as its own `verifier` field --
-composite move-level verifiers write "p5_tablebase_dataset_ingest",
-"auto_attack", "verify_agreed" instead (see search/loop.py, search/
-conjecture.py, domain/p5/dataset.py). So a promoted artifact's trust
-boundary is not recoverable by joining `evidence.verifier` against
-`certifications.verifier` for that ONE row -- it rests on whichever
-verifiers the *ledger's certifications table* currently holds a PASS stamp
-for (spec §7: verify() cannot run at all without one). Each provenance block
-therefore lists the certifications table's CURRENT full contents ("stamps in
-force") rather than attempting a per-evidence-row join the schema does not
-support -- an honest report of the trust boundary as it stands, not a
-guess at which row depended on which stamp.
+**Certification stamps.** Claim-bound P3 and Lean evidence names its canonical
+claim, originating run, and exact golden-suite hash, so the report joins that
+row to the current certification for the same verifier identity and labels
+missing, stale, or non-PASS state. Older/composite P5 evidence
+(`p5_tablebase_dataset_ingest`, `auto_attack`, `verify_agreed`) predates those
+links and remains explicit as unlinked legacy provenance. The report also lists
+the full current certification table because those composite P5 checks depend
+on the independently certified fusion verifiers rather than a same-name stamp.
 """
 
 from __future__ import annotations
@@ -59,6 +54,11 @@ def _short(digest: str | None, n: int = 12) -> str:
 
 def _fmt_details(details: dict[str, Any]) -> str:
     return json.dumps(details, sort_keys=True, separators=(",", ":"))
+
+
+def _md_cell(value: object) -> str:
+    """Keep free-form ledger text inside one Markdown table cell."""
+    return str(value).replace("|", "\\|").replace("\n", " ")
 
 
 def _env_summary() -> tuple[str, str]:
@@ -123,21 +123,55 @@ def _render_certifications(state: CampaignState) -> list[str]:
     return lines
 
 
-def _render_claims_table(artifacts: list[Artifact]) -> list[str]:
+def _render_claims_table(
+    state: CampaignState,
+    artifacts: list[Artifact],
+) -> list[str]:
     lines = [
         "## Claims",
         "",
-        "| ID | Kind | Title | Status | Status N | Coverage |",
-        "|---|---|---|---|---|---|",
+        "### Artifact inventory",
+        "",
+        "| ID | Problem | Version | Kind | Title | Status | Status N | Coverage |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     if not artifacts:
-        lines.append("| _(no artifacts)_ | | | | | |")
+        lines.append("| _(no artifacts)_ | | | | | | | |")
     for art in artifacts:
         lines.append(
-            f"| `{_short(art.id)}` | {art.kind} | {art.title} | "
+            f"| `{_short(art.id)}` | {art.problem} | {art.problem_version} | "
+            f"{art.kind} | {_md_cell(art.title)} | "
             f"{art.status.value}{f' ({art.substatus})' if art.substatus else ''} | "
             f"{art.status_n if art.status_n is not None else '-'} | "
             f"{art.coverage if art.coverage else '-'} |"
+        )
+    lines.append("")
+
+    lines.extend([
+        "### Canonical claim records",
+        "",
+        "| Claim | Artifact | Problem | Version | Family | Metric | Statement | Scope |",
+        "|---|---|---|---|---|---|---|---|",
+    ])
+    claims = [
+        claim
+        for artifact in artifacts
+        for claim in state.ledger.claims_for(artifact.id)
+    ]
+    if not claims:
+        lines.append("| _(none recorded; legacy artifact-only rows)_ | | | | | | | |")
+    for claim in claims:
+        scope = json.dumps(
+            claim.scope,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        lines.append(
+            f"| `{_short(claim.id)}` | `{_short(claim.artifact_id)}` | "
+            f"{claim.problem} | {claim.problem_version} | "
+            f"{_md_cell(claim.family or '-')} | {_md_cell(claim.metric or '-')} | "
+            f"{_md_cell(claim.statement)} | `{_md_cell(scope)}` |"
         )
     lines.append("")
     return lines
@@ -147,6 +181,7 @@ def _render_provenance_block(state: CampaignState, art: Artifact) -> list[str]:
     lines = [
         f"### {art.kind}: {art.title} (`{_short(art.id)}`)",
         "",
+        f"- Problem version: `{art.problem}@{art.problem_version}`",
         f"- Status: **{art.status.value}**"
         + (f", n={art.status_n}" if art.status_n is not None else "")
         + (f", coverage={art.coverage}" if art.coverage else "")
@@ -154,17 +189,55 @@ def _render_provenance_block(state: CampaignState, art: Artifact) -> list[str]:
         f"- CAS digest: `{art.content_path}` "
         f"(exists in store: {state.store.exists(art.content_path)})",
         "",
+        "Canonical claims:",
+        "",
+        "| Claim | Family | Metric | Statement | Scope |",
+        "|---|---|---|---|---|",
+    ]
+    claims = state.ledger.claims_for(art.id)
+    if not claims:
+        lines.append("| _(none; legacy artifact-only provenance)_ | | | | |")
+    for claim in claims:
+        scope = json.dumps(
+            claim.scope,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        lines.append(
+            f"| `{_short(claim.id)}` | {_md_cell(claim.family or '-')} | "
+            f"{_md_cell(claim.metric or '-')} | {_md_cell(claim.statement)} | "
+            f"`{_md_cell(scope)}` |"
+        )
+    lines.extend([
+        "",
         "Evidence:",
         "",
-        "| Verifier | Version | Binary hash | Verdict | Wall (s) | Details |",
-        "|---|---|---|---|---|---|",
-    ]
+        "| Verifier | Version | Binary hash | Claim | Run | Golden suite | "
+        "Current cert | Verdict | Wall (s) | Details |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ])
     evidence = state.ledger.evidence_for(art.id)
     if not evidence:
-        lines.append("| _(no evidence rows)_ | | | | | |")
+        lines.append("| _(no evidence rows)_ | | | | | | | | | |")
     for ev in evidence:
+        certification = state.ledger.get_certification(
+            ev.verifier,
+            ev.verifier_version,
+            ev.binary_hash,
+        )
+        if ev.golden_suite_hash is None:
+            cert_status = "-"
+        elif certification is None:
+            cert_status = "MISSING"
+        elif certification.golden_suite_hash != ev.golden_suite_hash:
+            cert_status = "STALE"
+        else:
+            cert_status = certification.verdict.value
         lines.append(
             f"| {ev.verifier} | {ev.verifier_version} | `{_short(ev.binary_hash)}` | "
+            f"`{_short(ev.claim_id)}` | `{_short(ev.run_id)}` | "
+            f"`{_short(ev.golden_suite_hash)}` | {cert_status} | "
             f"{ev.verdict.value} | {ev.wall_s if ev.wall_s is not None else '-'} | "
             f"`{_fmt_details(ev.details)}` |"
         )
@@ -307,7 +380,7 @@ def generate(state: CampaignState, cfg: RunConfig) -> str:
     artifacts = state.ledger.find_artifacts()
     lines: list[str] = []
     lines.extend(_render_header(state, cfg))
-    lines.extend(_render_claims_table(artifacts))
+    lines.extend(_render_claims_table(state, artifacts))
     lines.extend(_render_provenance_section(state, artifacts))
     lines.extend(_render_conjectured(state, artifacts))
     lines.extend(_render_refuted(state, artifacts))

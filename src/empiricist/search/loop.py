@@ -51,6 +51,7 @@ from dataclasses import asdict, dataclass
 from pydantic import ValidationError
 
 import empiricist.verifiers.registry as _registry_module
+from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.ingest import ingest_artifact
 from empiricist.ledger.models import EvidenceRow, Status, Verdict
@@ -249,6 +250,7 @@ class SearchLoop:
                 art = ingest_artifact(
                     self._ledger, self._store, content=cert_json, kind="construction",
                     problem="P5",
+                    problem_version=P5_PROBLEM_VERSION,
                     title=f"SEARCH exact upgrade: orbit {achieved_key[:12]} F={f}",
                     status=Status.HEURISTIC,
                 )

@@ -7,9 +7,18 @@ import sys
 import pytest
 
 from empiricist.executor.limits import ResourceLimits
-from empiricist.executor.runner import ExecSpec, execute
+from empiricist.executor.runner import (
+    SPAWN_FAILED_EXIT_CODE,
+    UNKNOWN_EXIT_CODE,
+    ExecSpec,
+    execute,
+)
 from empiricist.executor.sandbox import SandboxMode
-from empiricist.ledger.db import Ledger
+from empiricist.ledger.db import (
+    ORPHANED_EXIT_CODE,
+    UNKNOWN_BILLING_EXIT_CODE,
+    Ledger,
+)
 
 
 def run(spec: ExecSpec, ledger=None):
@@ -136,9 +145,17 @@ def test_spawn_failure_closes_run_row_and_reraises(tmp_path):
     with pytest.raises(FileNotFoundError):
         asyncio.run(execute(spec, ledger=lg))
     row = lg.get_run("spawnfail")
-    from empiricist.executor.runner import SPAWN_FAILED_EXIT_CODE
     assert row.ended is not None and row.exit_code == SPAWN_FAILED_EXIT_CODE
     lg.close()
+
+
+def test_special_exit_code_sentinels_are_unique():
+    assert len({
+        ORPHANED_EXIT_CODE,
+        UNKNOWN_BILLING_EXIT_CODE,
+        SPAWN_FAILED_EXIT_CODE,
+        UNKNOWN_EXIT_CODE,
+    }) == 4
 
 
 def test_default_spec_has_conservative_resource_envelope():

@@ -51,7 +51,7 @@ reusing the M5a golden-test approach); for n = 8, 9 that's combinatorially
 infeasible (2^28, 2^36 labeled graphs), so it shells out to nauty's `geng -c
 n` (streams graph6-encoded connected graphs up to isomorphism directly --
 11117 lines at n=8, 261080 at n=9, both under a tenth of a second) THROUGH
-`executor.runner.execute()` -- the harness's one audited subprocess path
+`executor.runner.execute()` -- the harness's one controlled subprocess path
 (spec §6 names "enumerator" explicitly; this module never calls `subprocess`
 directly, see `tests/test_no_bare_subprocess.py`) -- and parses each line
 with `networkx.from_graph6_bytes`. Local complementation providably
@@ -503,7 +503,7 @@ def _run_sync(spec: ExecSpec):
 
 
 def _run_geng(n: int, geng_path: str) -> bytes:
-    """Spawn `geng -c n` through the harness's one audited subprocess path
+    """Spawn `geng -c n` through the harness's controlled subprocess path
     (`executor.runner.execute()` -- spec §6 names "enumerator" explicitly
     among the subprocesses that must go through `runner.py`; this module
     never spawns a subprocess directly, see

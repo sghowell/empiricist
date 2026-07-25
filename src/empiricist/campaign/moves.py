@@ -10,10 +10,8 @@ before every SEARCH/CONJECTURE move) never re-runs Tier-0/Tier-1. The only
 path that re-derives the dataset is a genuinely empty ledger. If that
 re-derivation lands on content that was already ingested under a prior,
 crashed attempt (identical dataset bytes -> identical blake3 digest -> the
-same artifact id, spec §4.2 rule 1), `ingest_dataset`'s `ledger.add_artifact`
-raises `sqlite3.IntegrityError` on the PRIMARY KEY collision; that is not a
-failure, it is the crash-and-rerun case working as designed -- caught here
-and resolved by loading the already-ingested artifact by its content digest.
+same artifact id, spec §4.2 rule 1), `ingest_dataset` recovers that exact
+row and completes any interrupted evidence-backed VERIFIED_N promotion.
 
 **open_targets' lc_orbit_key finding (verify-before-code, M6 carryover).**
 `domain.p5.dataset.build_dataset` stamps every row's `orbit_id` in the
@@ -33,21 +31,21 @@ from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 
 from empiricist.campaign.state import CampaignState
 from empiricist.config import RunConfig
 from empiricist.domain.p5.canonical import lc_orbit_key
-from empiricist.domain.p5.dataset import build_dataset, ingest_dataset, to_canonical_json
+from empiricist.domain.p5.dataset import build_dataset, ingest_dataset
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.domain.p5.localcomp import OrbitTooLarge
 from empiricist.domain.p5.tablebase import tier0_search, tier1_search
-from empiricist.ledger.models import Artifact, Status
+from empiricist.ledger.models import Artifact, Status, Verdict
 from empiricist.llm.client import LLMClient
 from empiricist.search.conjecture import attack, conjecture_artifact_id, mine, submit
 from empiricist.search.database import Population
 from empiricist.search.loop import GenerationReport, SearchLoop, TargetSpec
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
+from empiricist.verifiers.goldens import suite_hash
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 logger = logging.getLogger(__name__)
@@ -61,14 +59,24 @@ def ensure_certified(state: CampaignState) -> None:
     Idempotent: `Registry.verify` (and therefore `verify_agreed`) would
     raise `UncertifiedVerifierError` for an unstamped verifier, so this is
     the move that must run before any verification touches real work -- but
-    re-certifying an already-stamped verifier is harmless (certify() always
+    re-certifying an already-current verifier is harmless (certify() always
     re-runs the golden suite and upserts the same PASS stamp), just wasted
-    effort, so we check first via `ledger.is_certified` rather than
-    certifying unconditionally on every call.
+    effort. A PASS against an older golden-suite hash is stale and must be
+    re-certified before Registry.verify will accept it.
     """
+    current_suite_hash = suite_hash()
     for verifier_cls in _FUSION_VERIFIERS:
         verifier = verifier_cls()
-        if not state.ledger.is_certified(verifier.name, verifier.version, verifier.binary_hash):
+        cert = state.ledger.get_certification(
+            verifier.name,
+            verifier.version,
+            verifier.binary_hash,
+        )
+        if (
+            cert is None
+            or cert.verdict is not Verdict.PASS
+            or cert.golden_suite_hash != current_suite_hash
+        ):
             state.registry.certify(verifier)
 
 
@@ -78,31 +86,23 @@ def ensure_enumerate(state: CampaignState, cfg: RunConfig) -> Artifact:
     exist in the ledger. See module docstring for the idempotency and
     crash-recovery contracts.
     """
+    # Certification can become stale even when the dataset is already present
+    # (for example after strengthening the golden suite). SEARCH depends on
+    # these same verifiers, so resume must refresh trust before the idempotent
+    # dataset early return.
+    ensure_certified(state)
+
     existing = state.ledger.find_artifacts(
         kind="dataset", problem="P5", status=Status.VERIFIED_N
     )
     if existing:
         return existing[-1]  # find_artifacts orders oldest->newest
 
-    ensure_certified(state)
-
     tier0 = tier0_search(cfg.tier0_n)
     tier1 = tier1_search(cfg.tier1_n)
     dataset = build_dataset(tier0, tier1)
 
-    try:
-        return ingest_dataset(state.ledger, state.store, dataset, state.registry)
-    except sqlite3.IntegrityError:
-        # Documented recovery path: identical dataset content was already
-        # ingested (a prior attempt got as far as the CAS/ledger write and
-        # then crashed before whatever else the caller intended, or a race
-        # with another process) -- the artifact id IS the content digest, so
-        # re-deriving the SAME dataset and re-computing that digest recovers
-        # the exact row `find_artifacts` would have found if this call had
-        # started a moment later.
-        content = to_canonical_json(dataset)
-        digest = state.store.put(content)
-        return state.ledger.get_artifact(digest)
+    return ingest_dataset(state.ledger, state.store, dataset, state.registry)
 
 
 def dataset_rows(state: CampaignState, artifact: Artifact) -> list[dict]:

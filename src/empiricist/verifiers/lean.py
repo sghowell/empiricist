@@ -141,11 +141,11 @@ from typing import Any
 
 from blake3 import blake3
 
+from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.executor.runner import ExecSpec, execute
 from empiricist.executor.sandbox import SandboxMode
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.ingest import ingest_artifact
-from empiricist.ledger.models import Artifact, EvidenceRow, Status, Verdict
+from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
 from empiricist.store import Store
 from empiricist.verifiers.base import VerifierResult
 
@@ -158,6 +158,11 @@ _DEFAULT_PROJECT_DIR = Path(__file__).resolve().parents[3] / "lean" / "Empiricis
 # test. These axioms are all KERNEL-VALID, so leanchecker (gate c) accepts them;
 # the whitelist (gate d) is the hygiene layer leanchecker does not provide.
 _AXIOM_WHITELIST = frozenset({"propext", "Classical.choice", "Quot.sound"})
+
+# The v0 formalization campaign is the P5 GHZ3 resource model frozen by D1 in
+# the harness design. Callers formalizing another problem/version must name it
+# explicitly rather than silently inheriting P5 provenance.
+DEFAULT_LEAN_PROBLEM_VERSION = P5_PROBLEM_VERSION
 
 # The SET of trusted EmpiricistLean.* modules a scratch may import (the trusted
 # FOUNDATION): the `Basic` scaffold lemma and the promoted Fable-authored
@@ -194,9 +199,22 @@ _TRUSTED_EMPIRICIST_MODULES = frozenset(
 # EmpiricistLean import not in the trusted set, so allowlisting the non-trusted
 # oleans here does not widen the import-trust surface.
 _COMMITTED_SOURCE_FILES = frozenset(
-    {"Basic.lean", "NonTrusted.lean", "Foundation.lean", "LocalComp.lean",
-     "FusionRule.lean", "TreeThm.lean", "DoubleStar.lean", "CenterMerge.lean",
-     "TrueTwin.lean", "ProducibleExt.lean", "DHCharacterization.lean", "P3Amplitudes.lean", "P3Pauli.lean", "P3L1.lean"}
+    {
+        "Basic.lean",
+        "CenterMerge.lean",
+        "DHCharacterization.lean",
+        "DoubleStar.lean",
+        "Foundation.lean",
+        "FusionRule.lean",
+        "LocalComp.lean",
+        "NonTrusted.lean",
+        "P3Amplitudes.lean",
+        "P3L1.lean",
+        "P3Pauli.lean",
+        "ProducibleExt.lean",
+        "TreeThm.lean",
+        "TrueTwin.lean",
+    }
 )
 _COMMITTED_BUILD_PREFIXES = (
     "Basic.", "NonTrusted.", "Foundation.", "LocalComp.", "FusionRule.", "TreeThm.",
@@ -959,46 +977,173 @@ def ingest_lean_artifact(
     store: Store,
     module_source: str,
     decl: str,
-    result: VerifierResult,
     *,
     verifier: LeanVerifier | None = None,
+    problem: str = "P5",
+    problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
+    run_id: str | None = None,
+    timeout_s: float = 600.0,
 ) -> Artifact:
-    """Ingest `module_source` as a `kind='lean'` P5 artifact at
-    `Status.FORMALIZED`, with an evidence row recording the LeanVerifier result
-    (including the resolved `statement` + `statement_hash`: a referee sees WHAT
-    was proven, not just a clean axiom set). Entry status is the caller's claim
-    (same discipline as `domain.p5.dataset.ingest_dataset`).
+    """Verify the exact source and atomically record its FORMALIZED claim.
 
-    `verifier` defaults to a fresh default-project-dir `LeanVerifier()`; pass the
-    EXACT instance that produced `result` if it used a non-default `project_dir`.
-
-    RAISES ValueError if `result.verdict is not Verdict.PASS`: a FORMALIZED
-    artifact backed by anything less than a real PASS would be a false FORMALIZED
-    claim -- no artifact and no evidence row are created in that case.
+    A caller cannot inject a previously manufactured PASS: this function owns
+    both the verifier invocation and the artifact/claim/evidence transaction.
+    The verifier must hold a current certification for the exact Lean golden
+    suite before it runs and when the transaction commits.
     """
+    v = verifier if verifier is not None else LeanVerifier()
+    suite_hash = _require_current_lean_certification(ledger, v)
+    result = v.verify(module_source, decl=decl, timeout_s=timeout_s)
     if result.verdict is not Verdict.PASS:
         raise ValueError(
             f"ingest_lean_artifact: refusing to ingest decl={decl!r} at FORMALIZED -- "
             f"verifier result was {result.verdict.value}, not PASS "
             f"(details={result.details})"
         )
-    v = verifier if verifier is not None else LeanVerifier()
-    art = ingest_artifact(
-        ledger, store,
-        content=module_source.encode("utf-8"),
+    return _record_verified_lean_artifact(
+        ledger,
+        store,
+        module_source,
+        decl,
+        result,
+        verifier=v,
+        suite_hash=suite_hash,
+        problem=problem,
+        problem_version=problem_version,
+        run_id=run_id,
+    )
+
+
+async def verify_and_ingest_lean_artifact(
+    ledger: Ledger,
+    store: Store,
+    module_source: str,
+    decl: str,
+    *,
+    verifier: LeanVerifier,
+    problem: str = "P5",
+    problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
+    run_id: str | None = None,
+    timeout_s: float = 600.0,
+) -> tuple[VerifierResult, Artifact | None]:
+    """Async event-loop-safe version used by ``FormalizeLoop``.
+
+    Lean verification runs in a worker because ``LeanVerifier.verify`` wraps
+    ``asyncio.run``. All SQLite reads/writes stay on the owning event-loop
+    thread.
+    """
+    suite_hash = _require_current_lean_certification(ledger, verifier)
+    result = await asyncio.to_thread(
+        verifier.verify,
+        module_source,
+        decl=decl,
+        timeout_s=timeout_s,
+    )
+    if result.verdict is not Verdict.PASS:
+        return result, None
+    artifact = _record_verified_lean_artifact(
+        ledger,
+        store,
+        module_source,
+        decl,
+        result,
+        verifier=verifier,
+        suite_hash=suite_hash,
+        problem=problem,
+        problem_version=problem_version,
+        run_id=run_id,
+    )
+    return result, artifact
+
+
+def _require_current_lean_certification(ledger: Ledger, verifier: LeanVerifier) -> str:
+    # Local import avoids the intentional lean_goldens -> LeanVerifier type
+    # dependency becoming a runtime import cycle.
+    from empiricist.verifiers.lean_goldens import lean_suite_hash
+
+    suite_hash = lean_suite_hash()
+    ledger.require_certification(
+        verifier.name,
+        verifier.version,
+        verifier.binary_hash,
+        suite_hash,
+    )
+    return suite_hash
+
+
+def _record_verified_lean_artifact(
+    ledger: Ledger,
+    store: Store,
+    module_source: str,
+    decl: str,
+    result: VerifierResult,
+    *,
+    verifier: LeanVerifier,
+    suite_hash: str,
+    problem: str,
+    problem_version: str,
+    run_id: str | None,
+) -> Artifact:
+    """Record a PASS produced for these exact bytes; never called by users."""
+    if result.verdict is not Verdict.PASS:
+        raise ValueError("internal Lean recorder requires PASS")
+    statement = result.details.get("statement")
+    statement_hash = result.details.get("statement_hash")
+    if not isinstance(statement, str) or not statement:
+        raise ValueError("Lean PASS omitted the resolved theorem statement")
+    expected_statement_hash = blake3(statement.encode("utf-8")).hexdigest()
+    if statement_hash != expected_statement_hash:
+        raise ValueError("Lean PASS statement_hash does not match its statement")
+    if result.details.get("decl") != decl:
+        raise ValueError("Lean PASS names a different declaration than the checked claim")
+
+    content = module_source.encode("utf-8")
+    digest = store.put(content)
+    evidence_run_id = run_id
+    if evidence_run_id is not None:
+        try:
+            ledger.get_run(evidence_run_id)
+        except KeyError:
+            # Deterministic fake clients do not create run receipts. Real
+            # transports do, and their run id remains attached.
+            evidence_run_id = None
+    artifact = Artifact(
+        id=digest,
         kind="lean",
-        problem="P5",
+        problem=problem,
+        problem_version=problem_version,
         title=decl,
+        content_path=digest,
         status=Status.FORMALIZED,
+        run_id=evidence_run_id,
     )
-    ledger.record_evidence(
-        EvidenceRow(
-            artifact_id=art.id,
-            verifier=v.name,
-            verifier_version=v.version,
-            binary_hash=v.binary_hash,
-            verdict=result.verdict,
-            details=result.details,
-        )
+    claim = Claim.create(
+        artifact_id=artifact.id,
+        problem=problem,
+        problem_version=problem_version,
+        statement=statement,
+        family=decl,
+        metric="theorem",
+        scope={
+            "axioms": list(result.details.get("axioms") or ()),
+            "decl": decl,
+            "statement_hash": statement_hash,
+        },
     )
-    return art
+    evidence = EvidenceRow(
+        artifact_id=artifact.id,
+        claim_id=claim.id,
+        run_id=evidence_run_id,
+        verifier=verifier.name,
+        verifier_version=verifier.version,
+        binary_hash=verifier.binary_hash,
+        golden_suite_hash=suite_hash,
+        verdict=Verdict.PASS,
+        details=result.details,
+    )
+    return ledger.record_claimed_artifact(
+        artifact,
+        claim,
+        evidence,
+        expected_golden_suite_hash=suite_hash,
+    )

@@ -23,7 +23,9 @@ to run inside a running event loop (returns `Verdict.ERROR` with an asyncio
 message rather than raising -- see `verifiers/lean.py`'s `verify()` docstring).
 Since `FormalizeLoop.run` is itself a coroutine, calling `verify()` directly
 would always hit that refusal. It MUST be dispatched to a worker thread via
-`asyncio.to_thread`, which is exactly what `_run_round` below does.
+`asyncio.to_thread`, which is exactly what
+`verify_and_ingest_lean_artifact` does while keeping SQLite work on this
+event-loop thread.
 
 Faithfulness of the STATEMENT (does the Lean theorem actually say what the
 `FormalizeTask.goal` claims?) is NOT checked here -- the loop only certifies
@@ -36,7 +38,7 @@ same discipline M10-M15 used for their own claims).
 
 from __future__ import annotations
 
-import asyncio
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -49,7 +51,11 @@ from empiricist.ledger.models import Verdict
 from empiricist.llm.client import LLMClient
 from empiricist.llm.roles import ROLES
 from empiricist.store import Store
-from empiricist.verifiers.lean import ingest_lean_artifact
+from empiricist.verifiers.lean import (
+    DEFAULT_LEAN_PROBLEM_VERSION,
+    verify_and_ingest_lean_artifact,
+)
+from empiricist.verifiers.lean_goldens import lean_suite_hash
 
 _NO_ARTIFACT_FEEDBACK = (
     "No usable output was produced. Emit exactly one JSON object matching the "
@@ -63,6 +69,8 @@ class FormalizeTask:
     name: str    # short id for the goal (used in run_id / provenance)
     goal: str    # natural-language: WHAT to prove + the intended (informal) statement
     context: str  # available lemmas/defs, import guidance, prior-art, faithfulness constraints
+    problem: str = "P5"
+    problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION
 
 
 @dataclass(frozen=True)
@@ -137,15 +145,32 @@ class FormalizeLoop:
         )
 
     async def run(self, task: FormalizeTask) -> FormalizeReport:
+        # Fail before the first (potentially paid) formalizer call if no result
+        # could cross the FORMALIZED trust boundary.  The ingestion helper
+        # repeats this exact check immediately before verification/commit.
+        self._ledger.require_certification(
+            self._verifier.name,
+            self._verifier.version,
+            self._verifier.binary_hash,
+            lean_suite_hash(),
+        )
+
+        # A task name is a readable provenance component, not a globally unique
+        # execution identity. Re-running/resuming the same task must not collide
+        # with prior provider receipts, while every round's verifier evidence
+        # must still point to the exact receipt that produced its source.
+        run_nonce = uuid.uuid4().hex[:8]
+
         history: list[_Round] = []
         last_decl: str | None = None
         last_module_source: str | None = None
 
         for round_num in range(1, self._max_rounds + 1):
+            rid = f"formalize-{task.name}-{run_nonce}-r{round_num}"
             prompt = self.build_prompt(task, history)
             result = await self._client.complete(
                 ROLES["formalizer"], prompt, schema=LeanModuleOut,
-                ledger=self._ledger, run_id=f"formalize-{task.name}-r{round_num}",
+                ledger=self._ledger, run_id=rid,
             )
 
             if result is None or not result.has_artifact:
@@ -171,18 +196,22 @@ class FormalizeLoop:
             last_decl = out.decl
             last_module_source = out.module_source
 
-            # THE TRAP (module docstring): verify() wraps asyncio.run and
-            # refuses to run inside a running event loop -- dispatch to a
-            # worker thread from this coroutine.
-            vr = await asyncio.to_thread(
-                self._verifier.verify, out.module_source, decl=out.decl,
+            # The helper dispatches only Lean itself to a worker; certification
+            # lookup and atomic ledger writes remain on this owning thread.
+            vr, art = await verify_and_ingest_lean_artifact(
+                self._ledger,
+                self._store,
+                out.module_source,
+                out.decl,
+                verifier=self._verifier,
+                problem=task.problem,
+                problem_version=task.problem_version,
+                run_id=rid,
             )
 
             if vr.verdict is Verdict.PASS:
-                art = ingest_lean_artifact(
-                    self._ledger, self._store, out.module_source, out.decl, vr,
-                    verifier=self._verifier,
-                )
+                if art is None:
+                    raise RuntimeError("Lean verifier returned PASS without an artifact")
                 history.append(_Round(
                     verdict="PASS", gate=None, feedback="",
                     module_source=out.module_source,
