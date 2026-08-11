@@ -123,6 +123,40 @@ def test_audit_accepts_consistent_cas_evidence_links_and_certification(
     assert report.evidence_checked == 1
 
 
+def test_audit_flags_cert_gated_elevated_without_suite_hash(
+    ledger: Ledger,
+    store: Store,
+) -> None:
+    """A certification-gated kind (`lean`) at an elevated status whose evidence
+    carries no `golden_suite_hash` cannot be cross-checked against a
+    certification -> flagged `elevated_missing_certified_evidence`. A
+    self-validating kind (`dataset`) is exempt (its warrant is the certified
+    engines it re-checks against, recorded in details)."""
+    lean_digest = store.put(b"theorem t : True := trivial")
+    lean_art = Artifact(
+        id=lean_digest, kind="lean", problem="P5", problem_version="p5-test-v1",
+        title="Empiricist.t", content_path=lean_digest, status=Status.FORMALIZED,
+    )
+    ledger.add_artifact(lean_art)
+    ledger.record_evidence(_evidence(lean_art.id))  # PASS, no golden_suite_hash
+
+    ds_digest = store.put(b"dataset rows")
+    ds_art = Artifact(
+        id=ds_digest, kind="dataset", problem="P5", problem_version="p5-test-v1",
+        title="tablebase", content_path=ds_digest, status=Status.VERIFIED_N,
+    )
+    ledger.add_artifact(ds_art)
+    ledger.record_evidence(_evidence(ds_art.id))  # PASS, no golden_suite_hash
+
+    flagged = {
+        (issue.artifact_id, issue.code)
+        for issue in audit_ledger(ledger, store).issues
+    }
+    assert (lean_art.id, "elevated_missing_certified_evidence") in flagged
+    # dataset is self-validating -> exempt from the cert cross-check
+    assert (ds_art.id, "elevated_missing_certified_evidence") not in flagged
+
+
 def test_audit_reports_missing_and_hash_mismatched_cas_blobs(
     ledger: Ledger,
     store: Store,

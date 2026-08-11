@@ -22,6 +22,16 @@ _ELEVATED_STATUSES = frozenset(
     {Status.VERIFIED_N, Status.CERTIFIED, Status.FORMALIZED}
 )
 
+# Kinds whose elevated promotion is CERTIFICATION-gated (its warrant is a
+# golden-suite certification), so its evidence MUST carry a cross-checkable
+# `golden_suite_hash` column. Other elevated kinds (e.g. `dataset`) are
+# self-validating — their warrant is the already-certified verifiers they
+# re-check against, recorded in `details` — and are exempt from this cross
+# check. Keying on (status, kind) rather than on the suite-hash column being
+# populated lets the audit distinguish a self-validating promotion from a
+# certification-gated one that is missing its checkable provenance.
+_CERT_GATED_KINDS = frozenset({"lean"})
+
 
 @dataclass(frozen=True)
 class AuditIssue:
@@ -137,6 +147,26 @@ def audit_ledger(ledger: Ledger, store: Store) -> AuditReport:
 
         evidence = ledger.evidence_for(artifact.id)
         evidence_checked += len(evidence)
+        if (
+            artifact.status in _ELEVATED_STATUSES
+            and artifact.kind in _CERT_GATED_KINDS
+            and not any(
+                getattr(row, "golden_suite_hash", None) is not None
+                for row in evidence
+            )
+        ):
+            issues.append(
+                AuditIssue(
+                    code="elevated_missing_certified_evidence",
+                    artifact_id=artifact.id,
+                    message=(
+                        f"{artifact.status.value} {artifact.kind} artifact "
+                        f"{artifact.id} has no evidence carrying a golden_suite_hash "
+                        "to cross-check against a certification (certification-gated "
+                        "kind); re-verify under the current gate for full provenance"
+                    ),
+                )
+            )
         if (
             artifact.status in _ELEVATED_STATUSES
             and not any(row.verdict is Verdict.PASS for row in evidence)

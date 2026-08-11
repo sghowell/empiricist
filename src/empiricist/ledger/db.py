@@ -167,6 +167,7 @@ class Ledger:
         status_n: int | None = None,
         coverage: str | None = None,
         substatus: str | None = None,
+        self_validating: bool = False,
     ) -> None:
         """Insert an evidence row; optionally change status in the same transaction.
 
@@ -176,6 +177,18 @@ class Ledger:
         On any status change, substatus is set to exactly the given value
         (None clears it — a sub-status never survives a lattice move
         implicitly); evidence-only records leave it untouched.
+
+        A promotion to an ELEVATED status (rank >= VERIFIED_N) via this general
+        primitive requires `self_validating=True` — an explicit acknowledgment
+        that the promotion's warrant is a SELF-VALIDATING verifier (one whose
+        evidence re-checks against already-certified verifiers, e.g. the P5
+        dataset ingest validating witnesses against the certified A/B engines),
+        NOT a golden-suite certification. Certification-gated promotions
+        (e.g. Lean FORMALIZED) must route through `record_claimed_artifact`,
+        whose in-transaction certification re-check is the authoritative gate.
+        This makes the invariant "no elevated artifact without either a matching
+        current certification or an explicit self-validating warrant" STRUCTURAL
+        rather than by-convention.
         """
         with self._tx() as c:
             row = c.execute(
@@ -216,6 +229,17 @@ class Ledger:
                     raise PromotionIntegrityError(
                         f"status transition cannot reduce epistemic rank from "
                         f"{current_status.value} to {new_status.value}"
+                    )
+                if (
+                    new_status is not Status.REFUTED
+                    and new_status.rank >= Status.VERIFIED_N.rank
+                    and not self_validating
+                ):
+                    raise PromotionIntegrityError(
+                        f"promotion to {new_status.value} via record_evidence requires "
+                        "self_validating=True (a self-validating verifier); "
+                        "certification-gated promotions must route through "
+                        "record_claimed_artifact"
                     )
                 if new_status is Status.VERIFIED_N:
                     c.execute(

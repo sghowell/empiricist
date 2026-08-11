@@ -449,5 +449,10 @@ def ingest_dataset(
             ),
             status_n=n_max,
             coverage="exhaustive",
+            # Self-validating: _validate_dataset re-checked every witness against
+            # the certified A/B fusion engines, so this VERIFIED_N promotion's
+            # warrant is those certifications (recorded in details), not a
+            # golden-suite certification of the ingest verifier itself.
+            self_validating=True,
         )
     return ledger.get_artifact(art.id)

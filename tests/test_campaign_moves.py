@@ -180,6 +180,7 @@ def test_existing_dataset_resume_refreshes_stale_verifier_stamp(campaign, monkey
         new_status=Status.VERIFIED_N,
         status_n=cfg.tier0_n,
         coverage="exhaustive",
+        self_validating=True,
     )
     first = state.ledger.get_artifact(seed.id)
     stab = StabFusionVerifier()

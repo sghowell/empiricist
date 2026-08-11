@@ -88,10 +88,26 @@ def test_promotion_updates_status_atomically_with_evidence(ledger, store):
     ledger.record_evidence(
         make_evidence(art.id),
         new_status=Status.VERIFIED_N, status_n=9, coverage="exhaustive",
+        self_validating=True,
     )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.VERIFIED_N
     assert got.status_n == 9 and got.coverage == "exhaustive"
+
+
+def test_elevated_promotion_via_record_evidence_requires_self_validating(ledger, store):
+    """Structural gate: record_evidence refuses a >=VERIFIED_N promotion unless
+    the caller explicitly declares self_validating (certification-gated
+    promotions must use record_claimed_artifact). Below-VERIFIED promotions are
+    unaffected."""
+    art = make_artifact(store, kind="dataset")
+    ledger.add_artifact(art)
+    with pytest.raises(PromotionIntegrityError, match="self_validating=True"):
+        ledger.record_evidence(make_evidence(art.id), new_status=Status.VERIFIED_N)
+    assert ledger.get_artifact(art.id).status == Status.HEURISTIC
+    # CONJECTURED (below VERIFIED_N) needs no self_validating flag.
+    ledger.record_evidence(make_evidence(art.id), new_status=Status.CONJECTURED)
+    assert ledger.get_artifact(art.id).status == Status.CONJECTURED
 
 
 @pytest.mark.parametrize("verdict", [Verdict.FAIL, Verdict.ERROR, Verdict.TIMEOUT])
@@ -249,7 +265,9 @@ def test_record_evidence_rolls_back_atomically_on_midtx_failure(ledger, store):
     # Force the evidence INSERT to violate NOT NULL after the UPDATE ran.
     object.__setattr__(bad, "verifier", None)
     with pytest.raises(sqlite3.IntegrityError):
-        ledger.record_evidence(bad, new_status=Status.VERIFIED_N, status_n=9)
+        ledger.record_evidence(
+            bad, new_status=Status.VERIFIED_N, status_n=9, self_validating=True
+        )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.HEURISTIC and got.status_n is None
     assert ledger.evidence_for(art.id) == []
@@ -285,9 +303,11 @@ def test_status_n_clears_when_leaving_verified_n(ledger, store):
     ledger.add_artifact(art)
     ledger.record_evidence(
         make_evidence(art.id), new_status=Status.VERIFIED_N,
-        status_n=9, coverage="exhaustive",
+        status_n=9, coverage="exhaustive", self_validating=True,
     )
-    ledger.record_evidence(make_evidence(art.id), new_status=Status.CERTIFIED)
+    ledger.record_evidence(
+        make_evidence(art.id), new_status=Status.CERTIFIED, self_validating=True
+    )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.CERTIFIED
     assert got.status_n is None and got.coverage is None
