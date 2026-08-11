@@ -198,6 +198,7 @@ def test_run_generation_full_wave_counts_population_events_and_upgrade(env):
     assert st.get(cert_hash)  # content retrievable
     art = lg.get_artifact(cert_hash)
     assert art.kind == "construction"
+    assert art.problem_version == "p5-ghz3-v1"
     assert art.status == Status.HEURISTIC
 
     evidence = lg.evidence_for(cert_hash)

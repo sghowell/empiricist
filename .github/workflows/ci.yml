@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    name: Lint and fast tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Sync locked environment
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Run fast offline tests
+        run: uv run pytest -m "not slow and not slow_lean"
+
+  trust-boundaries:
+    name: Manual slow exact and Lean checks
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-14
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Sync locked environment
+        run: uv sync --frozen
+
+      - name: Install exact graph enumerator
+        run: brew install nauty
+
+      - name: Install pinned Lean toolchain manager
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf \
+            -o /tmp/elan-init.sh \
+            https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch pinned mathlib cache
+        working-directory: lean/EmpiricistLean
+        run: |
+          lake --version
+          lake exe cache get
+
+      - name: Run slow exact and real-Lean trust checks
+        run: uv run pytest -m "slow or slow_lean"

@@ -27,9 +27,11 @@ orphaned evidence row).
 from __future__ import annotations
 
 import json
+import sqlite3
 import sys
 from typing import Any
 
+from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.domain.p5.canonical import iso_certificate
 from empiricist.domain.p5.construction import Construction, FusionOp, LocalComplement
 from empiricist.domain.p5.graphstate import GraphState
@@ -202,27 +204,68 @@ def _validate_dataset(dataset: dict[str, Any], registry: Registry) -> dict[str, 
     """Raise ValueError on any invariant violation; return a per-n summary
     dict for the ingestion evidence row on success. Runs to completion
     (or raises) BEFORE `ingest_dataset` touches the ledger or the store."""
+    if dataset.get("schema_version") != 1:
+        raise ValueError(
+            f"unsupported dataset schema_version: {dataset.get('schema_version')!r}"
+        )
+    n_max = dataset.get("n_max")
+    if type(n_max) is not int or n_max < 3 or n_max > max(ADCOCK_TOTALS):
+        raise ValueError(
+            f"dataset n_max must be an integer in 3..{max(ADCOCK_TOTALS)}"
+        )
+    tier1_n_max = dataset.get("tier1_n_max")
+    if type(tier1_n_max) is not int or tier1_n_max < 3:
+        raise ValueError("dataset tier1_n_max must be an integer >= 3")
+
     rows = dataset.get("rows")
-    if not rows:
+    if not isinstance(rows, list) or not rows:
         raise ValueError("dataset has no rows")
     per_n_totals = dataset.get("per_n_totals")
-    if per_n_totals is None:
+    if not isinstance(per_n_totals, dict):
         raise ValueError("dataset missing per_n_totals")
 
     by_n: dict[int, list[dict[str, Any]]] = {}
-    for row in rows:
-        by_n.setdefault(row["n"], []).append(row)
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"dataset row {index} is not an object")
+        n = row.get("n")
+        if type(n) is not int:
+            raise ValueError(f"dataset row {index} has a non-integer n")
+        by_n.setdefault(n, []).append(row)
+
+    expected_sizes = set(range(3, n_max + 1))
+    actual_sizes = set(by_n)
+    if actual_sizes != expected_sizes:
+        missing = sorted(expected_sizes - actual_sizes)
+        unexpected = sorted(actual_sizes - expected_sizes)
+        raise ValueError(
+            "dataset rows do not cover the claimed 3..n_max range "
+            f"(missing={missing}, unexpected={unexpected})"
+        )
+    expected_totals = {
+        str(n): ADCOCK_TOTALS[n]
+        for n in range(3, n_max + 1)
+    }
+    if per_n_totals != expected_totals:
+        raise ValueError(
+            "dataset per_n_totals does not exactly match the claimed "
+            "3..n_max Adcock totals"
+        )
 
     per_n_summary: dict[int, dict[str, int]] = {}
     for n, n_rows in sorted(by_n.items()):
-        if n not in ADCOCK_TOTALS:
-            raise ValueError(f"n={n}: no Adcock ground truth available -- cannot validate")
+        enum_n = enumerate_connected_orbits(n)
 
         for row in n_rows:
             f_value = row["F"]
             if row["exact"]:
                 if f_value is None:
                     raise ValueError(f"n={n} orbit={row['orbit_id']}: exact=True but F is None")
+                if row["lower_bound"] != f_value:
+                    raise ValueError(
+                        f"n={n} orbit={row['orbit_id']}: exact row lower_bound="
+                        f"{row['lower_bound']} does not equal F={f_value}"
+                    )
                 if f_value % 3 != (n - 3) % 3:
                     raise ValueError(
                         f"n={n} orbit={row['orbit_id']}: F={f_value} violates the mod-3 "
@@ -250,6 +293,35 @@ def _validate_dataset(dataset: dict[str, Any], registry: Registry) -> dict[str, 
                     raise ValueError(
                         f"n={n} orbit={row['orbit_id']}: exact=False but tier={row['tier']!r}"
                     )
+                expected_lower_bound = n + 3 if n <= tier1_n_max else n
+                if row["lower_bound"] != expected_lower_bound:
+                    raise ValueError(
+                        f"n={n} orbit={row['orbit_id']}: open-row lower_bound="
+                        f"{row['lower_bound']}, expected {expected_lower_bound}"
+                    )
+                if row["witness"] is not None:
+                    raise ValueError(
+                        f"n={n} orbit={row['orbit_id']}: open row carries a witness"
+                    )
+
+            try:
+                representative = GraphState(
+                    n=n,
+                    edges=[tuple(edge) for edge in row["representative_edges"]],
+                )
+                expected_orbit_id = enum_n.orbit_root(
+                    iso_certificate(representative)
+                ).hex()
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"n={n} orbit={row.get('orbit_id')}: invalid connected "
+                    f"representative: {exc}"
+                ) from exc
+            if row["orbit_id"] != expected_orbit_id:
+                raise ValueError(
+                    f"n={n} orbit={row['orbit_id']}: canonical orbit id is "
+                    f"{expected_orbit_id}"
+                )
 
         # per-n totals == Adcock (ground truth, not re-derived from a live search).
         if len(n_rows) != ADCOCK_TOTALS[n]:
@@ -257,13 +329,6 @@ def _validate_dataset(dataset: dict[str, Any], registry: Registry) -> dict[str, 
                 f"n={n}: dataset has {len(n_rows)} rows, Adcock says {ADCOCK_TOTALS[n]} "
                 "connected orbits -- row count mismatch"
             )
-        claimed_total = per_n_totals.get(str(n))
-        if claimed_total != ADCOCK_TOTALS[n]:
-            raise ValueError(
-                f"n={n}: dataset's own per_n_totals claims {claimed_total}, "
-                f"Adcock says {ADCOCK_TOTALS[n]}"
-            )
-
         # reachable-counts consistency: the rows must PARTITION the n orbits
         # -- no duplicate or missing orbit_id.
         ids = [row["orbit_id"] for row in n_rows]
@@ -320,30 +385,74 @@ def ingest_dataset(
 
     content = to_canonical_json(dataset)
     n_max = dataset["n_max"]
-    art = ingest_artifact(
-        ledger,
-        store,
-        content=content,
-        kind="dataset",
-        problem="P5",
-        title=f"GHZ3 min-fusion tablebase: F(G) for connected orbits, n=3..{n_max}",
-        status=Status.VERIFIED_N,
-        status_n=n_max,
-        coverage="exhaustive",
-    )
+    try:
+        # Artifact identity is durable before promotion, but the unproven row
+        # deliberately starts below VERIFIED_N.  record_evidence() performs
+        # the promotion and evidence insert in one SQLite transaction, so a
+        # crash cannot expose a VERIFIED_N dataset without machine evidence.
+        art = ingest_artifact(
+            ledger,
+            store,
+            content=content,
+            kind="dataset",
+            problem="P5",
+            problem_version=P5_PROBLEM_VERSION,
+            title=f"GHZ3 min-fusion tablebase: F(G) for connected orbits, n=3..{n_max}",
+            status=Status.HEURISTIC,
+        )
+    except sqlite3.IntegrityError as collision:
+        # Recover a prior attempt that committed the content-addressed
+        # HEURISTIC row but crashed before the evidence transaction.  A fully
+        # completed retry is idempotent as well.
+        artifact_id = store.put(content)
+        try:
+            art = ledger.get_artifact(artifact_id)
+        except KeyError as missing:
+            raise collision from missing
+        if (
+            art.kind != "dataset"
+            or art.problem != "P5"
+            or art.content_path != artifact_id
+        ):
+            raise
 
+    current_suite_hash = suite_hash()
+    verifier_hash = module_source_hash(sys.modules[__name__])
     ev = EvidenceRow(
         artifact_id=art.id,
         verifier="p5_tablebase_dataset_ingest",
         verifier_version="1.0",
-        binary_hash=module_source_hash(sys.modules[__name__]),
+        binary_hash=verifier_hash,
         verdict=Verdict.PASS,
         details={
             "per_n": {str(n): counts for n, counts in summary["per_n"].items()},
             "exact_rows_verified": summary["exact_rows_verified"],
             "witness_verifiers": [StabFusionVerifier.name, EnumFusionVerifier.name],
-            "golden_suite_hash": suite_hash(),
+            "golden_suite_hash": current_suite_hash,
         },
     )
-    ledger.record_evidence(ev)
-    return art
+    already_recorded = any(
+        evidence.verifier == ev.verifier
+        and evidence.verifier_version == ev.verifier_version
+        and evidence.binary_hash == ev.binary_hash
+        and evidence.verdict is Verdict.PASS
+        and evidence.details.get("golden_suite_hash") == current_suite_hash
+        for evidence in ledger.evidence_for(art.id)
+    )
+    if not already_recorded:
+        ledger.record_evidence(
+            ev,
+            new_status=(
+                Status.VERIFIED_N
+                if art.status.rank <= Status.VERIFIED_N.rank
+                else None
+            ),
+            status_n=n_max,
+            coverage="exhaustive",
+            # Self-validating: _validate_dataset re-checked every witness against
+            # the certified A/B fusion engines, so this VERIFIED_N promotion's
+            # warrant is those certifications (recorded in details), not a
+            # golden-suite certification of the ingest verifier itself.
+            self_validating=True,
+        )
+    return ledger.get_artifact(art.id)

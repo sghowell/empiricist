@@ -1,59 +1,27 @@
-"""Ledger ingestion for verified P3 Bell-measurement schemes (M20a Task 2).
+"""Certified, claim-bound ingestion for P3 Bell-measurement schemes.
 
-The P5 convention, carried over verbatim (`verifiers/p3_scheme.py`'s own
-docstring: "verifiers write nothing" -- `P3SchemeVerifier.verify()` is pure
-in-process Python with no ledger writes): an ingestion helper, not the
-verifier, owns the `EvidenceRow`. `ingest_scheme_artifact` is that helper for
-P3 -- it takes an already-produced `domain.p3.verify.AgreedResult` (from
-`verify_scheme_agreed`, the same two-engine contract `P3SchemeVerifier` wraps)
-and records both the CAS/ledger artifact and the evidence row that justifies
-it in one call.
-
-**Why a PASS enters directly at VERIFIED_N, not HEURISTIC-then-promoted.**
-Unlike `search/loop.py`'s exact-upgrade path (which ingests at HEURISTIC and
-defers the dataset row's own status change to the M7 orchestrator), a PASS
-from `verify_scheme_agreed` already IS two-engine machine agreement that
-every claim the scheme makes is achieved -- there is no further
-orchestrator-level promotion step for a standalone P3 construction. Two-engine
-agreement is the machine evidence spec's status lattice asks for at
-`VERIFIED_N` ("exactly machine-checked"), so the artifact is created at
-`VERIFIED_N` directly (the same "datasets legitimately enter at VERIFIED_N"
-exception `ledger.add_artifact`'s docstring documents) and the evidence row
-is recorded in the same call, co-locating the transition with the evidence
-that earned it.
-
-**Canonicalization IS the dedup identity.** The artifact's CAS content is
-`json.dumps(scheme_json, sort_keys=True, separators=(",", ":")).encode()` --
-the canonical JSON of the caller's raw scheme dict (the same dict that was
-screened by `search.p3_screen.screen_scheme` into the `BellScheme` that was
-actually verified). Two calls with the same scheme, even key-order-shuffled,
-collapse to the SAME blake3 digest and hence the SAME artifact id (spec §4.2
-rule 1: id == content hash -- no override here, unlike
-`search.conjecture.submit`'s semantic-hash exception): re-ingesting an
-already-known scheme across search rounds is free and never mints a second
-artifact.
-
-**Duplicate handling** mirrors `search.conjecture.submit` exactly: look up
-the pre-computed content digest via `ledger.get_artifact` first (short-circuit
-return of the existing artifact, no new evidence row -- re-deriving the same
-scheme is not new evidence about it); catch `sqlite3.IntegrityError` as
-belt-and-braces against a concurrent insert racing between that existence
-check and the ingest.
+Raw scheme JSON is screened and independently evaluated inside this module;
+callers cannot inject a precomputed PASS. A certified PASS is recorded
+atomically with its canonical scoped claim and evidence. Because the two P3
+engines are floating-point search evidence, accepted constructions remain
+HEURISTIC rather than crossing an exact-certification boundary.
 """
 
 from __future__ import annotations
 
 import json
-import sqlite3
 
 from blake3 import blake3
 
-from empiricist.domain.p3.verify import AgreedResult
+from empiricist.domain.p3.verify import AgreedResult, verify_scheme_agreed
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.ingest import ingest_artifact
-from empiricist.ledger.models import Artifact, EvidenceRow, Status, Verdict
+from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
+from empiricist.search.p3_screen import screen_scheme
 from empiricist.store import Store
+from empiricist.verifiers.p3_goldens import p3_suite_hash
 from empiricist.verifiers.p3_scheme import P3SchemeVerifier
+
+P3_SCHEME_PROBLEM_VERSION = "p3-linear-optical-scheme-v1"
 
 
 def _canonical_scheme_json(scheme_json: dict) -> bytes:
@@ -78,85 +46,142 @@ def ingest_scheme_artifact(
     store: Store,
     *,
     scheme_json: dict,
-    result: AgreedResult,
     title: str,
     run_id: str | None = None,
     claimed_p_min: float | None = None,
     claimed_p_avg: float | None = None,
     claimed_max_leakage: float = 0.0,
 ) -> Artifact:
-    """Ingest a PASS-verified P3 scheme as a `construction` artifact at
-    `VERIFIED_N`, with the `EvidenceRow` that justifies it.
+    """Verify raw model output and atomically ingest its exact checked claim.
 
-    Refuses (`ValueError`) unless `result.verdict == "PASS"` -- a FAIL/ERROR/
-    INVALID result is never recorded above the trust boundary this helper
-    exists to gate (an ERROR result in particular is the F3 stop-the-world
-    alarm; a caller must never route it here). `scheme_json` must be strictly
-    JSON-serializable; see `_canonical_scheme_json`.
-
-    The evidence row carries the claim AND the achievement; the CAS carries
-    the scheme. `claimed_p_min`/`claimed_p_avg`/`claimed_max_leakage` are the
-    values the caller passed to `verify_scheme_agreed` to produce `result` --
-    they are recorded in the evidence details (same keys as
-    `P3SchemeVerifier.verify`'s details schema) because the declared leakage
-    budget is THE certificate parameter under verify.py's normative semantics
-    ("unambiguous up to leakage <= <declared budget>"): a PASS is meaningless
-    to a ledger reader without the claim it certifies. P5 gets away with
-    CAS-only claims because there the CAS content IS the checked claim; here
-    `scheme_json`'s `claimed_*` fields and the values actually handed to the
-    verifier are structurally decoupled, so the checked values must be
-    recorded explicitly.
-
-    Idempotent: a second call with the same canonical `scheme_json` returns
-    the FIRST-ingested artifact (its original `title`) and records no second
-    evidence row.
+    The caller cannot supply a precomputed PASS. Certification is checked
+    before verification and again inside the artifact+claim+evidence
+    transaction. Numeric P3 constructions remain HEURISTIC: the floating-point
+    engines are strong search evidence, not an exact upper-bound certificate.
     """
-    if result.verdict != "PASS":
+    result, artifact = verify_and_ingest_scheme(
+        ledger,
+        store,
+        scheme_json=scheme_json,
+        title=title,
+        run_id=run_id,
+        claimed_p_min=claimed_p_min,
+        claimed_p_avg=claimed_p_avg,
+        claimed_max_leakage=claimed_max_leakage,
+    )
+    if result.verdict != "PASS" or artifact is None:
         raise ValueError(
             f"refusing to ingest a non-PASS scheme (verdict={result.verdict!r}): "
             f"{result.detail}"
         )
+    return artifact
 
-    content = _canonical_scheme_json(scheme_json)
-    # Deliberately the same blake3-hexdigest convention as store.put, so this
-    # id equals the one ingest_artifact would derive from `content`.
-    art_id = blake3(content).hexdigest()
-    try:
-        return ledger.get_artifact(art_id)  # duplicate: short-circuit, no new evidence
-    except KeyError:
-        pass
 
-    try:
-        art = ingest_artifact(
-            ledger, store, content=content, kind="construction", problem="P3",
-            title=title, status=Status.VERIFIED_N, run_id=run_id,
-        )
-    except sqlite3.IntegrityError:
-        # Raced with another insert of the same canonical scheme.
-        return ledger.get_artifact(art_id)
+def verify_and_ingest_scheme(
+    ledger: Ledger,
+    store: Store,
+    *,
+    scheme_json: dict,
+    title: str,
+    run_id: str | None = None,
+    claimed_p_min: float | None = None,
+    claimed_p_avg: float | None = None,
+    claimed_max_leakage: float = 0.0,
+) -> tuple[AgreedResult, Artifact | None]:
+    """Return the verifier result and ingest only when it is a certified PASS."""
 
     verifier = P3SchemeVerifier()
-    report = result.report
-    ledger.record_evidence(
-        EvidenceRow(
-            artifact_id=art.id,
-            verifier=verifier.name,
-            verifier_version=verifier.version,
-            binary_hash=verifier.binary_hash,
-            verdict=Verdict.PASS,
-            details={
-                "success_by_state": dict(report.success_by_state),
-                "p_min": report.p_min,
-                "p_avg": report.p_avg,
-                "leakage": result.leakage,
-                "detail": result.detail,
-                # the checked claim (keys mirror P3SchemeVerifier.verify's
-                # details schema): the certificate is claim + achievement
-                "claimed_p_min": claimed_p_min,
-                "claimed_p_avg": claimed_p_avg,
-                "claimed_max_leakage": claimed_max_leakage,
-            },
-        ),
-        new_status=Status.VERIFIED_N,
+    suite_hash = p3_suite_hash()
+    ledger.require_certification(
+        verifier.name,
+        verifier.version,
+        verifier.binary_hash,
+        suite_hash,
     )
-    return art
+
+    # Reconstruct the exact object being checked from the raw model output in
+    # this function, so a caller cannot pair one scheme's PASS with another
+    # scheme's bytes.
+    scheme = screen_scheme(scheme_json)
+    result = verify_scheme_agreed(
+        scheme,
+        claimed_p_min=claimed_p_min,
+        claimed_p_avg=claimed_p_avg,
+        claimed_max_leakage=claimed_max_leakage,
+    )
+    if result.verdict != "PASS":
+        return result, None
+    if result.report is None:  # defensive: PASS contract requires a report
+        raise RuntimeError("P3 verifier returned PASS without a report")
+
+    content = _canonical_scheme_json(scheme_json)
+    art_id = blake3(content).hexdigest()
+    content_path = store.put(content)
+    evidence_run_id = run_id
+    if evidence_run_id is not None:
+        try:
+            ledger.get_run(evidence_run_id)
+        except KeyError:
+            # Test/dry clients may not write run receipts. Real transports do.
+            evidence_run_id = None
+    art = Artifact(
+        id=art_id,
+        kind="construction",
+        problem="P3",
+        problem_version=P3_SCHEME_PROBLEM_VERSION,
+        title=title,
+        content_path=content_path,
+        status=Status.HEURISTIC,
+        run_id=evidence_run_id,
+    )
+    metric = ",".join(
+        name
+        for name, value in (
+            ("p_min", claimed_p_min),
+            ("p_avg", claimed_p_avg),
+        )
+        if value is not None
+    ) or "leakage"
+    claim = Claim.create(
+        artifact_id=art.id,
+        problem=art.problem,
+        problem_version=art.problem_version,
+        statement=(
+            "This fixed linear-optical Bell-measurement scheme satisfies the "
+            "declared success and leakage bounds."
+        ),
+        metric=metric,
+        scope={
+            "claimed_p_min": claimed_p_min,
+            "claimed_p_avg": claimed_p_avg,
+            "claimed_max_leakage": claimed_max_leakage,
+        },
+    )
+    report = result.report
+    evidence = EvidenceRow(
+        artifact_id=art.id,
+        claim_id=claim.id,
+        run_id=evidence_run_id,
+        verifier=verifier.name,
+        verifier_version=verifier.version,
+        binary_hash=verifier.binary_hash,
+        golden_suite_hash=suite_hash,
+        verdict=Verdict.PASS,
+        details={
+            "success_by_state": dict(report.success_by_state),
+            "p_min": report.p_min,
+            "p_avg": report.p_avg,
+            "leakage": result.leakage,
+            "detail": result.detail,
+            "claimed_p_min": claimed_p_min,
+            "claimed_p_avg": claimed_p_avg,
+            "claimed_max_leakage": claimed_max_leakage,
+        },
+    )
+    stored = ledger.record_claimed_artifact(
+        art,
+        claim,
+        evidence,
+        expected_golden_suite_hash=suite_hash,
+    )
+    return result, stored

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import json
+import sqlite3
 
 import pytest
 
@@ -111,6 +112,7 @@ def test_ingest_dataset_creates_verified_n_artifact(small_dataset, tmp_path):
         assert art.status_n == 6
         assert art.coverage == "exhaustive"
         assert art.kind == "dataset"
+        assert art.problem_version == "p5-ghz3-v1"
         assert store.get(art.content_path) == to_canonical_json(small_dataset)
 
         fetched = ledger.get_artifact(art.id)
@@ -124,6 +126,41 @@ def test_ingest_dataset_creates_verified_n_artifact(small_dataset, tmp_path):
         assert evidence[0].details["exact_rows_verified"] == sum(
             1 for r in small_dataset["rows"] if r["exact"]
         )
+    finally:
+        ledger.close()
+
+
+def test_verified_n_promotion_is_atomic_and_recovers_after_evidence_abort(
+    small_dataset, tmp_path
+):
+    ledger = Ledger(tmp_path / "ledger_atomic.db")
+    store = Store(tmp_path / "cas_atomic")
+    try:
+        registry = Registry(ledger)
+        registry.certify(StabFusionVerifier())
+        registry.certify(EnumFusionVerifier())
+        ledger.conn.execute(
+            "CREATE TRIGGER abort_dataset_evidence BEFORE INSERT ON evidence "
+            "WHEN NEW.verifier = 'p5_tablebase_dataset_ingest' "
+            "BEGIN SELECT RAISE(ABORT, 'injected evidence failure'); END"
+        )
+
+        with pytest.raises(sqlite3.IntegrityError, match="injected evidence failure"):
+            ingest_dataset(ledger, store, small_dataset, registry)
+
+        artifacts = ledger.find_artifacts(kind="dataset", problem="P5")
+        assert len(artifacts) == 1
+        assert artifacts[0].status is Status.HEURISTIC
+        assert ledger.evidence_for(artifacts[0].id) == []
+
+        ledger.conn.execute("DROP TRIGGER abort_dataset_evidence")
+        recovered = ingest_dataset(ledger, store, small_dataset, registry)
+
+        assert recovered.id == artifacts[0].id
+        assert recovered.status is Status.VERIFIED_N
+        evidence = ledger.evidence_for(recovered.id)
+        assert len(evidence) == 1
+        assert evidence[0].verdict is Verdict.PASS
     finally:
         ledger.close()
 
@@ -188,6 +225,52 @@ def test_ingest_dataset_rejects_wrong_witness(small_dataset, tmp_path):
         assert n_evidence == 0
     finally:
         ledger.close()
+
+
+def _assert_dataset_rejected_without_ledger_rows(dataset, tmp_path):
+    ledger = Ledger(tmp_path / "ledger_rejected.db")
+    store = Store(tmp_path / "cas_rejected")
+    try:
+        registry = Registry(ledger)
+        registry.certify(StabFusionVerifier())
+        registry.certify(EnumFusionVerifier())
+
+        with pytest.raises(ValueError):
+            ingest_dataset(ledger, store, dataset, registry)
+
+        assert ledger.conn.execute("SELECT COUNT(*) FROM artifacts").fetchone()[0] == 0
+        assert ledger.conn.execute("SELECT COUNT(*) FROM evidence").fetchone()[0] == 0
+    finally:
+        ledger.close()
+
+
+def test_ingest_dataset_rejects_missing_claimed_size_range(small_dataset, tmp_path):
+    corrupted = copy.deepcopy(small_dataset)
+    corrupted["rows"] = [
+        row for row in corrupted["rows"] if row["n"] != corrupted["n_max"]
+    ]
+
+    _assert_dataset_rejected_without_ledger_rows(corrupted, tmp_path)
+
+
+@pytest.mark.parametrize("tier", ["tier0", "open"])
+def test_ingest_dataset_rejects_false_lower_bound(
+    small_dataset, tmp_path, tier
+):
+    corrupted = copy.deepcopy(small_dataset)
+    row = next(row for row in corrupted["rows"] if row["tier"] == tier)
+    row["lower_bound"] += 3
+
+    _assert_dataset_rejected_without_ledger_rows(corrupted, tmp_path)
+
+
+def test_ingest_dataset_rejects_noncanonical_orbit_identity(
+    small_dataset, tmp_path
+):
+    corrupted = copy.deepcopy(small_dataset)
+    corrupted["rows"][0]["orbit_id"] = "not-the-canonical-orbit-root"
+
+    _assert_dataset_rejected_without_ledger_rows(corrupted, tmp_path)
 
 
 def test_build_dataset_full_range_past_n7():

@@ -1,6 +1,6 @@
 # Empiricist v0 — Implementation Design Spec
 
-**Status:** draft v2 (post-review) for user sign-off · **Date:** 2026-07-06 · **Author:** Sean Howell + Claude (Opus 4.8)
+**Status:** draft v2 (post-review) for user sign-off · **Date:** 2026-07-06 · **Amended:** 2026-07-24 · **Author:** Sean Howell + Claude (Opus 4.8)
 **Companions:** `docs/empiricist_harness.md` (harness design v0.1), `docs/open_problems_ftfbqc.md` (the ten problems)
 
 This spec makes the harness design doc *implementation-ready* and records decisions from brainstorming, a 7-brief research sweep, and a 4-lens adversarial review (consistency, completeness, P5-domain correctness, Claude-Code transport — the last verified against the installed `claude` v2.1.201). Where this spec and the companion harness doc disagree, **this spec wins**.
@@ -28,9 +28,9 @@ The success metric is **status promotions per token**.
 | # | Decision | Choice | Rationale |
 |---|---|---|---|
 | D1 | **Resource model** | **GHZ₃** (unbounded \|GHZ₃⟩ = 3-star = triangle). Our **own forward search** is ground truth; the Löbl caterpillar table is a **lower-bound cross-check only** (`F_cat ≤ F_GHZ3`), never golden data. | Matches the P5 statement + the `F ≥ N−3` framing; avoids the 32 GB pkl and silent mis-certification. |
-| D2 | **Model access** | **Claude Code headless** (`claude -p`) as default transport, behind an injectable `LLMClient`. Subscription auth. `FakeLLMClient` for tests; `AnthropicAPIClient` documented for high fan-out / Batch discount (metered). | User directive. **Caveat (review):** subscription concurrency is ~low-teens (RSS + rate limits), not 16–64; k auto-tuned by preflight; true high fan-out needs the API client. |
+| D2 | **Model access** | **Claude Code headless** (`claude -p`) remains the established Fable-5 pilot transport behind an injectable `LLMClient`. The supported GPT-5.6 route is the official OpenAI Responses API with `gpt-5.6-sol`, `reasoning.mode: "pro"`, and API-key auth. `FakeLLMClient` is used for tests; paid providers are never called by CI. | Preserve the successful pilot while adding a quality-first GPT-5.6 treatment. Pro mode and reasoning effort are independent. Private Codex subscription/OAuth credentials are not an application API, and `codex exec` does not satisfy the no-shell/no-tools boundary. |
 | D3 | **Repo** | **Private** (already private). | Release is a deliberate human gate. |
-| D4 | **Live campaign** | **Full overnight, machine-only inner loop, unattended**; uncapped by default with a *configurable* cap, preflight, cost visibility, hard resumability. PROVE/FORMALIZE are human-gated (parked), not run autonomously. | User directive + the docs' two-loop design (inner unattended, outer human-gated at 4 points). |
+| D4 | **Live campaign** | **Full overnight, machine-only inner loop, unattended**; fail closed unless the operator supplies an inclusive generation limit and/or a recorded-cost stop threshold. Preflight, cost visibility, and hard resumability are mandatory. PROVE/FORMALIZE are human-gated (parked), not run autonomously. | The inner loop can run unattended without silently becoming unbounded. |
 | D5 | **Equivalence** | "Same graph state" = **LC-orbit equality**. The dedup key everywhere is the **LC-orbit canonical key** = min pynauty iso-certificate over the graph's LC-orbit. Raw iso-keys are used only *inside* the LC-orbit BFS. | `F` is LC-invariant; LC-equivalence is poly-time decidable; LC-equivalent graphs are generally not isomorphic, so a raw iso-key would fragment orbits. |
 | D6 | **Fusion semantics** | Fusion = **destructive Bell-type measurement of the commuting pair `{X_A Z_B, Z_A X_B}`** (Löbl's canonical type-II convention) of one qubit from each of two components **or intra-component**, realized as a **stabilizer measurement on the tableau/GF(2) rep** (never a graph-rewrite shortcut). `F` = min **successful (postselected)** fusions. **No leaf-only restriction.** **Convention note (M5b implementation finding):** the P5 statement's literal `{X_A X_B, Z_A Z_B}` and this `{X_A Z_B, Z_A X_B}` differ by a Hadamard on one fusion qubit — a *free* single-qubit Clifford — so **`F(G)` is provably identical under either convention** (any schedule converts 1:1). The `{XZ, ZX}` form is used because it realizes the literature's graph rule (disjoint fusion = connect `N(A)×N(B)`, delete A,B; GHZ₃ chains → paths), matching Löbl arXiv:2412.04587 Thm 5 ("one fusion type suffices") and the ballistic-FBQC chain-building constructions. Verified on the stim tableau: `{XX,ZZ}` leaf-fusing two GHZ₃ stars yields the 4-star orbit; `{XZ,ZX}` yields P₄. | Matches the P5 problem's *quantity* exactly (F is convention-invariant); intra-component fusions are required to build cycles; postselection is WLOG (all outcomes LC-equivalent). |
 | D7 | **Lean axioms** | Whitelist ⊆ `{propext, Classical.choice, Quot.sound}`; reject `sorryAx`, `native_decide`/`Lean.ofReduceBool`. | Load-bearing certified results must be in-kernel. |
@@ -73,11 +73,12 @@ empiricist/
     gates.py           persisted human-gate queue: park / list / resolve
 
   llm/
-    client.py          LLMClient Protocol; ClaudeCodeClient (default), AnthropicAPIClient, FakeLLMClient
+    client.py          LLMClient Protocol; ClaudeCodeClient, AnthropicAPIClient, FakeLLMClient
+    openai_responses.py OpenAIResponsesClient: tool-free GPT-5.6 Responses transport
     roles.py           Role tuples: (system=[spec]+[role_card], effort, k, schema, transport)
     schemas.py         pydantic output/certificate schemas per role (incl. the Construction schema, Appendix E)
     parse.py           envelope → result → pydantic-validate (uses claude --json-schema); bounded retry on genuine failure
-    preflight.py       model-resolves + auth-live + concurrency smoke test (auto-tunes k)
+    preflight.py       one-call model/auth + strict structured-output canary
 
   executor/
     runner.py          create_subprocess_exec(start_new_session=True); env-scrub; emits a runs row
@@ -112,7 +113,7 @@ empiricist/
   orchestrator.py      asyncio single loop: derive frontier, semaphore fan-out, wall-clock, resume, single writer
   scheduler.py         weighted round-robin over (problem, move); stall cooldown; budget accounting; skips parked gates
   report.py            ledger → Markdown/HTML report (content contract §12)
-  cli.py               run / resume / status / verify-only / certify / gates / report
+  cli.py               run / resume / status / audit / certify / gates / report
 
 tests/                 pytest; golden suites; FakeLLMClient scripts
 ```
@@ -167,7 +168,7 @@ Fable-5 is stochastic (no seed); solvers may be non-deterministic. **`VERIFIED_N
 
 ---
 
-## 5. Model layer (Claude Code transport) — verified against `claude` v2.1.201
+## 5. Model layer (injectable transports)
 
 ### 5.1 Injectable protocol
 
@@ -177,7 +178,7 @@ class LLMClient(Protocol):
     async def complete_many(self, role: Role, prompts: list[str]) -> list[LLMResult]: ...
 ```
 
-`LLMResult`: `text` (mapped from the envelope's `result` field), `parsed` (schema-validated or `None`), `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `duration_ms`, `session_id`, `stop_reason`. Implementations: **`ClaudeCodeClient`** (default), **`FakeLLMClient`** (tests), **`AnthropicAPIClient`** (documented alternative; Batch discount + real concurrency for large Searcher fan-out).
+`LLMResult`: `text` (mapped from the provider response), `parsed` (schema-validated or `None`), `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `duration_ms`, `session_id`, `stop_reason`. Implementations: **`ClaudeCodeClient`** (established Fable pilot path), **`OpenAIResponsesClient`** (GPT-5.6 API-key path), **`FakeLLMClient`** (tests), **`AnthropicAPIClient`** (documented alternative; Batch discount + real concurrency for large Searcher fan-out).
 
 ### 5.2 ClaudeCodeClient — the verified invocation
 
@@ -199,13 +200,118 @@ Verified true against v2.1.201: `--model claude-fable-5` resolves and reports `m
 
 - **Structured output** — `parse.py` = take envelope `result` → pydantic-validate. With `--json-schema` the **success** envelope has `stop_reason ∈ {end_turn, tool_use}` — both are success. Hard artifact failure = `parsed is None` or `stop_reason ∈ {refusal, max_tokens}`; bounded retry only on genuine failure.
 - **Context purity (F2)** — do **not** use `--bare` (it forces API-key auth and breaks subscription). Instead: `--system-prompt` (replaces default), a minimal `--setting-sources`, run the subprocess from a **clean cwd with no project `CLAUDE.md`**. The global `~/.claude/CLAUDE.md` may still inject (~2.6k tokens baseline observed); **Milestone 4 measures and pins the residual baseline**, recorded as fixed overhead in `runs` — the frozen prefix is *managed*, not assumed zero.
-- **Concurrency (review-corrected)** — each `claude -p` ≈ **393 MB RSS + ~1.5 s startup**; the binding constraints are **RAM and subscription rate limits, not ncores**. `preflight.py` measures sustainable k (RSS budget ÷ ~450 MB, and a 429 ceiling) and the semaphore is bounded by that — expect **low-teens**, not 16–64. For large Searcher waves, `AnthropicAPIClient` is the honest path. **Milestone 4 reports sustained k before the overnight campaign relies on it.**
+- **Concurrency (review-corrected)** — each `claude -p` ≈ **393 MB RSS + ~1.5 s startup**; the binding constraints are **RAM and provider rate limits, not ncores**. Startup preflight is deliberately one paid strict-schema call and does **not** measure or auto-tune sustainable concurrency. The client semaphore supplies a configured cap; operators must validate that cap separately before relying on large waves. For large Searcher waves, use a provider route whose measured limits support the load.
 - **Usage** — the JSON envelope populates `runs` directly.
 - **Auth/binary** — `claude` path configurable; uses the local binary's subscription auth.
 
+### 5.2.1 GPT-5.6 Sol via OpenAI Responses (2026-07-24 amendment)
+
+The GPT-5.6 treatment uses the official Responses API and the explicit model ID
+[`gpt-5.6-sol`](https://developers.openai.com/api/docs/models/gpt-5.6-sol).
+For this harness, the default reasoning mode is
+[`pro`](https://developers.openai.com/api/docs/guides/reasoning#reasoning-mode):
+these open problems are difficult, quality-first workloads for which higher
+latency and token usage are acceptable when justified by evaluation.
+
+Pro mode does **not** replace `max` effort. The API exposes two independent
+controls:
+
+- `reasoning.mode` chooses `standard` or `pro`;
+- `reasoning.effort` controls how much reasoning is applied within that mode.
+
+Empiricist therefore holds the mode at `pro` for the GPT-5.6 treatment while
+preserving the existing per-role effort policy. A Prover or Critic may use
+`mode: "pro"` and `effort: "max"` together; lower-effort Searcher waves remain
+lower effort unless evaluation supports a change. Mode, effort, latency, token
+use, and verifier success rate are recorded and compared separately.
+
+The load-bearing request posture is:
+
+```json
+{
+  "model": "gpt-5.6-sol",
+  "service_tier": "default",
+  "store": false,
+  "reasoning": {
+    "mode": "pro",
+    "effort": "<role effort>"
+  },
+  "tools": [],
+  "tool_choice": "none",
+  "parallel_tool_calls": false,
+  "text": {
+    "format": {
+      "type": "json_schema",
+      "strict": true,
+      "schema": "<role output schema>"
+    }
+  }
+}
+```
+
+The model returns data only. The harness validates the strict structured output
+and is solely responsible for sandboxed execution and verification. Request and
+response receipts, provider, model, reasoning mode, effort, and auth route are
+recorded as provenance. `store: false` asks the API not to retain the response
+for later retrieval, but is not by itself a Zero Data Retention guarantee;
+organization/project data controls govern retention. It also does not replace
+the harness's own content-addressed receipts.
+
+If transport fails after request acceptance may have occurred, a
+provider-backed run is orphaned, or the response lacks an exact model/tier and
+internally consistent non-negative token report, the run receives a distinct
+billing-unknown exit code. Parallel siblings already sent are drained and
+receipted, queued calls are cancelled, and the current campaign stops
+immediately. Resume blocks before preflight unless the operator has checked
+provider-side usage and passes
+`--acknowledge-unknown-billing`. The acknowledgment is invocation-local and
+does not rewrite the unknown cost to zero.
+
+**Authentication boundary.** `OPENAI_API_KEY` is the supported route. API usage
+has its own billing and is not charged to a Codex subscription. The harness must
+not inspect, copy, or reuse private Codex subscription/OAuth credentials; there
+is no supported public credential exchange from a Codex login to an application
+Responses API key.
+
+Select this transport for `run` or `resume` with `--provider openai`.
+`--openai-model` currently accepts only `gpt-5.6-sol`, and
+`--openai-reasoning-mode` defaults to `pro`, and
+`--openai-max-output-tokens` defaults to 32,768 to bound a single request.
+OpenAI response usage reports token counts rather than the exact billed dollar
+amount, so every live OpenAI campaign requires all three operator-supplied
+rates:
+`--openai-input-usd-per-mtok`, `--openai-cached-input-usd-per-mtok`, and
+`--openai-output-usd-per-mtok`. No base rate is hard-coded into the source of
+truth. The adapter applies and receipts the current GPT-5.6 billing rules for
+cache writes (1.25× input) and long prompts over 272K tokens (2× input and 1.5×
+output). Operators must verify the supplied rates and current billing rules
+before a paid campaign. OpenAI campaigns also require `--max-cost`;
+`--max-gen` bounds successful SEARCH work but does not bound failed attempts or
+CONJECTURE waves.
+
+The request asks for `service_tier: "default"`. The adapter requires the
+response to report that exact tier and the requested `gpt-5.6-sol` model; a
+missing or different value is retained as a receipt and treated as fatal
+unknown billing rather than silently applying standard Sol rates.
+
+**Why not `codex exec`.** The current Codex coding-agent surface can invoke
+tools and a shell. Routing model work through that surface would violate D8's
+architectural no-shell/no-tools boundary even if a prompt asked the model not to
+use tools. It is therefore not an approved Empiricist transport. Reconsideration
+would require a documented, verifiable no-tools mode with strict structured
+output and complete request/response provenance; prompt-only restraint is not
+sufficient.
+
+Provider evaluation deliberately reuses the existing typed outputs,
+deterministic verifiers, ledger, and report rather than adding a generic
+evaluation framework. Before changing the default provider or effort policy,
+run a small operator-reviewed comparison on representative pilot prompts and
+compare schema validity, verifier outcomes, latency, tokens, and recorded cost.
+Paid calls never run in CI, and effort changes remain role-specific.
+
 ### 5.3 Fable-5 constraints (transport-independent)
 
-**No temperature/top-p/top-k** (all 400) → **SEARCH diversity comes from prompt/seed variation** (each Searcher prompt carries a distinct nonce + island context), never sampling. Thinking is always-on, adaptive, billed as output ($10 in / $50 out per MTok); depth set by `--effort`. 1M context, 128K output. (ZDR-400 is an **API-key-org** concern, not the subscription path — `preflight.py` targets model-resolves + auth-live + concurrency, and ZDR is checked only when `AnthropicAPIClient` is used.)
+**No temperature/top-p/top-k** (all 400) → **SEARCH diversity comes from prompt/seed variation** (each Searcher prompt carries a distinct nonce + island context), never sampling. Thinking is always-on, adaptive, billed as output ($10 in / $50 out per MTok); depth set by `--effort`. 1M context, 128K output. (ZDR-400 is an **API-key-org** concern, not the subscription path — `preflight.py` targets model resolution, live auth, and strict structured output; it does not validate ZDR or sustained concurrency.)
 
 ### 5.4 The seven roles
 
@@ -213,19 +319,33 @@ Verified true against v2.1.201: `--model claude-fable-5` resolves and reports `m
 |---|---|---|---|---|
 | Prospector | medium | 1 | **stub** | `external_claims.json` |
 | Toolwright | high | 1–2 | **stub** (D11) | `code_artifact.json` |
-| Searcher | low | auto (≤ sustained) | active | `construction.json` (Appendix E) |
+| Searcher | low | 32 (client-capped) | active | `construction.json` (Appendix E) |
 | Conjecturer | medium | 4–8 | active | `conjecture.json` |
 | Prover | max | 1 | active (human-gated) | `proof_dag.json` |
 | Critic | max | 2 independent | active (human-gated) | `critic_report.json` |
 | Formalizer | high | iterative | active (scaffold) | `lean_module.json` |
 
-`k` lives on the Role tuple; the effective wave size is `min(role.k, preflight.sustained_k)`.
+`k` lives on the Role tuple. The client semaphore limits simultaneous calls to
+its configured concurrency; preflight does not calculate that limit.
 
 ---
 
 ## 6. Executor & darwin sandbox
 
-Every subprocess (verifier, enumerator, solver, `claude`) goes through `runner.py` → one `runs` row (argv, input hashes, env fingerprint, seed, exit, wall, peak RSS; tokens/cost for model calls). **Sandbox (`sandbox_wrap()`), v0:** `sandbox-exec` profile `(deny network*)` + write-confined `mkdtemp` cwd; `python -I -S` + env-scrub for any executed code; `preexec_fn` sets `RLIMIT_CPU/FSIZE/CORE=0/NOFILE` (**not** `RLIMIT_AS`); `start_new_session=True` + `os.killpg` on timeout; **`psutil` RSS watchdog** (the only working memory bound on macOS). Upgrade path (flag): Apple `container` microVM. Honest v0 safety: **the model never gets a shell and all v0 verifier code is harness-authored** (Toolwright deferred).
+Harness subprocesses use `runner.py` for sandboxing and run provenance (argv,
+input hashes, environment fingerprint, seed, exit, wall time, peak RSS, and
+model token/cost fields). **Known remaining provenance gap:** `LeanVerifier`'s
+internal compile/check/audit subprocesses and the synchronous P5 `geng`
+enumerator do not yet hand receipts back to the SQLite-owning thread, so
+complete “every subprocess has a `runs` row” coverage must not be claimed until
+that handoff exists. **Sandbox (`sandbox_wrap()`),
+v0:** `sandbox-exec` profile `(deny network*)` + write-confined `mkdtemp` cwd;
+`python -I -S` + env-scrub for executed Python; `preexec_fn` sets
+`RLIMIT_CPU/FSIZE/CORE=0/NOFILE` (**not** `RLIMIT_AS`);
+`start_new_session=True` + `os.killpg` on timeout; **`psutil` RSS watchdog**
+(the only working memory bound on macOS). Upgrade path (flag): Apple
+`container` microVM. Honest v0 safety: **the model never gets a shell and all
+v0 verifier code is harness-authored** (Toolwright deferred).
 
 ---
 
@@ -305,23 +425,48 @@ Weighted round-robin over `(problem, move)` (one problem in v0); **parked gates 
 | verifier (certificate tier) | — | 12 h |
 | auto-ATTACK | 100k | 30 min |
 
-**Live overnight campaign (D4):** the **machine-only inner loop** (ENUMERATE, SEARCH, CONJECTURE, ATTACK) runs unattended; PROVE/FORMALIZE park. Uncapped by default with configurable `budget.max_cost_usd`/`max_generations`; `preflight.py` verifies model-resolves + auth-live + sustainable-k; `runs` is the live cost dashboard; the ledger is the checkpoint so `empiricist resume` continues after any interruption; stall at 2M no-event tokens → cooldown.
+**Live overnight campaign (D4):** the **machine-only inner loop** (ENUMERATE,
+SEARCH, CONJECTURE, ATTACK) runs unattended; PROVE/FORMALIZE park. The CLI
+refuses `--live` unless `--max-gen` and/or `--max-cost` is explicit.
+`--max-gen N` is the inclusive cumulative successful SEARCH-generation limit,
+not a paid-attempt limit. OpenAI therefore additionally requires `--max-cost`.
+`--max-cost` is checked between paid calls/waves against recorded spend; it is
+a stop threshold rather than a hard reservation, so one in-flight call or
+concurrent wave can cross it. Resume checks existing spend and generation
+history before constructing a client or making the paid preflight call.
+`preflight.py` verifies model resolution, live auth, and one strict
+structured-output round trip; `runs` is the cost dashboard; the ledger is the
+checkpoint. Sustainable concurrency requires a separate operator load test.
 
 ---
 
 ## 12. CLI & reporting
 
 ```
-empiricist run P5 [--live] [--max-cost N] [--max-gen N]
-empiricist resume
-empiricist status
-empiricist verify-only <artifact>
-empiricist certify <verifier>
-empiricist gates [list|resolve <id> --approve|--reject]
-empiricist report [--html]
+empiricist run P5 --run-dir DIR [--live] [--max-cost N] [--max-gen N]
+    [--provider claude-code|openai] [OpenAI model/mode/pricing flags]
+empiricist resume --run-dir DIR [the same campaign flags]
+empiricist status --run-dir DIR
+empiricist audit --run-dir DIR
+empiricist certify --run-dir DIR
+empiricist gates --run-dir DIR list
+empiricist gates --run-dir DIR resolve ID (--approve | --reject)
+empiricist report --run-dir DIR [--out PATH]
 ```
 
-**Report content contract** (makes exit-5 testable): a header (config hash, version pins, total cost, per-role token/cost); a claims table (each: `status`, `coverage`, `status_n`, the family/statement); for each `CERTIFIED`/`FORMALIZED`/`VERIFIED_N` claim a **provenance block** — evidence rows (`verifier`+`version`+`binary_hash`+`verdict`), the certification stamp used, the dependency chain (`edges`), CAS certificate links, and run costs; a `REFUTED` section with counterexamples; a `gates` section (pending/resolved). Acceptance check: every promoted claim links to a re-checkable CAS artifact and its verifier stamp.
+**Report content contract** (makes exit-5 testable): a header (config hash,
+version pins, total cost, per-role token/cost); an artifact inventory plus the
+canonical claims table (problem version, family, metric, exact statement, and
+scope); for each `CERTIFIED`/`FORMALIZED`/`VERIFIED_N` artifact a
+**provenance block** — evidence rows
+(`verifier`+`version`+`binary_hash`+`verdict`) and, when recorded, the exact
+`claim_id`, originating `run_id`, and `golden_suite_hash`, together with the
+current certification match, dependency chain (`edges`), CAS certificate links,
+and run costs; a `REFUTED` section with counterexamples; a `gates` section
+(pending/resolved). Claim-bound P3/Lean promotions must populate those exact
+links. Pre-migration and composite P5 evidence may be explicitly unlinked rather
+than having a relationship guessed after the fact. Acceptance check: every
+promoted claim links to a re-checkable CAS artifact and its verifier stamp.
 
 ---
 
@@ -342,7 +487,7 @@ Remote `git@github.com:sghowell/empiricist.git` (SSH, private); push works now. 
 1. **Scaffold** — `uv`/pyproject/src-layout, pytest+ruff, package skeleton, `CLAUDE.md`, `.gitignore`, this spec.
 2. **Ledger + CAS** (TDD) — schema (incl. certifications/gates/coverage), CAS, models, frontier, single-writer, resume.
 3. **Executor + darwin sandbox** (TDD) — runner, sandbox seam, watchdog, runs rows.
-4. **LLM layer** — `ClaudeCodeClient` + **empirical flag/k/baseline probe** (json-schema, effort, tools "", no-session-persistence, mcp fix, residual-token pin, sustained-k), `FakeLLMClient`, roles, parse, preflight.
+4. **LLM layer** — `ClaudeCodeClient`, `FakeLLMClient`, roles, parsing, and a one-call strict structured-output preflight. Provider concurrency characterization is a separate operational load test.
 5. **P5 verifiers** (TDD) — stim A, GF(2) B, graph/LC + rank-width profile, pynauty LC-orbit key, `geng` wrapper, `minsearch` ×2, golden suites + certification, Löbl cross-check.
 6. **SEARCH/CONJECTURE/ATTACK** — population, loop, Pareto, ATTACK, stall.
 7. **Orchestrator + scheduler + gates + report + CLI**.
@@ -362,7 +507,7 @@ Each milestone: branch → TDD → green → commit → push → (PR).
 | **VERIFIED_N minimality unverified** | Second independent `minsearch`; achievability by A∧B; identity goldens. |
 | **`canonical_key` fragments LC-orbits** | One LC-orbit canonical key (min iso-key over the orbit) used as PK everywhere (D5). |
 | macOS can't rlimit memory | psutil RSS watchdog day 1; Apple-container for hostile tiers. |
-| Claude Code subscription k ≪ 16–64; startup/RSS/rate limits | preflight auto-tunes k (low-teens); API client for scale; Milestone 4 reports sustained k. |
+| Provider concurrency exceeds RAM or rate limits | configured client semaphore; separate load test before scaling; preflight does not auto-tune concurrency. |
 | Global `~/.claude/CLAUDE.md` leaks into role context | clean cwd + `--system-prompt` + minimal setting-sources; measure/pin residual baseline. |
 | Fable-5 refusal on FT-FBQC text | `stop_reason==refusal` detection → retry (API path: fallback to opus-4-8); per-role effort caps. |
 | Lean exit-code trap | two-part JSON+axiom gate; reject `native_decide`/`Lean.ofReduceBool`/`sorryAx`. |
@@ -381,13 +526,17 @@ No distributed execution, no vector DB, no fine-tuning/RL, no web UI beyond the 
 
 ## Appendix A. Ledger schema (SQLite, WAL)
 
+`PRAGMA user_version=1` identifies the additive claim/provenance migration.
+Version-zero pilot ledgers are migrated in place; read-only inspection leaves
+them untouched.
+
 ```sql
 PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;
 
 CREATE TABLE artifacts (
   id TEXT PRIMARY KEY,            -- blake3 of canonical content
   kind TEXT,                     -- statement|dataset|construction|certificate|proof_dag|lean|report
-  problem TEXT, title TEXT, content_path TEXT,
+  problem TEXT, problem_version TEXT, title TEXT, content_path TEXT,
   status TEXT,                   -- REFUTED|HEURISTIC|CONJECTURED|VERIFIED_N|CERTIFIED|FORMALIZED
   substatus TEXT,                -- PROVED_DRAFT | EXTERNAL | NULL
   status_n INTEGER,              -- iff VERIFIED_N
@@ -395,7 +544,10 @@ CREATE TABLE artifacts (
   created_at TEXT, run_id TEXT
 );
 CREATE TABLE evidence (
-  artifact_id TEXT, verifier TEXT, verifier_version TEXT, binary_hash TEXT,
+  artifact_id TEXT REFERENCES artifacts(id),
+  claim_id TEXT REFERENCES claims(id), run_id TEXT REFERENCES runs(run_id),
+  verifier TEXT, verifier_version TEXT, binary_hash TEXT,
+  golden_suite_hash TEXT,
   verdict TEXT,                  -- PASS|FAIL|ERROR|TIMEOUT
   details_json TEXT,             -- counterexample, cert hash, counts, canonical key, ...
   log_path TEXT, wall_s REAL, created_at TEXT
@@ -405,14 +557,25 @@ CREATE TABLE certifications (    -- the trust-boundary stamp store
   golden_suite_hash TEXT, verdict TEXT, stamped_at TEXT, run_id TEXT,
   PRIMARY KEY (verifier, verifier_version, binary_hash)
 );
+CREATE TABLE certification_attempts ( -- append-only certification history
+  attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  verifier TEXT, verifier_version TEXT, binary_hash TEXT,
+  golden_suite_hash TEXT, verdict TEXT, stamped_at TEXT, run_id TEXT
+);
 CREATE TABLE edges (src TEXT, dst TEXT, rel TEXT);  -- depends_on|refutes|generalizes|formalizes|golden_for
 CREATE TABLE runs (
   run_id TEXT PRIMARY KEY, move TEXT, role TEXT, model TEXT,
+  provider TEXT, reasoning_mode TEXT, reasoning_effort TEXT, auth_route TEXT,
+  request_digest TEXT, response_digest TEXT,
   argv TEXT, seed INT, config_hash TEXT, env_fingerprint TEXT,
   tokens_in INT, tokens_out INT, cache_read INT, cost_usd REAL,
   peak_rss_mb REAL, exit_code INT, started TEXT, ended TEXT, wall_s REAL
 );
-CREATE TABLE claims (id TEXT PRIMARY KEY, artifact_id TEXT, statement TEXT, family TEXT);
+CREATE TABLE claims (
+  id TEXT PRIMARY KEY, artifact_id TEXT REFERENCES artifacts(id),
+  problem TEXT, problem_version TEXT, statement TEXT, family TEXT, metric TEXT,
+  scope_json TEXT, created_at TEXT
+);
 CREATE TABLE gates (            -- persisted human-gate queue
   id TEXT PRIMARY KEY, kind TEXT,   -- REDUCE|PROOF_CAMPAIGN|ACCEPT_DRAFT|RELEASE
   artifact_id TEXT, state TEXT,     -- pending|approved|rejected

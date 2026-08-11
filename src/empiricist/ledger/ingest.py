@@ -26,6 +26,7 @@ def ingest_artifact(
     problem: str,
     title: str,
     status: Status,
+    problem_version: str = "legacy",
     substatus: str | None = None,
     status_n: int | None = None,
     coverage: str | None = None,
@@ -35,7 +36,8 @@ def ingest_artifact(
     content_digest = store.put(content)
     art = Artifact(
         id=artifact_id if artifact_id is not None else content_digest,
-        kind=kind, problem=problem, title=title, content_path=content_digest,
+        kind=kind, problem=problem, problem_version=problem_version,
+        title=title, content_path=content_digest,
         status=status, substatus=substatus, status_n=status_n, coverage=coverage,
         run_id=run_id,
     )

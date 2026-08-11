@@ -17,11 +17,12 @@ import pytest
 from empiricist.formalize.feedback import format_feedback
 from empiricist.formalize.loop import FormalizeLoop, FormalizeTask
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Status, Verdict
+from empiricist.ledger.models import Certification, Status, Verdict
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import LLMResult
 from empiricist.store import Store
 from empiricist.verifiers.lean import LeanVerifier
+from empiricist.verifiers.lean_goldens import lean_suite_hash
 
 _PROJECT_DIR = Path(__file__).resolve().parents[1] / "lean" / "EmpiricistLean"
 
@@ -71,12 +72,24 @@ def make_result(parsed: dict) -> LLMResult:
     )
 
 
+def stamp_current_verifier(ledger: Ledger, verifier: LeanVerifier) -> None:
+    """This suite tests loop integration, not the expensive golden campaign."""
+    ledger.add_certification(Certification(
+        verifier=verifier.name,
+        verifier_version=verifier.version,
+        binary_hash=verifier.binary_hash,
+        golden_suite_hash=lean_suite_hash(),
+        verdict=Verdict.PASS,
+    ))
+
+
 @slow_lean
 @requires_lake
 def test_real_verifier_end_to_end_pass_ingests_formalized(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
     st = Store(tmp_path / "store")
     verifier = LeanVerifier()
+    stamp_current_verifier(lg, verifier)
     client = FakeLLMClient([
         make_result({"module_source": _CANNED_MODULE, "decl": _CANNED_DECL, "notes": "smoke"})
     ])
@@ -162,6 +175,7 @@ def test_real_loop_hole_round_then_filled_round_ingests_via_real_verifier(tmp_pa
     lg = Ledger(tmp_path / "ledger.db")
     st = Store(tmp_path / "store")
     verifier = LeanVerifier()
+    stamp_current_verifier(lg, verifier)
     client = FakeLLMClient([
         make_result({"module_source": _HOLE_MODULE, "decl": _HOLE_DECL, "notes": ""}),
         make_result({"module_source": _FILLED_MODULE, "decl": _HOLE_DECL, "notes": ""}),

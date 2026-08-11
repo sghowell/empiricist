@@ -18,7 +18,7 @@ from empiricist.campaign.state import CampaignState
 from empiricist.config import RunConfig
 from empiricist.ledger.models import Status
 from empiricist.llm.client import FakeLLMClient
-from empiricist.llm.models import LLMResult
+from empiricist.llm.models import BillingUnknownError, LLMResult
 from empiricist.llm.roles import ROLES
 from empiricist.search.loop import F3Alarm, GenerationReport
 
@@ -60,10 +60,10 @@ def scripted_client() -> FakeLLMClient:
 
 def test_run_campaign_two_search_gens_and_one_conjecture_wave(tmp_path):
     run_dir = tmp_path / "run"
-    # conjecture_every=1 -> cycle [search, conjecture]; max_generations=3 lets
+    # conjecture_every=1 -> cycle [search, conjecture]; max_generations=2 lets
     # exactly search(gen=1), conjecture(wave), search(gen=2) run before the
     # top-of-loop budget check stops it (see module docstring / plan notes).
-    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=3)
+    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=2)
     client = scripted_client()
 
     summary = run(run_campaign(run_dir, cfg, client))
@@ -103,10 +103,10 @@ def test_run_campaign_two_search_gens_and_one_conjecture_wave(tmp_path):
 
 def test_run_campaign_resumes_generation_numbering(tmp_path):
     run_dir = tmp_path / "run"
-    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=3)
+    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=2)
     run(run_campaign(run_dir, cfg, scripted_client()))  # logs generation events [1, 2]
 
-    cfg2 = RunConfig(**FAST_KW, conjecture_every=1, max_generations=4)
+    cfg2 = RunConfig(**FAST_KW, conjecture_every=1, max_generations=3)
     second_client = FakeLLMClient([make_result(None)] * 32)  # one more search gen, all refusals
     summary2 = run(run_campaign(run_dir, cfg2, second_client))
 
@@ -124,17 +124,17 @@ def test_run_campaign_resumes_generation_numbering(tmp_path):
 # -- budget stop ------------------------------------------------------------------
 
 
-def test_run_campaign_max_generations_one_stops_before_any_move(tmp_path):
+def test_run_campaign_max_generations_one_runs_generation_one(tmp_path):
     run_dir = tmp_path / "run"
     cfg = RunConfig(**FAST_KW, max_generations=1)
-    client = FakeLLMClient([])
+    client = FakeLLMClient([make_result(None)] * 32)
 
     summary = run(run_campaign(run_dir, cfg, client))
 
     assert summary.stop_reason == "budget_generations"
-    assert summary.generations == 0
+    assert summary.generations == 1
     assert summary.conjecture_waves == 0
-    assert client.calls == []  # should_stop fired before next_move() ever ran
+    assert len(client.calls) == 32
 
     state = CampaignState.load(run_dir)
     try:
@@ -253,7 +253,7 @@ def test_run_campaign_move_errors_are_isolated_and_campaign_continues(tmp_path, 
     logged as durable move_error events and counted as no-progress, then
     the campaign carries on to the budget stop."""
     run_dir = tmp_path / "run"
-    cfg = RunConfig(**FAST_KW, max_generations=2)  # default breaker threshold = 3
+    cfg = RunConfig(**FAST_KW, max_generations=1)  # default breaker threshold = 3
 
     calls = {"n": 0}
 
@@ -313,6 +313,31 @@ def test_run_campaign_consecutive_move_errors_trip_the_circuit_breaker(tmp_path,
         state.close()
 
 
+def test_run_campaign_unknown_billing_stops_immediately(tmp_path, monkeypatch):
+    run_dir = tmp_path / "run"
+    cfg = RunConfig(**FAST_KW)
+    calls = {"n": 0}
+
+    async def ambiguous(*_args, **_kwargs):
+        calls["n"] += 1
+        raise BillingUnknownError("provider accepted a call with no usage receipt")
+
+    monkeypatch.setattr(orchestrator_mod, "search_move", ambiguous)
+
+    summary = run(run_campaign(run_dir, cfg, FakeLLMClient([])))
+
+    assert calls["n"] == 1
+    assert summary.stop_reason == "billing_unknown"
+    assert summary.move_errors == 0
+    state = CampaignState.load(run_dir)
+    try:
+        events = state.population.events(trigger="billing_unknown")
+        assert len(events) == 1
+        assert events[0].detail["move"] == "search"
+    finally:
+        state.close()
+
+
 def test_run_campaign_f3_alarm_still_stops_the_world_not_isolated(tmp_path, monkeypatch):
     """F3Alarm is an Exception subclass -- it must keep its dedicated
     stop-the-world handling, never be swallowed by move-error isolation."""
@@ -342,10 +367,10 @@ def test_run_campaign_resume_re_mines_same_conjecture_without_wedging(tmp_path):
     EVERY resume -- a permanent wedge. Now: the duplicate is skipped, the
     wave counts as no progress, and the campaign completes."""
     run_dir = tmp_path / "run"
-    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=3)
+    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=2)
     run(run_campaign(run_dir, cfg, scripted_client()))  # session 1: conjecture lands
 
-    cfg2 = RunConfig(**FAST_KW, conjecture_every=1, max_generations=5)
+    cfg2 = RunConfig(**FAST_KW, conjecture_every=1, max_generations=4)
     # session 2: one search wave of refusals, then the SAME conjecture again.
     client2 = FakeLLMClient([make_result(None)] * 32 + [make_result(TRUE_CONJECTURE)])
     summary2 = run(run_campaign(run_dir, cfg2, client2))  # must NOT raise

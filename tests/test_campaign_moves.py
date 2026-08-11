@@ -24,11 +24,12 @@ from empiricist.config import RunConfig
 from empiricist.domain.p5.canonical import lc_orbit_key
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.domain.p5.localcomp import OrbitTooLarge
-from empiricist.ledger.models import Status
+from empiricist.ledger.models import Artifact, Certification, EvidenceRow, Status, Verdict
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import LLMResult
 from empiricist.llm.roles import ROLES
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
+from empiricist.verifiers.goldens import suite_hash
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 # Deliberately tiny relative to the campaign defaults (tier0_n=9, tier1_n=7):
@@ -90,6 +91,33 @@ def test_ensure_certified_second_call_skips_already_stamped_verifiers(campaign, 
     assert calls == []  # idempotent: nothing re-certified
 
 
+def test_ensure_certified_recertifies_stale_pass_suite(campaign, monkeypatch):
+    state, _cfg = campaign
+    ensure_certified(state)
+    stab = StabFusionVerifier()
+    state.ledger.add_certification(Certification(
+        verifier=stab.name,
+        verifier_version=stab.version,
+        binary_hash=stab.binary_hash,
+        golden_suite_hash="stale-suite",
+        verdict=Verdict.PASS,
+    ))
+
+    calls: list[str] = []
+    original_certify = state.registry.certify
+
+    def spy_certify(verifier):
+        calls.append(verifier.name)
+        return original_certify(verifier)
+
+    monkeypatch.setattr(state.registry, "certify", spy_certify)
+    ensure_certified(state)
+
+    assert calls == [stab.name]
+    cert = state.ledger.get_certification(stab.name, stab.version, stab.binary_hash)
+    assert cert is not None and cert.golden_suite_hash == suite_hash()
+
+
 # -- ensure_enumerate ----------------------------------------------------------
 
 
@@ -128,12 +156,63 @@ def test_ensure_enumerate_second_call_is_idempotent_and_skips_recompute(campaign
     assert n_artifacts == 1  # no duplicate ingest
 
 
+def test_existing_dataset_resume_refreshes_stale_verifier_stamp(campaign, monkeypatch):
+    state, cfg = campaign
+    ensure_certified(state)
+    content_path = state.store.put(b'{"rows":[]}')
+    seed = Artifact(
+        id=content_path,
+        kind="dataset",
+        problem="P5",
+        title="minimal resume fixture",
+        content_path=content_path,
+        status=Status.HEURISTIC,
+    )
+    state.ledger.add_artifact(seed)
+    state.ledger.record_evidence(
+        EvidenceRow(
+            artifact_id=seed.id,
+            verifier="resume_fixture",
+            verifier_version="1",
+            binary_hash="fixture",
+            verdict=Verdict.PASS,
+        ),
+        new_status=Status.VERIFIED_N,
+        status_n=cfg.tier0_n,
+        coverage="exhaustive",
+        self_validating=True,
+    )
+    first = state.ledger.get_artifact(seed.id)
+    stab = StabFusionVerifier()
+    state.ledger.add_certification(Certification(
+        verifier=stab.name,
+        verifier_version=stab.version,
+        binary_hash=stab.binary_hash,
+        golden_suite_hash="stale-suite",
+        verdict=Verdict.PASS,
+    ))
+    calls: list[str] = []
+    original_certify = state.registry.certify
+
+    def spy_certify(verifier):
+        calls.append(verifier.name)
+        return original_certify(verifier)
+
+    monkeypatch.setattr(state.registry, "certify", spy_certify)
+    resumed = ensure_enumerate(state, cfg)
+
+    assert resumed.id == first.id
+    assert calls == [stab.name]
+    cert = state.ledger.get_certification(stab.name, stab.version, stab.binary_hash)
+    assert cert is not None and cert.golden_suite_hash == suite_hash()
+
+
 def test_ensure_enumerate_recovers_from_reingest_identity_collision(campaign, monkeypatch):
     """Documented recovery path: if the idempotency short-circuit (find_
     artifacts) somehow misses an already-ingested dataset, re-deriving and
     re-ingesting identical content collides on the artifact's PRIMARY KEY
-    (its id IS the content digest) -- ensure_enumerate must catch that
-    sqlite3.IntegrityError and load the existing artifact rather than crash.
+    (its id IS the content digest) -- dataset ingestion must recover the
+    existing artifact rather than crash.
     Forced here by monkeypatching find_artifacts to always report "nothing
     found" so the second call falls all the way through to re-ingest."""
     state, cfg = campaign

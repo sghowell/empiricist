@@ -17,7 +17,15 @@ from empiricist import report
 from empiricist.campaign.moves import conjecture_move, ensure_enumerate, search_move
 from empiricist.campaign.state import CampaignState
 from empiricist.config import RunConfig
-from empiricist.ledger.models import Run, Status
+from empiricist.ledger.models import (
+    Artifact,
+    Certification,
+    Claim,
+    EvidenceRow,
+    Run,
+    Status,
+    Verdict,
+)
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import LLMResult
 
@@ -167,7 +175,10 @@ def test_claims_table_lists_every_artifact(campaign):
         assert art.id[:12] in claims_section
 
     dataset = state.ledger.get_artifact(arts["dataset"].id)
-    assert f"| `{dataset.id[:12]}` | dataset |" in claims_section
+    assert (
+        f"| `{dataset.id[:12]}` | P5 | p5-ghz3-v1 | dataset |"
+        in claims_section
+    )
     assert "VERIFIED_N" in claims_section
     assert str(dataset.status_n) in claims_section
     assert "exhaustive" in claims_section
@@ -232,6 +243,79 @@ def test_no_provenance_blocks_for_sub_verified_n_artifacts(campaign):
     prov_section = text.split("## Provenance")[1].split("## CONJECTURED")[0]
     assert arts["conjectured"].id[:12] not in prov_section
     assert arts["refuted"].id[:12] not in prov_section
+
+
+def test_report_surfaces_canonical_claim_and_exact_evidence_links(tmp_path):
+    state = CampaignState.load(tmp_path / "claim-bound")
+    try:
+        content = b"theorem checked : True := trivial"
+        digest = state.store.put(content)
+        artifact = Artifact(
+            id=digest,
+            kind="lean",
+            problem="P5",
+            problem_version="p5-ghz3-v1",
+            title="Empiricist.checked",
+            content_path=digest,
+            status=Status.FORMALIZED,
+            run_id="formalize-r1",
+        )
+        claim = Claim.create(
+            artifact_id=artifact.id,
+            problem=artifact.problem,
+            problem_version=artifact.problem_version,
+            statement="True",
+            family="Empiricist.checked",
+            metric="theorem",
+            scope={"decl": "Empiricist.checked"},
+        )
+        state.ledger.start_run(
+            Run(run_id="formalize-r1", move="SAMPLE", role="formalizer")
+        )
+        state.ledger.finish_run(
+            "formalize-r1",
+            exit_code=0,
+            wall_s=1.0,
+        )
+        state.ledger.add_certification(Certification(
+            verifier="lean",
+            verifier_version="3.3",
+            binary_hash="binary-current",
+            golden_suite_hash="suite-current",
+            verdict=Verdict.PASS,
+        ))
+        state.ledger.record_claimed_artifact(
+            artifact,
+            claim,
+            EvidenceRow(
+                artifact_id=artifact.id,
+                claim_id=claim.id,
+                run_id="formalize-r1",
+                verifier="lean",
+                verifier_version="3.3",
+                binary_hash="binary-current",
+                golden_suite_hash="suite-current",
+                verdict=Verdict.PASS,
+                details={"statement": "True"},
+            ),
+            expected_golden_suite_hash="suite-current",
+        )
+
+        text = report.generate(state, RunConfig())
+        claims_section = text.split("## Claims")[1].split("## Provenance")[0]
+        assert "### Canonical claim records" in claims_section
+        assert claim.id[:12] in claims_section
+        assert "p5-ghz3-v1" in claims_section
+        assert "Empiricist.checked" in claims_section
+        assert '{"decl":"Empiricist.checked"}' in claims_section
+
+        provenance = _extract_section(text, artifact.id[:12])
+        assert claim.id[:12] in provenance
+        assert "formalize-r1"[:12] in provenance
+        assert "suite-current"[:12] in provenance
+        assert "| PASS | PASS |" in provenance
+    finally:
+        state.close()
 
 
 # -- CONJECTURED / REFUTED -----------------------------------------------------

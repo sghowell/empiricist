@@ -3,8 +3,10 @@
 
 Four verdicts; verify_scheme_agreed never raises on model-emittable input:
 PASS: the engines agree on every per-Bell-state distribution (per-pattern over
-the UNION of keys, missing -> 0.0, tolerance 1e-8) AND every stated claim is
-achieved (metric tolerance 1e-9; leakage within the DECLARED budget).
+the UNION of keys, missing -> 0.0, tolerance 1e-8), derive the SAME identifying
+pattern assignment, agree on every derived success/leakage metric, AND every
+stated claim is achieved by the conservative two-engine consensus report
+(claim tolerance 1e-9; leakage within the DECLARED budget).
 FAIL: engines agree, claim not met -- an honest miss.
 ERROR: the engines disagree, OR an engine raises on a VALIDATED scheme (a
 machinery bug, mirrors P5's verify_error) -- a physics-model or machinery
@@ -45,17 +47,19 @@ from .scheme import (
     BellScheme,
     SchemeReport,
     bell_input_states,
+    derive_assignment,
     evaluate_scheme,
 )
 
 _AGREE_TOL = 1e-8
+_REPORT_AGREE_TOL = 1e-8
 _CLAIM_TOL = 1e-9
 
 
 @dataclass(frozen=True)
 class AgreedResult:
     verdict: str                 # "PASS" | "FAIL" | "ERROR" | "INVALID"
-    report: SchemeReport | None  # Engine-A report, for downstream recording
+    report: SchemeReport | None  # conservative two-engine consensus report
     detail: str
     # max(leakage_A, leakage_B) -- the value the budget check used; downstream
     # recording reads it here, never from the (single-engine) report. Defined
@@ -119,17 +123,84 @@ def verify_scheme_agreed(
             f"engines disagree on {len(diffs)} pattern(s): {diffs[:8]}",
             -1.0,
         )
+
+    # Distribution closeness alone is not semantic agreement: _AGREE_TOL is
+    # deliberately looser than scheme.py's assignment threshold, so two values
+    # may compare "close" while falling on opposite sides of _AMBIG_TOL. Require
+    # the independently-derived identifying-pattern maps to agree exactly.
+    assignment_a = derive_assignment(ra.distributions)
+    assignment_b = derive_assignment(rb.distributions)
+    assignment_diffs = [
+        (
+            pat,
+            assignment_a.get(pat, "<unassigned>"),
+            assignment_b.get(pat, "<unassigned>"),
+        )
+        for pat in set(assignment_a) | set(assignment_b)
+        if assignment_a.get(pat) != assignment_b.get(pat)
+    ]
+    if assignment_diffs:
+        assignment_diffs.sort(key=lambda item: item[0])
+        return AgreedResult(
+            "ERROR",
+            None,
+            "engines derive different identifying-pattern assignments on "
+            f"{len(assignment_diffs)} pattern(s): {assignment_diffs[:8]}",
+            -1.0,
+        )
+
+    # Belt-and-braces: even with identical assignments, accumulated numeric
+    # error or a regression in report derivation can make the engines disagree
+    # on the claimed metrics. Compare every derived field before constructing a
+    # conservative consensus; never silently trust Engine A's report.
+    report_diffs: list[str] = []
+    for bell in BELL_LABELS:
+        pa = ra.success_by_state[bell]
+        pb = rb.success_by_state[bell]
+        if not (abs(pa - pb) <= _REPORT_AGREE_TOL):
+            report_diffs.append(f"success[{bell}]={pa} vs {pb}")
+    for name, a, b in (
+        ("p_min", ra.p_min, rb.p_min),
+        ("p_avg", ra.p_avg, rb.p_avg),
+        ("leakage", ra.leakage, rb.leakage),
+    ):
+        if not (abs(a - b) <= _REPORT_AGREE_TOL):
+            report_diffs.append(f"{name}={a} vs {b}")
+    if ra.unambiguous != rb.unambiguous:
+        report_diffs.append(f"unambiguous={ra.unambiguous} vs {rb.unambiguous}")
+    if report_diffs:
+        return AgreedResult(
+            "ERROR",
+            None,
+            f"engines derive different scheme reports: {report_diffs[:8]}",
+            -1.0,
+        )
+
+    success = {
+        bell: min(ra.success_by_state[bell], rb.success_by_state[bell])
+        for bell in BELL_LABELS
+    }
     leakage = max(ra.leakage, rb.leakage)
+    report = SchemeReport(
+        success_by_state=success,
+        p_min=min(success.values()),
+        p_avg=sum(success.values()) / 4.0,
+        leakage=leakage,
+        unambiguous=ra.unambiguous and rb.unambiguous,
+        # Pattern distributions are diagnostic and already agreed above.
+        # Retain one copy rather than doubling a potentially large report.
+        distributions=ra.distributions,
+    )
     failures: list[str] = []
-    if claimed_p_min is not None and ra.p_min < claimed_p_min - _CLAIM_TOL:
-        failures.append(f"p_min {ra.p_min} < claimed {claimed_p_min}")
-    if claimed_p_avg is not None and ra.p_avg < claimed_p_avg - _CLAIM_TOL:
-        failures.append(f"p_avg {ra.p_avg} < claimed {claimed_p_avg}")
+    if claimed_p_min is not None and report.p_min < claimed_p_min - _CLAIM_TOL:
+        failures.append(f"p_min {report.p_min} < claimed {claimed_p_min}")
+    if claimed_p_avg is not None and report.p_avg < claimed_p_avg - _CLAIM_TOL:
+        failures.append(f"p_avg {report.p_avg} < claimed {claimed_p_avg}")
     if leakage > claimed_max_leakage + 1e-15:
         failures.append(
             f"max-engine leakage {leakage} exceeds declared budget "
             f"{claimed_max_leakage}"
         )
     if failures:
-        return AgreedResult("FAIL", ra, "; ".join(failures), leakage)
-    return AgreedResult("PASS", ra, "agreed", leakage)
+        return AgreedResult("FAIL", report, "; ".join(failures), leakage)
+    return AgreedResult("PASS", report, "agreed", leakage)

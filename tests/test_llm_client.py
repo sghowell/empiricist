@@ -22,6 +22,7 @@ from empiricist.llm.client import ClaudeCodeClient, FakeLLMClient
 from empiricist.llm.models import LLMResult
 from empiricist.llm.roles import ROLES
 from empiricist.llm.schemas import ConjectureOut
+from empiricist.store import Store
 
 STUB = Path(__file__).parent / "stub_claude.py"
 
@@ -107,7 +108,8 @@ def test_complete_passes_correct_flags_to_binary(tmp_path, monkeypatch):
 
 def test_complete_records_full_runs_row_when_ledger_given(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
-    c = stub_client()
+    store = Store(tmp_path / "store")
+    c = stub_client(store=store)
     r = run(c.complete(ROLES["searcher"], "prompt", session_id="s5",
                        run_id="run5", ledger=lg))
     row = lg.get_run("run5")
@@ -115,14 +117,34 @@ def test_complete_records_full_runs_row_when_ledger_given(tmp_path):
     assert row.tokens_in == 30 and row.tokens_out == 5           # from the envelope
     assert row.cost_usd == pytest.approx(0.001) and row.ended is not None
     assert row.exit_code == 0
+    assert row.provider == "anthropic"
+    assert row.auth_route == "claude_code_cli"
+    assert row.reasoning_effort == "low"
+    assert row.argv and "--tools ''" in row.argv
+    assert row.request_digest and store.exists(row.request_digest)
+    assert row.response_digest and store.exists(row.response_digest)
+    request = json.loads(store.get(row.request_digest))
+    assert request["prompt"] == "prompt"
+    assert request["tools"] == []
     assert r.ok
+    lg.close()
+
+
+def test_ledger_call_without_store_is_rejected_before_subprocess(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    c = stub_client()
+    with pytest.raises(ValueError, match="Store"):
+        run(c.complete(
+            ROLES["searcher"], "prompt", run_id="missing-store", ledger=lg
+        ))
+    assert lg.conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
     lg.close()
 
 
 def test_complete_crash_records_failure_row_and_flags_not_ok(tmp_path, monkeypatch):
     monkeypatch.setenv("STUB_MODE", "crash")
     lg = Ledger(tmp_path / "ledger.db")
-    c = stub_client()
+    c = stub_client(store=Store(tmp_path / "store"))
     r = run(c.complete(ROLES["searcher"], "p", session_id="s6",
                        run_id="run6", ledger=lg))
     assert r is None or r.ok is False   # crash -> unparseable -> not ok
@@ -155,7 +177,7 @@ def test_session_id_is_a_fresh_valid_uuid_per_call(tmp_path, monkeypatch):
 
 def test_complete_many_two_waves_no_runid_collision(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
-    c = stub_client(max_concurrency=4)
+    c = stub_client(max_concurrency=4, store=Store(tmp_path / "store"))
     r1 = run(c.complete_many(ROLES["searcher"], [f"a{i}" for i in range(5)], ledger=lg))
     r2 = run(c.complete_many(ROLES["searcher"], [f"b{i}" for i in range(5)], ledger=lg))
     assert len(r1) == 5 and len(r2) == 5   # second wave must not crash on run_id collision

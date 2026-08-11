@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
   id TEXT PRIMARY KEY,
   kind TEXT NOT NULL,
   problem TEXT NOT NULL,
+  problem_version TEXT NOT NULL DEFAULT 'legacy',
   title TEXT NOT NULL,
   content_path TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN
@@ -25,9 +26,12 @@ CREATE TABLE IF NOT EXISTS artifacts (
 
 CREATE TABLE IF NOT EXISTS evidence (
   artifact_id TEXT NOT NULL REFERENCES artifacts(id),
+  claim_id TEXT REFERENCES claims(id),
+  run_id TEXT REFERENCES runs(run_id),
   verifier TEXT NOT NULL,
   verifier_version TEXT NOT NULL,
   binary_hash TEXT NOT NULL,
+  golden_suite_hash TEXT,
   verdict TEXT NOT NULL CHECK (verdict IN ('PASS','FAIL','ERROR','TIMEOUT')),
   details_json TEXT NOT NULL DEFAULT '{}',
   log_path TEXT,
@@ -46,6 +50,17 @@ CREATE TABLE IF NOT EXISTS certifications (
   PRIMARY KEY (verifier, verifier_version, binary_hash)
 );
 
+CREATE TABLE IF NOT EXISTS certification_attempts (
+  attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  verifier TEXT NOT NULL,
+  verifier_version TEXT NOT NULL,
+  binary_hash TEXT NOT NULL,
+  golden_suite_hash TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('PASS','FAIL','ERROR','TIMEOUT')),
+  stamped_at TEXT NOT NULL,
+  run_id TEXT
+);
+
 CREATE TABLE IF NOT EXISTS edges (
   src TEXT NOT NULL,
   dst TEXT NOT NULL,
@@ -57,6 +72,12 @@ CREATE TABLE IF NOT EXISTS runs (
   move TEXT NOT NULL,
   role TEXT,
   model TEXT,
+  provider TEXT,
+  reasoning_mode TEXT,
+  reasoning_effort TEXT,
+  auth_route TEXT,
+  request_digest TEXT,
+  response_digest TEXT,
   argv TEXT,
   seed INTEGER,
   config_hash TEXT,
@@ -75,8 +96,13 @@ CREATE TABLE IF NOT EXISTS runs (
 CREATE TABLE IF NOT EXISTS claims (
   id TEXT PRIMARY KEY,
   artifact_id TEXT NOT NULL REFERENCES artifacts(id),
+  problem TEXT NOT NULL DEFAULT 'legacy',
+  problem_version TEXT NOT NULL DEFAULT 'legacy',
   statement TEXT NOT NULL,
-  family TEXT
+  family TEXT,
+  metric TEXT,
+  scope_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS gates (

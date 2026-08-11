@@ -4,7 +4,12 @@ import sqlite3
 
 import pytest
 
-from empiricist.ledger.db import Ledger, RoleAggregate, TerminalStatusError
+from empiricist.ledger.db import (
+    Ledger,
+    PromotionIntegrityError,
+    RoleAggregate,
+    TerminalStatusError,
+)
 from empiricist.ledger.models import Artifact, EvidenceRow, Run, Status, Verdict
 from empiricist.store import Store
 
@@ -83,10 +88,98 @@ def test_promotion_updates_status_atomically_with_evidence(ledger, store):
     ledger.record_evidence(
         make_evidence(art.id),
         new_status=Status.VERIFIED_N, status_n=9, coverage="exhaustive",
+        self_validating=True,
     )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.VERIFIED_N
     assert got.status_n == 9 and got.coverage == "exhaustive"
+
+
+def test_elevated_promotion_via_record_evidence_requires_self_validating(ledger, store):
+    """Structural gate: record_evidence refuses a >=VERIFIED_N promotion unless
+    the caller explicitly declares self_validating (certification-gated
+    promotions must use record_claimed_artifact). Below-VERIFIED promotions are
+    unaffected."""
+    art = make_artifact(store, kind="dataset")
+    ledger.add_artifact(art)
+    with pytest.raises(PromotionIntegrityError, match="self_validating=True"):
+        ledger.record_evidence(make_evidence(art.id), new_status=Status.VERIFIED_N)
+    assert ledger.get_artifact(art.id).status == Status.HEURISTIC
+    # CONJECTURED (below VERIFIED_N) needs no self_validating flag.
+    ledger.record_evidence(make_evidence(art.id), new_status=Status.CONJECTURED)
+    assert ledger.get_artifact(art.id).status == Status.CONJECTURED
+
+
+@pytest.mark.parametrize("verdict", [Verdict.FAIL, Verdict.ERROR, Verdict.TIMEOUT])
+def test_non_pass_evidence_cannot_promote_artifact(ledger, store, verdict):
+    art = make_artifact(store, kind="dataset")
+    ledger.add_artifact(art)
+
+    with pytest.raises(PromotionIntegrityError, match="requires PASS evidence"):
+        ledger.record_evidence(
+            make_evidence(art.id, verdict=verdict),
+            new_status=Status.VERIFIED_N,
+            status_n=9,
+            coverage="exhaustive",
+        )
+
+    assert ledger.get_artifact(art.id).status is Status.HEURISTIC
+    assert ledger.evidence_for(art.id) == []
+
+
+@pytest.mark.parametrize(
+    "verdict",
+    [Verdict.PASS, Verdict.ERROR, Verdict.TIMEOUT],
+)
+def test_only_fail_evidence_can_refute_artifact(ledger, store, verdict):
+    art = make_artifact(store)
+    ledger.add_artifact(art)
+
+    with pytest.raises(PromotionIntegrityError, match="REFUTED requires FAIL"):
+        ledger.record_evidence(
+            make_evidence(art.id, verdict=verdict),
+            new_status=Status.REFUTED,
+        )
+
+    assert ledger.get_artifact(art.id).status is Status.HEURISTIC
+    assert ledger.evidence_for(art.id) == []
+
+
+def test_status_transition_cannot_reduce_epistemic_rank(ledger, store):
+    art = make_artifact(store, status=Status.CERTIFIED)
+    ledger.add_artifact(art)
+
+    with pytest.raises(PromotionIntegrityError, match="cannot reduce"):
+        ledger.record_evidence(
+            make_evidence(art.id),
+            new_status=Status.CONJECTURED,
+        )
+
+    assert ledger.get_artifact(art.id).status is Status.CERTIFIED
+    assert ledger.evidence_for(art.id) == []
+
+
+def test_evidence_claim_must_belong_to_same_artifact(ledger, store):
+    claimed = make_artifact(store, content=b"claimed artifact")
+    other = make_artifact(store, content=b"other artifact")
+    ledger.add_artifact(claimed)
+    ledger.add_artifact(other)
+    ledger.conn.execute(
+        "INSERT INTO claims (id, artifact_id, statement)"
+        " VALUES ('claim-for-first', ?, 'claim for the first artifact')",
+        (claimed.id,),
+    )
+
+    with pytest.raises(PromotionIntegrityError, match="different artifact"):
+        ledger.record_evidence(
+            make_evidence(other.id, claim_id="claim-for-first"),
+            new_status=Status.VERIFIED_N,
+            status_n=9,
+            coverage="exhaustive",
+        )
+
+    assert ledger.get_artifact(other.id).status is Status.HEURISTIC
+    assert ledger.evidence_for(other.id) == []
 
 
 def test_status_change_requires_evidence_api_only(ledger, store):
@@ -172,7 +265,9 @@ def test_record_evidence_rolls_back_atomically_on_midtx_failure(ledger, store):
     # Force the evidence INSERT to violate NOT NULL after the UPDATE ran.
     object.__setattr__(bad, "verifier", None)
     with pytest.raises(sqlite3.IntegrityError):
-        ledger.record_evidence(bad, new_status=Status.VERIFIED_N, status_n=9)
+        ledger.record_evidence(
+            bad, new_status=Status.VERIFIED_N, status_n=9, self_validating=True
+        )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.HEURISTIC and got.status_n is None
     assert ledger.evidence_for(art.id) == []
@@ -208,9 +303,11 @@ def test_status_n_clears_when_leaving_verified_n(ledger, store):
     ledger.add_artifact(art)
     ledger.record_evidence(
         make_evidence(art.id), new_status=Status.VERIFIED_N,
-        status_n=9, coverage="exhaustive",
+        status_n=9, coverage="exhaustive", self_validating=True,
     )
-    ledger.record_evidence(make_evidence(art.id), new_status=Status.CERTIFIED)
+    ledger.record_evidence(
+        make_evidence(art.id), new_status=Status.CERTIFIED, self_validating=True
+    )
     got = ledger.get_artifact(art.id)
     assert got.status == Status.CERTIFIED
     assert got.status_n is None and got.coverage is None

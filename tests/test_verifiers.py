@@ -6,6 +6,7 @@ from empiricist.domain.p5.construction import Construction, FusionOp
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Verdict
+from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
 from empiricist.verifiers.goldens import P5_GOLDEN_SUITE, suite_hash
 from empiricist.verifiers.registry import Registry, UncertifiedVerifierError
@@ -65,7 +66,23 @@ def test_agreement_fails_on_wrong_target(registry):
 
 def test_golden_suite_contains_a_must_fail_case():
     """A suite that cannot fail certifies nothing (spec §7 mutation-resistance)."""
-    assert any(expected is False for _, expected in P5_GOLDEN_SUITE)
+    assert any(expected is Verdict.FAIL for _, expected in P5_GOLDEN_SUITE)
+
+
+@pytest.mark.parametrize("bad_verdict", [Verdict.ERROR, Verdict.TIMEOUT])
+def test_error_or_timeout_cannot_satisfy_must_fail_golden(registry, bad_verdict):
+    """Negative goldens require FAIL exactly; machinery failure is never success."""
+
+    class BrokenOnNegative(StabFusionVerifier):
+        name = f"broken-on-negative-{bad_verdict.value.lower()}"
+
+        def verify(self, construction):
+            result = super().verify(construction)
+            if result.verdict is Verdict.FAIL:
+                return VerifierResult(verdict=bad_verdict, details={"broken": True})
+            return result
+
+    assert registry.certify(BrokenOnNegative()).verdict is Verdict.FAIL
 
 
 def test_stamp_is_binary_hash_specific(registry):
@@ -142,4 +159,8 @@ def test_golden_suite_exercises_intra_component_fusion():
     """Engine B's deterministic branch must be certification-gated: some
     passing golden fuses within a single component (structurally: more
     fusions than the resources-1 needed to merge everything)."""
-    assert any(len(c.steps) > c.resources - 1 for c, expected in P5_GOLDEN_SUITE if expected)
+    assert any(
+        len(c.steps) > c.resources - 1
+        for c, expected in P5_GOLDEN_SUITE
+        if expected is Verdict.PASS
+    )

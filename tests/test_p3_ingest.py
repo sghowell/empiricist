@@ -12,10 +12,11 @@ import math
 import pytest
 
 from empiricist.domain.p3.ingest import ingest_scheme_artifact
-from empiricist.domain.p3.verify import verify_scheme_agreed
-from empiricist.ledger.db import Ledger
-from empiricist.search.p3_screen import screen_scheme
+from empiricist.ledger.db import Ledger, PromotionIntegrityError
+from empiricist.search.schemas import ScreenReject
 from empiricist.store import Store
+from empiricist.verifiers.p3_goldens import certify_p3
+from empiricist.verifiers.p3_scheme import P3SchemeVerifier
 
 
 def _bsm_dict(**overrides):
@@ -37,44 +38,43 @@ def _bsm_dict(**overrides):
 def env(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
     st = Store(tmp_path / "store")
+    certify_p3(lg, P3SchemeVerifier())
     yield lg, st
     lg.close()
 
 
-def test_ingest_pass_scheme_lands_verified_n(env):
+def test_ingest_pass_scheme_lands_as_claim_bound_heuristic(env):
     lg, st = env
     scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
-    assert result.verdict == "PASS"
 
     art = ingest_scheme_artifact(
-        lg, st, scheme_json=scheme_json, result=result,
+        lg, st, scheme_json=scheme_json,
         title="k=0 standard BSM at p_avg 1/2",
+        claimed_p_avg=0.5,
     )
 
     stored = lg.get_artifact(art.id)
-    assert stored.status.value == "VERIFIED_N"
+    assert stored.status.value == "HEURISTIC"
     assert stored.kind == "construction"
     assert stored.problem == "P3"
+    assert stored.problem_version == "p3-linear-optical-scheme-v1"
 
     evs = lg.evidence_for(art.id)
     assert len(evs) == 1
     assert evs[0].verifier == "p3_scheme_agreed"
-    assert evs[0].details["p_avg"] == pytest.approx(result.report.p_avg)
-    assert evs[0].details["leakage"] == pytest.approx(result.leakage)
-    assert evs[0].details["success_by_state"] == result.report.success_by_state
+    assert evs[0].details["p_avg"] == pytest.approx(0.5)
+    assert evs[0].details["leakage"] == pytest.approx(0.0)
+    assert evs[0].claim_id is not None
+    assert evs[0].golden_suite_hash is not None
+    assert lg.claims_for(art.id)[0].id == evs[0].claim_id
 
 
 def test_ingest_records_claims_alongside_achievement(env):
     lg, st = env
     scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
-    assert result.verdict == "PASS"
 
     art = ingest_scheme_artifact(
-        lg, st, scheme_json=scheme_json, result=result,
+        lg, st, scheme_json=scheme_json,
         title="k=0 standard BSM at p_avg 1/2", claimed_p_avg=0.5,
     )
 
@@ -90,27 +90,22 @@ def test_ingest_records_claims_alongside_achievement(env):
 def test_ingest_refuses_non_pass(env):
     lg, st = env
     scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.99)
-    assert result.verdict == "FAIL"
 
     with pytest.raises(ValueError):
         ingest_scheme_artifact(
-            lg, st, scheme_json=scheme_json, result=result, title="nope",
+            lg, st, scheme_json=scheme_json, title="nope", claimed_p_avg=0.99,
         )
 
 
 def test_ingest_is_idempotent_on_same_scheme(env):
     lg, st = env
     scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
 
     a1 = ingest_scheme_artifact(
-        lg, st, scheme_json=scheme_json, result=result, title="first",
+        lg, st, scheme_json=scheme_json, title="first", claimed_p_avg=0.5,
     )
     a2 = ingest_scheme_artifact(
-        lg, st, scheme_json=scheme_json, result=result, title="second (ignored)",
+        lg, st, scheme_json=scheme_json, title="second (ignored)", claimed_p_avg=0.5,
     )
 
     assert a1.id == a2.id
@@ -119,28 +114,53 @@ def test_ingest_is_idempotent_on_same_scheme(env):
     assert len(evs) == 1  # no second evidence row for the duplicate ingest
 
 
+def test_ingest_drops_a_dry_run_id_from_artifact_and_evidence(env):
+    lg, st = env
+
+    artifact = ingest_scheme_artifact(
+        lg,
+        st,
+        scheme_json=_bsm_dict(),
+        title="dry-client result",
+        run_id="not-a-ledger-run",
+        claimed_p_avg=0.5,
+    )
+
+    assert artifact.run_id is None
+    assert lg.evidence_for(artifact.id)[0].run_id is None
+
+
 def test_ingest_rejects_unserializable_scheme_json(env):
     lg, st = env
-    scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
-
     bad_scheme_json = {"x": object()}
-    with pytest.raises(ValueError):
+    with pytest.raises(ScreenReject):
         ingest_scheme_artifact(
-            lg, st, scheme_json=bad_scheme_json, result=result, title="bad json",
+            lg, st, scheme_json=bad_scheme_json, title="bad json",
         )
 
 
 def test_ingest_rejects_nan_in_scheme_json(env):
     lg, st = env
-    scheme_json = _bsm_dict()
-    scheme = screen_scheme(scheme_json)
-    result = verify_scheme_agreed(scheme, claimed_p_avg=0.5)
-
     # allow_nan=False: NaN must raise, never silently emit non-strict JSON
     nan_scheme_json = _bsm_dict(claimed_p_avg=float("nan"))
     with pytest.raises(ValueError):
         ingest_scheme_artifact(
-            lg, st, scheme_json=nan_scheme_json, result=result, title="nan json",
+            lg, st, scheme_json=nan_scheme_json, title="nan json",
         )
+
+
+def test_ingest_requires_current_p3_verifier_certification(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    st = Store(tmp_path / "store")
+    try:
+        with pytest.raises(PromotionIntegrityError, match="current PASS certification"):
+            ingest_scheme_artifact(
+                lg,
+                st,
+                scheme_json=_bsm_dict(),
+                title="uncertified",
+                claimed_p_avg=0.5,
+            )
+        assert lg.find_artifacts() == []
+    finally:
+        lg.close()

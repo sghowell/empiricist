@@ -413,6 +413,7 @@ def test_submit_survivor_lands_conjectured_with_pass_evidence(env, small_dataset
 
     fetched = lg.get_artifact(art.id)
     assert fetched.status == Status.CONJECTURED
+    assert fetched.problem_version == "p5-ghz3-v1"
 
     evidence = lg.evidence_for(art.id)
     assert len(evidence) == 1

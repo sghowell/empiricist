@@ -56,6 +56,7 @@ from dataclasses import dataclass
 from blake3 import blake3
 from pydantic import ValidationError
 
+from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.domain.p5.canonical import lc_orbit_key
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.ledger.db import Ledger
@@ -500,6 +501,7 @@ def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackRepo
             content=content,
             kind="statement",
             problem="P5",
+            problem_version=P5_PROBLEM_VERSION,
             title=f"Conjecture: {conj.family} F(N) = {conj.closed_form}",
             status=Status.HEURISTIC,
             artifact_id=art_id,

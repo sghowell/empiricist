@@ -147,24 +147,54 @@ class SchemeReport:
     distributions: dict[str, dict[tuple[int, ...], float]]
 
 
+def derive_assignment(
+    distributions: dict[str, dict[tuple[int, ...], float]],
+) -> dict[tuple[int, ...], str]:
+    """Derive the unique-label assignment from one engine's distributions.
+
+    Only uniquely-supported patterns appear in the returned mapping. Keeping
+    this operation explicit lets the agreed verifier compare the two engines'
+    *semantic* assignments, rather than treating numerically-close
+    distributions on opposite sides of ``_AMBIG_TOL`` as agreement.
+    """
+    all_patterns = set().union(*(distributions[b] for b in BELL_LABELS))
+    assignment: dict[tuple[int, ...], str] = {}
+    for pat in all_patterns:
+        supported = [
+            b for b in BELL_LABELS if distributions[b].get(pat, 0.0) > _AMBIG_TOL
+        ]
+        if len(supported) == 1:
+            assignment[pat] = supported[0]
+    return assignment
+
+
+def report_from_distributions(
+    distributions: dict[str, dict[tuple[int, ...], float]],
+) -> SchemeReport:
+    """Compute assignment-derived metrics from a complete Bell distribution map."""
+    assignment = derive_assignment(distributions)
+    success = dict.fromkeys(BELL_LABELS, 0.0)
+    leakage = 0.0
+    for pat, winner in assignment.items():
+        probs = {b: distributions[b].get(pat, 0.0) for b in BELL_LABELS}
+        success[winner] += probs[winner]
+        leakage += sum(probs[b] for b in BELL_LABELS if b != winner)
+    p_min = min(success.values())
+    p_avg = sum(success.values()) / 4.0
+    return SchemeReport(
+        success_by_state=success,
+        p_min=p_min,
+        p_avg=p_avg,
+        leakage=leakage,
+        unambiguous=leakage <= _LEAK_FLOOR,
+        distributions=distributions,
+    )
+
+
 def evaluate_scheme(scheme: BellScheme, engine) -> SchemeReport:
     scheme.validate()
     dists = {
         label: engine.output_distribution(scheme.mesh, state)
         for label, state in bell_input_states(scheme.n_modes, scheme.ancilla).items()
     }
-    success = dict.fromkeys(BELL_LABELS, 0.0)
-    leakage = 0.0
-    all_patterns = set().union(*dists.values())
-    for pat in all_patterns:
-        probs = {b: dists[b].get(pat, 0.0) for b in BELL_LABELS}
-        supported = [b for b, p in probs.items() if p > _AMBIG_TOL]
-        if len(supported) == 1:
-            winner = supported[0]
-            success[winner] += probs[winner]
-            leakage += sum(probs[b] for b in BELL_LABELS if b != winner)
-    p_min = min(success.values())
-    p_avg = sum(success.values()) / 4.0
-    return SchemeReport(success_by_state=success, p_min=p_min, p_avg=p_avg,
-                        leakage=leakage, unambiguous=leakage <= _LEAK_FLOOR,
-                        distributions=dists)
+    return report_from_distributions(dists)

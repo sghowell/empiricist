@@ -193,14 +193,14 @@ def test_should_stop_budget_cost():
 def test_should_stop_budget_generations():
     sched = make_scheduler(max_generations=5)
     assert sched.should_stop(ZERO_SPENT, gen=4) is None
-    assert sched.should_stop(ZERO_SPENT, gen=5) == "budget_generations"
+    assert sched.should_stop(ZERO_SPENT, gen=5) is None
     assert sched.should_stop(ZERO_SPENT, gen=6) == "budget_generations"
 
 
 def test_should_stop_cost_checked_before_generations():
     sched = make_scheduler(max_cost_usd=1.0, max_generations=5)
     spent = Spent(cost_usd=1.0, tokens_in=0, tokens_out=0)
-    assert sched.should_stop(spent, gen=5) == "budget_cost"
+    assert sched.should_stop(spent, gen=6) == "budget_cost"
 
 
 # -- should_stop: stalled_out ------------------------------------------------------

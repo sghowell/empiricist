@@ -7,10 +7,13 @@ is terminal. Statuses change only alongside evidence rows (spec §4.2).
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
+
+from blake3 import blake3
 
 
 class Status(StrEnum):
@@ -70,6 +73,7 @@ class Artifact:
     coverage: str | None = None   # 'exhaustive' | 'sampled' | None
     created_at: str = field(default_factory=now_iso)
     run_id: str | None = None
+    problem_version: str = "legacy"
 
 
 @dataclass(frozen=True)
@@ -83,9 +87,72 @@ class EvidenceRow:
     log_path: str | None = None
     wall_s: float | None = None
     created_at: str = field(default_factory=now_iso)
+    claim_id: str | None = None
+    run_id: str | None = None
+    golden_suite_hash: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "details", dict(self.details))
+
+
+@dataclass(frozen=True)
+class Claim:
+    """Canonical identity for the exact claim an evidence row checked."""
+
+    id: str
+    artifact_id: str
+    problem: str
+    problem_version: str
+    statement: str
+    family: str | None = None
+    metric: str | None = None
+    scope: dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=now_iso)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "scope", dict(self.scope))
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        artifact_id: str,
+        problem: str,
+        problem_version: str,
+        statement: str,
+        family: str | None = None,
+        metric: str | None = None,
+        scope: dict[str, Any] | None = None,
+    ) -> Claim:
+        canonical_scope = dict(scope or {})
+        identity = {
+            "artifact_id": artifact_id,
+            "family": family,
+            "metric": metric,
+            "problem": problem,
+            "problem_version": problem_version,
+            "scope": canonical_scope,
+            "statement": statement,
+        }
+        try:
+            encoded = json.dumps(
+                identity,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"claim identity is not canonical JSON: {exc}") from exc
+        return cls(
+            id=blake3(encoded).hexdigest(),
+            artifact_id=artifact_id,
+            problem=problem,
+            problem_version=problem_version,
+            statement=statement,
+            family=family,
+            metric=metric,
+            scope=canonical_scope,
+        )
 
 
 @dataclass(frozen=True)
@@ -107,6 +174,12 @@ class Run:
     started: str = field(default_factory=now_iso)
     ended: str | None = None
     wall_s: float | None = None
+    provider: str | None = None
+    reasoning_mode: str | None = None
+    reasoning_effort: str | None = None
+    auth_route: str | None = None
+    request_digest: str | None = None
+    response_digest: str | None = None
 
 
 @dataclass(frozen=True)

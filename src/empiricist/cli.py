@@ -1,14 +1,15 @@
-"""The `empiricist` CLI (M7 T3, spec §12): `run|resume|status|certify|gates|
-report` over a run directory (`<run_dir>/ledger.db` + `<run_dir>/store/`,
+"""The `empiricist` CLI (M7 T3, spec §12): `run|resume|status|audit|certify|
+gates|report` over a run directory (`<run_dir>/ledger.db` + `<run_dir>/store/`,
 `campaign.state.CampaignState`'s two paths).
 
-Thin by design: every subcommand handler is a few lines of `CampaignState.
-load` + a call into `campaign/*` or `report.py` + print + close. No business
-logic lives here -- all of it is already tested in `campaign/moves.py`,
+Thin by design: mutating handlers use `CampaignState.load`; inspection-only
+handlers use `CampaignState.open_readonly`.  Each then calls into
+`campaign/*` or `report.py`, prints, and closes. No business logic lives here
+-- all of it is already tested in `campaign/moves.py`,
 `campaign/orchestrator.py`, `campaign/scheduler.py`, and `report.py`.
 
-**--live is the one real-money path** (spec §5.2): a genuine `claude -p`
-subprocess call, billed against the subscription. Every other command
+**--live is the one real-money path** (spec §5.2): either a genuine `claude -p`
+subprocess call or an OpenAI Responses API call. Every other command
 (including `run`/`resume` WITHOUT `--live`, which only runs the
 deterministic ENUMERATE step + writes a report) is fully offline. Tests
 reach the `--live` code path too, but through the `_client_factory`
@@ -18,16 +19,17 @@ injection seam below (a `FakeLLMClient` stand-in) -- `--live` against a REAL
 Exit codes: `0` success; `1` an expected operational failure (preflight
 unhealthy, unknown gate id, an already-resolved gate); `2` a CLI usage/
 validation error this module itself catches (an unsupported problem
-positional; `--live` without an explicit `--max-cost`/`--max-gen` budget
-ceiling -- fail-closed, review I1). Malformed argv (missing `--run-dir`,
-an unknown subcommand, ...) is argparse's own `SystemExit(2)` -- standard
-argparse behavior, left alone.
+positional; `--live` without an explicit stop condition; OpenAI without its
+required `--max-cost` threshold -- fail-closed). Malformed argv (missing
+`--run-dir`, an unknown subcommand, ...) is argparse's own `SystemExit(2)` --
+standard argparse behavior, left alone.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import math
 import sys
 from collections.abc import Callable
 from dataclasses import replace
@@ -38,9 +40,20 @@ from empiricist.campaign.moves import ensure_certified, ensure_enumerate
 from empiricist.campaign.orchestrator import run_campaign
 from empiricist.campaign.state import CampaignState
 from empiricist.config import RunConfig
+from empiricist.ledger.audit import audit_ledger
+from empiricist.ledger.db import (
+    ORPHANED_EXIT_CODE,
+    UNKNOWN_BILLING_EXIT_CODE,
+    Ledger,
+)
 from empiricist.ledger.gates import GateError
 from empiricist.llm.client import ClaudeCodeClient, LLMClient
+from empiricist.llm.openai_responses import (
+    OpenAIPricing,
+    OpenAIResponsesClient,
+)
 from empiricist.llm.preflight import PreflightError, preflight
+from empiricist.store import Store
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
@@ -54,11 +67,72 @@ def build_parser() -> argparse.ArgumentParser:
     def _campaign_flags(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--run-dir", required=True, type=Path)
         sp.add_argument("--live", action="store_true")
-        sp.add_argument("--max-cost", type=float, default=None, dest="max_cost")
-        sp.add_argument("--max-gen", type=int, default=None, dest="max_gen")
+        sp.add_argument(
+            "--max-cost",
+            type=float,
+            default=None,
+            dest="max_cost",
+            help=(
+                "stop before the next paid call/wave once recorded spend "
+                "reaches this threshold"
+            ),
+        )
+        sp.add_argument(
+            "--max-gen",
+            type=int,
+            default=None,
+            dest="max_gen",
+            help=(
+                "inclusive cumulative successful SEARCH-generation limit "
+                "(must be >= 1; not a paid-attempt cap)"
+            ),
+        )
         sp.add_argument("--tier0-n", type=int, default=None, dest="tier0_n")
         sp.add_argument("--tier1-n", type=int, default=None, dest="tier1_n")
         sp.add_argument("--search-n", type=int, default=None, dest="search_n")
+        sp.add_argument(
+            "--provider",
+            choices=("claude-code", "openai"),
+            default="claude-code",
+        )
+        sp.add_argument(
+            "--openai-model",
+            choices=("gpt-5.6-sol",),
+            default="gpt-5.6-sol",
+        )
+        sp.add_argument(
+            "--openai-reasoning-mode",
+            choices=("standard", "pro"),
+            default="pro",
+        )
+        sp.add_argument(
+            "--openai-max-output-tokens",
+            type=int,
+            default=32_768,
+        )
+        sp.add_argument(
+            "--openai-input-usd-per-mtok",
+            type=float,
+            default=None,
+        )
+        sp.add_argument(
+            "--openai-cached-input-usd-per-mtok",
+            type=float,
+            default=None,
+        )
+        sp.add_argument(
+            "--openai-output-usd-per-mtok",
+            type=float,
+            default=None,
+        )
+        sp.add_argument(
+            "--acknowledge-unknown-billing",
+            action="store_true",
+            help=(
+                "resume despite unresolved provider billing; recorded spend "
+                "may be understated (acknowledgment applies to this invocation only)"
+            ),
+        )
 
     run_p = sub.add_parser("run", help="run (or continue) a campaign")
     run_p.add_argument("problem")
@@ -73,6 +147,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_p = sub.add_parser("status", help="artifact counts + spend + population size")
     status_p.add_argument("--run-dir", required=True, type=Path)
+
+    audit_p = sub.add_parser("audit", help="read-only ledger/CAS consistency check")
+    audit_p.add_argument("--run-dir", required=True, type=Path)
 
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
@@ -111,6 +188,96 @@ def _cfg_from_args(args: argparse.Namespace) -> RunConfig:
     return replace(RunConfig(), **overrides)
 
 
+def _open_inspection_state(run_dir: Path) -> CampaignState | None:
+    """Open an existing campaign without turning inspection into a resume."""
+    try:
+        return CampaignState.open_readonly(run_dir)
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return None
+
+
+def _openai_pricing_from_args(args: argparse.Namespace) -> OpenAIPricing | None:
+    values = (
+        args.openai_input_usd_per_mtok,
+        args.openai_cached_input_usd_per_mtok,
+        args.openai_output_usd_per_mtok,
+    )
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        raise ValueError(
+            "OpenAI pricing is all-or-nothing: pass input, cached-input, "
+            "and output USD-per-million-token rates"
+        )
+    return OpenAIPricing(*values)
+
+
+def _existing_budget_stop(run_dir: Path, cfg: RunConfig) -> str | None:
+    """Return a resume stop reason without mutating an existing campaign.
+
+    Preflight is itself a paid model call. A campaign already at either
+    configured stop condition must therefore be detected before constructing a
+    client or running preflight.
+    """
+    if not (run_dir / "ledger.db").exists():
+        return None
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        spent = state.ledger.spent()
+        if cfg.max_cost_usd is not None and spent.cost_usd >= cfg.max_cost_usd:
+            return (
+                f"recorded spend ${spent.cost_usd:.4f} already meets "
+                f"--max-cost ${cfg.max_cost_usd:.4f}"
+            )
+        prior_generations = state.population.events(trigger="generation")
+        highest_generation = max((event.gen for event in prior_generations), default=0)
+        if (
+            cfg.max_generations is not None
+            and highest_generation >= cfg.max_generations
+        ):
+            return (
+                f"generation {highest_generation} already meets the inclusive "
+                f"--max-gen {cfg.max_generations} limit"
+            )
+        return None
+    finally:
+        state.close()
+
+
+def _existing_unknown_billing_runs(run_dir: Path) -> list[str]:
+    if not (run_dir / "ledger.db").exists():
+        return []
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        return [
+            row["run_id"]
+            for row in state.ledger.conn.execute(
+                "SELECT run_id FROM runs"
+                " WHERE provider IS NOT NULL"
+                " AND (ended IS NULL OR exit_code IN (?, ?))"
+                " ORDER BY rowid",
+                (UNKNOWN_BILLING_EXIT_CODE, ORPHANED_EXIT_CODE),
+            )
+        ]
+    finally:
+        state.close()
+
+
+def _build_client(args: argparse.Namespace) -> LLMClient:
+    """Construct the selected tool-free transport for one campaign."""
+    store = Store(args.run_dir / "store")
+    if args.provider == "claude-code":
+        return ClaudeCodeClient(store=store)
+    return OpenAIResponsesClient(
+        model=args.openai_model,
+        reasoning_mode=args.openai_reasoning_mode,
+        max_output_tokens=args.openai_max_output_tokens,
+        store=store,
+        pricing=_openai_pricing_from_args(args),
+    )
+
+
 def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMClient]) -> int:
     if args.problem not in SUPPORTED_PROBLEMS:
         print(
@@ -122,6 +289,15 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
 
     cfg = _cfg_from_args(args)
     run_dir: Path = args.run_dir
+
+    if cfg.max_generations is not None and cfg.max_generations < 1:
+        print("error: --max-gen must be at least 1", file=sys.stderr)
+        return 2
+    if cfg.max_cost_usd is not None and (
+        not math.isfinite(cfg.max_cost_usd) or cfg.max_cost_usd <= 0
+    ):
+        print("error: --max-cost must be a finite number greater than 0", file=sys.stderr)
+        return 2
 
     if not args.live:
         state = CampaignState.load(run_dir)
@@ -138,31 +314,99 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
         return 0
 
     # Fail-closed budget posture (overnight-safety review I1): an unattended
-    # --live campaign bills real money against the subscription, so it must
-    # carry an EXPLICIT ceiling. There is deliberately no "no limit"
-    # spelling -- an operator who truly wants an effectively unbounded run
-    # sets a deliberately large ceiling and owns that number.
+    # --live campaign bills real money, so it must carry an explicit stop
+    # condition. `max_generations` is a strict inclusive generation limit.
+    # `max_cost_usd` is checked between paid calls/waves and is therefore a
+    # stop threshold, not a reservation-backed hard dollar ceiling.
     if cfg.max_cost_usd is None and cfg.max_generations is None:
         print(
             "error: unattended live campaigns require an explicit budget "
-            "ceiling -- pass --max-cost and/or --max-gen (fail-closed). "
-            "There is no 'no limit' flag; set a deliberately large ceiling "
-            "if that is what you want.",
+            "stop condition -- pass --max-cost and/or --max-gen (fail-closed).",
             file=sys.stderr,
         )
         return 2
 
-    client = client_factory()
     try:
-        asyncio.run(preflight(client))
-    except PreflightError as exc:
+        pricing = (
+            _openai_pricing_from_args(args)
+            if args.provider == "openai"
+            else None
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if args.provider == "openai" and pricing is None:
+        print(
+            "error: live OpenAI campaigns require explicit current pricing "
+            "rates so paid calls are never recorded as $0; pass all three "
+            "--openai-*-usd-per-mtok flags.",
+            file=sys.stderr,
+        )
+        return 2
+    if args.provider == "openai" and cfg.max_cost_usd is None:
+        print(
+            "error: live OpenAI campaigns require --max-cost; --max-gen "
+            "bounds successful SEARCH work, not paid retry/conjecture waves.",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        unknown_billing_runs = _existing_unknown_billing_runs(run_dir)
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(f"error: cannot inspect existing campaign billing: {exc}", file=sys.stderr)
+        return 1
+    if unknown_billing_runs and not args.acknowledge_unknown_billing:
+        joined = ", ".join(unknown_billing_runs)
+        print(
+            "error: provider billing is unknown for run(s) "
+            f"{joined}; compare provider usage before resuming. Pass "
+            "--acknowledge-unknown-billing only if you accept that recorded "
+            "spend may be understated.",
+            file=sys.stderr,
+        )
+        return 1
+    if unknown_billing_runs:
+        print(
+            "warning: acknowledged unresolved billing for run(s) "
+            f"{', '.join(unknown_billing_runs)}; recorded spend may be understated"
+        )
+
+    try:
+        existing_stop = _existing_budget_stop(run_dir, cfg)
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(f"error: cannot inspect existing campaign budget: {exc}", file=sys.stderr)
+        return 1
+    if existing_stop is not None:
+        print(f"campaign already at configured stop condition: {existing_stop}")
+        print("no client was constructed and no preflight/model call was made")
+        return 0
+
+    try:
+        client = client_factory()
+    except (ValueError, RuntimeError) as exc:
+        print(f"error: provider configuration failed: {exc}", file=sys.stderr)
+        return 2
+
+    # Preflight is a real model call, so it gets a runs row and request/response
+    # receipts just like campaign calls. Opening the bare ledger avoids adding a
+    # spurious campaign resume event before run_campaign owns the state.
+    run_dir.mkdir(parents=True, exist_ok=True)
+    preflight_ledger = Ledger(run_dir / "ledger.db")
+    try:
+        asyncio.run(preflight(client, ledger=preflight_ledger))
+    except (PreflightError, RuntimeError) as exc:
         print(f"error: preflight failed: {exc}", file=sys.stderr)
         return 1
+    finally:
+        preflight_ledger.close()
 
     summary = asyncio.run(run_campaign(run_dir, cfg, client))
     print(f"campaign summary: {summary}")
 
-    state = CampaignState.load(run_dir)  # run_campaign closes its own handle
+    # run_campaign closes its own mutating handle.  Rendering the completed
+    # snapshot must not manufacture another resume boundary.
+    state = CampaignState.open_readonly(run_dir)
     try:
         text = report_mod.generate(state, cfg)
         report_path = run_dir / "report.md"
@@ -170,11 +414,20 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
     finally:
         state.close()
     print(f"report written to {report_path}")
+    if summary.stop_reason == "billing_unknown":
+        print(
+            "error: campaign stopped because provider billing is unknown; "
+            "reconcile provider usage before resuming",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
-    state = CampaignState.load(args.run_dir)
+    state = _open_inspection_state(args.run_dir)
+    if state is None:
+        return 1
     try:
         counts: dict[str, int] = {}
         for art in state.ledger.find_artifacts():
@@ -197,6 +450,27 @@ def _cmd_status(args: argparse.Namespace) -> int:
         state.close()
 
 
+def _cmd_audit(args: argparse.Namespace) -> int:
+    state = _open_inspection_state(args.run_dir)
+    if state is None:
+        return 1
+    try:
+        report = audit_ledger(state.ledger, state.store)
+        print(
+            f"audit: {report.artifacts_checked} artifacts, "
+            f"{report.evidence_checked} evidence rows"
+        )
+        if report.ok:
+            print("audit OK")
+            return 0
+        for issue in report.issues:
+            artifact = f" artifact={issue.artifact_id}" if issue.artifact_id else ""
+            print(f"{issue.code}:{artifact} {issue.message}")
+        return 1
+    finally:
+        state.close()
+
+
 def _cmd_certify(args: argparse.Namespace) -> int:
     state = CampaignState.load(args.run_dir)
     try:
@@ -212,7 +486,15 @@ def _cmd_certify(args: argparse.Namespace) -> int:
 
 
 def _cmd_gates(args: argparse.Namespace) -> int:
-    state = CampaignState.load(args.run_dir)
+    # Listing is inspection; resolving is an explicit state transition and
+    # retains load()'s recovery/session-boundary behavior.
+    state = (
+        _open_inspection_state(args.run_dir)
+        if args.gates_command == "list"
+        else CampaignState.load(args.run_dir)
+    )
+    if state is None:
+        return 1
     try:
         if args.gates_command == "list":
             gates = state.gates.list()
@@ -241,7 +523,9 @@ def _cmd_gates(args: argparse.Namespace) -> int:
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
-    state = CampaignState.load(args.run_dir)
+    state = _open_inspection_state(args.run_dir)
+    if state is None:
+        return 1
     try:
         # Standalone `report` has no config flags -- it reports against
         # RunConfig()'s defaults (documented: `run`/`resume` write a report
@@ -268,19 +552,20 @@ def main(
     generated from `[project.scripts]` does that around this function's
     return value.
 
-    `_client_factory` is a test-only seam: the default constructs a real
-    `ClaudeCodeClient` (a genuine subscription-billed `claude -p` subprocess)
-    for `--live`, so tests inject a `FakeLLMClient` factory here instead of
-    ever touching the real transport.
+    `_client_factory` is a test-only seam: the default constructs the provider
+    selected by CLI flags, so tests inject a `FakeLLMClient` factory instead
+    of touching a real transport.
     """
     parser = build_parser()
     args = parser.parse_args(argv)
 
     if args.command in ("run", "resume"):
-        factory = _client_factory or ClaudeCodeClient
+        factory = _client_factory or (lambda: _build_client(args))
         return _cmd_campaign(args, client_factory=factory)
     if args.command == "status":
         return _cmd_status(args)
+    if args.command == "audit":
+        return _cmd_audit(args)
     if args.command == "certify":
         return _cmd_certify(args)
     if args.command == "gates":

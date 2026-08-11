@@ -49,7 +49,10 @@ CONJECTURE can still be making genuine progress mining the same dataset.
 in this fixed order:
 
 1. `cfg.max_cost_usd` set and `spent.cost_usd >= max_cost_usd` -> `"budget_cost"`.
-2. `cfg.max_generations` set and `gen >= max_generations` -> `"budget_generations"`.
+   This is a between-wave stop threshold, not a reservation-backed hard cap.
+2. `cfg.max_generations` set and `gen > max_generations` -> `"budget_generations"`.
+   `gen` is the next SEARCH generation number, so the configured value is
+   inclusive: `max_generations=1` permits generation 1 and then stops.
 3. Both moves "exhausted" -> `"stalled_out"`. A move is exhausted iff either
    (a) it has been dropped from rotation (SEARCH via `note_targets_
    exhausted`), or (b) its weight has bottomed out at 1 AND its
@@ -163,7 +166,7 @@ class Scheduler:
     def should_stop(self, spent: Spent, gen: int) -> str | None:
         if self._cfg.max_cost_usd is not None and spent.cost_usd >= self._cfg.max_cost_usd:
             return "budget_cost"
-        if self._cfg.max_generations is not None and gen >= self._cfg.max_generations:
+        if self._cfg.max_generations is not None and gen > self._cfg.max_generations:
             return "budget_generations"
         if self._is_exhausted("search") and self._is_exhausted("conjecture"):
             return "stalled_out"

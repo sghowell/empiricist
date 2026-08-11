@@ -24,9 +24,10 @@ import shutil
 from pathlib import Path
 
 import pytest
+from blake3 import blake3
 
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Status, Verdict
+from empiricist.ledger.models import Certification, Status, Verdict
 from empiricist.store import Store
 from empiricist.verifiers.base import VerifierResult
 from empiricist.verifiers.lean import (
@@ -140,15 +141,26 @@ def store(tmp_path):
     return Store(tmp_path / "cas")
 
 
+def stamp_current_verifier(ledger: Ledger, verifier: LeanVerifier) -> None:
+    """Unit/integration tests below are not a second golden-suite campaign."""
+    ledger.add_certification(Certification(
+        verifier=verifier.name,
+        verifier_version=verifier.version,
+        binary_hash=verifier.binary_hash,
+        golden_suite_hash=lean_suite_hash(),
+        verdict=Verdict.PASS,
+    ))
+
+
 # -- real-lake goldens (slow_lean) -------------------------------------------
 
 
 @slow_lean
 @requires_lake
-@pytest.mark.parametrize("source,decl,expected_pass", LEAN_GOLDEN_SUITE, ids=_GOLDEN_IDS)
-def test_golden_case_matches_expected_verdict(verifier, source, decl, expected_pass):
+@pytest.mark.parametrize("source,decl,expected_verdict", LEAN_GOLDEN_SUITE, ids=_GOLDEN_IDS)
+def test_golden_case_matches_expected_verdict(verifier, source, decl, expected_verdict):
     result = verifier.verify(source, decl=decl, timeout_s=120)
-    assert (result.verdict == Verdict.PASS) == expected_pass, result.details
+    assert result.verdict is expected_verdict, result.details
 
 
 @slow_lean
@@ -178,8 +190,8 @@ def test_kernel_injection_pocs_fail_at_kernel_soundness_gate(verifier, case_inde
     re-checks the module's added decls through the REAL kernel and rejects the
     `1 = 1 :≠ 1 = 2` mismatch (gate=kernel_soundness). A proof of `False` no longer
     certifies FORMALIZED."""
-    source, decl, expected_pass = LEAN_GOLDEN_SUITE[case_index]
-    assert expected_pass is False
+    source, decl, expected_verdict = LEAN_GOLDEN_SUITE[case_index]
+    assert expected_verdict is Verdict.FAIL
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.FAIL, result.details
     assert result.details["gate"] == "kernel_soundness", result.details
@@ -194,8 +206,8 @@ def test_environment_replay_injection_rejected_at_compile(verifier):
     kernel already at COMPILE (replay is itself a kernel-checking mechanism), so it
     fails at gate=diagnostics rather than kernel_soundness. Kept to pin that even
     the kernel's own replay refuses the injection."""
-    source, decl, expected_pass = LEAN_GOLDEN_SUITE[11]
-    assert expected_pass is False
+    source, decl, expected_verdict = LEAN_GOLDEN_SUITE[11]
+    assert expected_verdict is Verdict.FAIL
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.FAIL, result.details
     assert result.details["gate"] == "diagnostics", result.details
@@ -207,8 +219,8 @@ def test_pass_records_resolved_statement(verifier):
     """Provenance hole B: a PASS must record the decl's RESOLVED statement, so a
     referee sees WHAT was proven, not just a clean axiom set. `theorem t : True :=
     trivial` PASSes with details['statement'] == 'True' and a statement_hash."""
-    source, decl, expected_pass = LEAN_GOLDEN_SUITE[12]
-    assert expected_pass is True
+    source, decl, expected_verdict = LEAN_GOLDEN_SUITE[12]
+    assert expected_verdict is Verdict.PASS
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.PASS, result.details
     assert result.details["statement"] == "True", result.details
@@ -257,8 +269,8 @@ def test_axiom_forgery_and_command_override_reveal_the_evil_axiom(verifier, case
     old verifier), or injecting a fake `AXIOM_AUDIT::` driver-result line. The
     compiled driver runs NO `#print axioms`; `collectAxioms` reveals the real
     dependency `Empiricist.evil` (gate=axioms), never the fabricated clean set."""
-    source, decl, expected_pass = LEAN_GOLDEN_SUITE[case_index]
-    assert expected_pass is False
+    source, decl, expected_verdict = LEAN_GOLDEN_SUITE[case_index]
+    assert expected_verdict is Verdict.FAIL
     result = verifier.verify(source, decl=decl, timeout_s=120)
     assert result.verdict == Verdict.FAIL, result.details
     assert result.details["gate"] == "axioms", result.details
@@ -304,14 +316,10 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     first FORMALIZED artifact, with the LeanVerifier evidence row attached."""
     source = (_MODULE_DIR / "Basic.lean").read_text()
     decl = "Empiricist.connected_edge_bound"
-    result = verifier.verify(source, decl=decl, timeout_s=120)
-    assert result.verdict == Verdict.PASS, result.details
-    assert result.details["axioms"] == ["propext", "Classical.choice", "Quot.sound"]
-    # Provenance hole B: the resolved statement is recorded on the PASS.
-    assert "Fintype.card V - 1 ≤" in result.details["statement"], result.details
-    assert result.details["statement_hash"]
-
-    art = ingest_lean_artifact(ledger, store, source, decl, result, verifier=verifier)
+    stamp_current_verifier(ledger, verifier)
+    art = ingest_lean_artifact(
+        ledger, store, source, decl, verifier=verifier, timeout_s=120
+    )
     assert art.kind == "lean"
     assert art.problem == "P5"
     assert art.status == Status.FORMALIZED
@@ -327,8 +335,12 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     assert ev[0].details["decl"] == decl
     assert ev[0].details["mathlib_commit"]
     # The FORMALIZED evidence carries the statement + its hash.
-    assert ev[0].details["statement"] == result.details["statement"]
-    assert ev[0].details["statement_hash"] == result.details["statement_hash"]
+    assert "Fintype.card V - 1 ≤" in ev[0].details["statement"]
+    assert ev[0].details["statement_hash"] == blake3(
+        ev[0].details["statement"].encode("utf-8")
+    ).hexdigest()
+    assert ev[0].claim_id is not None
+    assert ev[0].golden_suite_hash == lean_suite_hash()
 
     assert store.get(art.content_path).decode("utf-8") == source
 
@@ -337,10 +349,11 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
 @requires_lake
 def test_ingest_lean_artifact_rejects_non_pass(ledger, store, verifier):
     source, decl, _ = LEAN_GOLDEN_SUITE[1]  # sorry trap: verifies FAIL
-    result = verifier.verify(source, decl=decl, timeout_s=120)
-    assert result.verdict == Verdict.FAIL
+    stamp_current_verifier(ledger, verifier)
     with pytest.raises(ValueError):
-        ingest_lean_artifact(ledger, store, source, decl, result)
+        ingest_lean_artifact(
+            ledger, store, source, decl, verifier=verifier, timeout_s=120
+        )
     # No partial artifact from a rejected ingest.
     assert ledger.find_artifacts(kind="lean") == []
 
@@ -654,10 +667,26 @@ def test_ingest_lean_artifact_records_the_given_verifiers_identity(ledger, store
         def binary_hash(self):
             return "f" * 64
 
+        def verify(self, module_source, *, decl, timeout_s=600.0):
+            statement = "True"
+            return VerifierResult(
+                verdict=Verdict.PASS,
+                details={
+                    "decl": decl,
+                    "axioms": [],
+                    "statement": statement,
+                    "statement_hash": blake3(statement.encode("utf-8")).hexdigest(),
+                },
+            )
+
     fake = FakeVerifier()
-    result = VerifierResult(verdict=Verdict.PASS, details={"decl": "Empiricist.x"})
+    stamp_current_verifier(ledger, fake)
     art = ingest_lean_artifact(
-        ledger, store, "theorem x : True := trivial", "Empiricist.x", result, verifier=fake
+        ledger,
+        store,
+        "theorem x : True := trivial",
+        "Empiricist.x",
+        verifier=fake,
     )
     ev = ledger.evidence_for(art.id)
     assert ev[0].binary_hash == "f" * 64
@@ -689,8 +718,8 @@ def test_applicable():
 
 def test_lean_golden_suite_has_both_a_pass_and_must_fail_cases():
     """A suite that can't fail certifies nothing (spec §7 mutation-resistance)."""
-    assert any(expected is True for _, _, expected in LEAN_GOLDEN_SUITE)
-    assert any(expected is False for _, _, expected in LEAN_GOLDEN_SUITE)
+    assert any(expected is Verdict.PASS for _, _, expected in LEAN_GOLDEN_SUITE)
+    assert any(expected is Verdict.FAIL for _, _, expected in LEAN_GOLDEN_SUITE)
 
 
 def test_lean_golden_suite_covers_the_command_override_vectors():
@@ -734,7 +763,7 @@ def test_lean_golden_suite_covers_the_poison_import_vectors():
     assert "Poison.olean" in joined and "IO.FS.writeFile" in joined
     # all three are must-FAIL
     for decl in ("Empiricist.grandclaim", "Empiricist.one_eq_two"):
-        assert decl in cases and cases[decl][1] is False
+        assert decl in cases and cases[decl][1] is Verdict.FAIL
 
 
 def test_lean_golden_suite_covers_the_toctou_olean_swap_vector():
@@ -750,7 +779,10 @@ def test_lean_golden_suite_covers_the_toctou_olean_swap_vector():
     assert "poison_stage.olean" in joined
     assert "mv READY.olean" in joined
     assert "evil_claim" in joined
-    assert "Empiricist.evil_claim" in cases and cases["Empiricist.evil_claim"][1] is False
+    assert (
+        "Empiricist.evil_claim" in cases
+        and cases["Empiricist.evil_claim"][1] is Verdict.FAIL
+    )
 
 
 def test_binary_hash_changes_when_manifest_bytes_differ(monkeypatch):

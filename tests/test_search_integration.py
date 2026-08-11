@@ -64,7 +64,10 @@ def test_stub_claude_end_to_end_generation(tmp_path, monkeypatch):
     registry.certify(EnumFusionVerifier())
     population = Population(ledger)
 
-    client = ClaudeCodeClient(claude_bin=[sys.executable, str(STUB)])
+    client = ClaudeCodeClient(
+        claude_bin=[sys.executable, str(STUB)],
+        store=store,
+    )
     loop = SearchLoop(client, ledger, store, registry, population)
 
     target = TargetSpec(

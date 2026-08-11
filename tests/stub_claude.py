@@ -6,6 +6,10 @@ Emits a canned result envelope on stdout. Behavior is controlled by env vars:
 It also echoes its argv to STUB_ARGV_FILE (if set) so tests can assert how the
 client invoked it. This exercises the full execute() -> parse path.
 
+In success mode, the stub recognizes the preflight's one-field ``ok`` schema
+and returns its structured canary. Other success calls keep returning plain
+text, preserving the general client tests.
+
 STUB_MODE=construction emits a canned VALID ConstructionOut (M6 T5 end-to-end
 integration test): the same P4 fixture used in tests/test_search_loop.py --
 resources=2 GHZ3 stars (qubits 0,1,2 and 3,4,5), fuse leaf 2 with leaf 4,
@@ -50,7 +54,25 @@ if __name__ == "__main__":
         "modelUsage": {"claude-fable-5": {"inputTokens": 30, "outputTokens": 5}},
     }
     if mode == "success":
-        env |= {"result": "stub text answer", "stop_reason": "end_turn"}
+        requested_schema = None
+        if "--json-schema" in sys.argv:
+            requested_schema = json.loads(
+                sys.argv[sys.argv.index("--json-schema") + 1]
+            )
+        if (
+            isinstance(requested_schema, dict)
+            and requested_schema.get("required") == ["ok"]
+            and requested_schema.get("properties", {}).get("ok", {}).get("type")
+            == "boolean"
+        ):
+            canary = {"ok": True}
+            env |= {
+                "result": json.dumps(canary),
+                "stop_reason": "tool_use",
+                "structured_output": canary,
+            }
+        else:
+            env |= {"result": "stub text answer", "stop_reason": "end_turn"}
     elif mode == "schema":
         env |= {"result": "{\"family\":\"path\",\"closed_form\":\"N-3\","
                            "\"predicted_values\":{\"3\":0},\"confidence\":0.9}",

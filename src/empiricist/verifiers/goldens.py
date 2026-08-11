@@ -32,6 +32,7 @@ from blake3 import blake3
 
 from empiricist.domain.p5.construction import Construction, FusionOp
 from empiricist.domain.p5.graphstate import GraphState
+from empiricist.ledger.models import Verdict
 
 
 def _chain(g: int) -> Construction:
@@ -89,27 +90,27 @@ _INTRA_ADJACENT = Construction(
     target=GraphState(n=3, edges=[(1, 2)]),
 )
 
-P5_GOLDEN_SUITE: list[tuple[Construction, bool]] = [
-    (_P4, True),
-    (_chain(3), True),
-    (_chain(4), True),
-    (_chain(5), True),
-    (_INTRA_CYCLE_CLOSE, True),
-    (_INTRA_ADJACENT, True),
-    (_WRONG_TARGET, False),
+P5_GOLDEN_SUITE: list[tuple[Construction, Verdict]] = [
+    (_P4, Verdict.PASS),
+    (_chain(3), Verdict.PASS),
+    (_chain(4), Verdict.PASS),
+    (_chain(5), Verdict.PASS),
+    (_INTRA_CYCLE_CLOSE, Verdict.PASS),
+    (_INTRA_ADJACENT, Verdict.PASS),
+    (_WRONG_TARGET, Verdict.FAIL),
 ]
 
 
 def suite_hash() -> str:
     """blake3 hex digest of a canonical JSON repr of P5_GOLDEN_SUITE (each
-    case's resources, fusion steps, target edges, and expected outcome)."""
+    case's resources, fusion steps, target edges, and expected verdict)."""
     canon = [
         {
             "resources": construction.resources,
             "steps": [[op.a, op.b] for op in construction.steps],
             "target_n": construction.target.n,
             "target_edges": sorted(construction.target.edges),
-            "expected_pass": expected,
+            "expected_verdict": expected.value,
         }
         for construction, expected in P5_GOLDEN_SUITE
     ]

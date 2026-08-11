@@ -48,20 +48,19 @@ verifier feedback + prior module source.
 
 from __future__ import annotations
 
-import asyncio
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from empiricist.domain.p3.ingest import ingest_scheme_artifact
-from empiricist.domain.p3.verify import verify_scheme_agreed
+from empiricist.domain.p3.ingest import verify_and_ingest_scheme
 from empiricist.ledger.db import Ledger
 from empiricist.llm.client import LLMClient
 from empiricist.llm.roles import ROLES, Role
 from empiricist.llm.schemas import BellSchemeOut
-from empiricist.search.p3_screen import screen_scheme
 from empiricist.search.schemas import ScreenReject
 from empiricist.store import Store
+from empiricist.verifiers.p3_goldens import p3_suite_hash
+from empiricist.verifiers.p3_scheme import P3SchemeVerifier
 
 _NO_ARTIFACT_FEEDBACK = (
     "No usable output was produced. Emit exactly one JSON object matching the "
@@ -157,6 +156,18 @@ class P3SearchLoop:
         )
 
     async def run(self, task: P3SearchTask) -> P3SearchReport:
+        # Fail before the first (potentially paid) proposal if promotion would
+        # be impossible.  Ingestion checks the same exact stamp again at the
+        # trust boundary; this early check avoids spending rounds only to
+        # discover a missing or stale verifier certification afterward.
+        verifier = P3SchemeVerifier()
+        self._ledger.require_certification(
+            verifier.name,
+            verifier.version,
+            verifier.binary_hash,
+            p3_suite_hash(),
+        )
+
         # Lazy resolution (module docstring): resolved here, not at __init__/
         # import time. Tests inject `role=` and never touch ROLES.
         role = self._role if self._role is not None else ROLES["p3_searcher"]
@@ -189,35 +200,26 @@ class P3SearchLoop:
             raw = result.parsed
 
             try:
-                scheme = screen_scheme(raw)
-            except ScreenReject as exc:
-                history.append(_Round("SCREENED", str(exc)))
-                continue
-
-            # Pure, thread-safe function -- dispatched to a worker thread so
-            # the event loop stays responsive if run() is ever multiplexed
-            # (matches formalize/loop.py's asyncio.to_thread convention).
-            r = await asyncio.to_thread(
-                verify_scheme_agreed,
-                scheme,
-                claimed_p_min=task.target_p_min,
-                claimed_p_avg=task.target_p_avg,
-                claimed_max_leakage=task.max_leakage,
-            )
-
-            if r.verdict == "PASS":
-                art = ingest_scheme_artifact(
-                    self._ledger, self._store, scheme_json=raw, result=r,
+                # The helper reconstructs the scheme from the raw JSON, checks
+                # the verifier's current certification, verifies, and performs
+                # the atomic promotion transaction only on PASS.
+                r, art = verify_and_ingest_scheme(
+                    self._ledger,
+                    self._store,
+                    scheme_json=raw,
                     title=f"P3 scheme: {task.goal[:80]}",
                     run_id=rid,
-                    # the CHECKED claim (the task targets handed to
-                    # verify_scheme_agreed above, NOT the scheme dict's own
-                    # claimed_* fields) -- recorded with the evidence because
-                    # the certificate is claim + achievement
                     claimed_p_min=task.target_p_min,
                     claimed_p_avg=task.target_p_avg,
                     claimed_max_leakage=task.max_leakage,
                 )
+            except ScreenReject as exc:
+                history.append(_Round("SCREENED", str(exc)))
+                continue
+
+            if r.verdict == "PASS":
+                if art is None:  # pragma: no cover - helper contract
+                    raise RuntimeError("P3 PASS did not produce an artifact")
                 history.append(_Round("PASS", r.detail))
                 return P3SearchReport(
                     ok=True, rounds=round_num, artifact_id=art.id,

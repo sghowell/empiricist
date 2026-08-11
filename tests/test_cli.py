@@ -11,12 +11,26 @@ import importlib.metadata
 
 import pytest
 
-from empiricist.cli import main
-from empiricist.ledger.models import Status
+from empiricist.campaign.state import CampaignState
+from empiricist.cli import _build_client, build_parser, main
+from empiricist.ledger.db import UNKNOWN_BILLING_EXIT_CODE
+from empiricist.ledger.models import Artifact, Run, Status
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import LLMResult
+from empiricist.llm.openai_responses import OpenAIResponsesClient
 
 FAST_FLAGS = ["--tier0-n", "5", "--tier1-n", "4", "--search-n", "5"]
+PREFLIGHT_OK = {"ok": True}
+
+
+def _tree_snapshot(root):
+    return {
+        path.relative_to(root).as_posix(): (
+            "dir" if path.is_dir() else "file",
+            None if path.is_dir() else path.read_bytes(),
+        )
+        for path in sorted(root.rglob("*"))
+    }
 
 
 def make_result(parsed: dict | None) -> LLMResult:
@@ -105,7 +119,11 @@ def test_run_live_uses_injected_client_and_writes_report(tmp_path):
     # whatever SEARCH/CONJECTURE waves the scheduler drives before the (tiny)
     # target set + patience exhaust it. --max-cost satisfies the fail-closed
     # budget guard without ever tripping (FakeLLMClient records no cost).
-    scripted = [make_result(None)] * 400 + [make_result(TRUE_CONJECTURE)] * 20
+    scripted = (
+        [make_result(PREFLIGHT_OK)]
+        + [make_result(None)] * 399
+        + [make_result(TRUE_CONJECTURE)] * 20
+    )
 
     calls = []
 
@@ -124,7 +142,7 @@ def test_run_live_uses_injected_client_and_writes_report(tmp_path):
     assert "# Empiricist Campaign Report" in text
 
 
-def test_run_live_without_budget_ceiling_refuses_exit_2(tmp_path, capsys):
+def test_run_live_without_budget_stop_condition_refuses_exit_2(tmp_path, capsys):
     """I1 fail-closed posture: --live with NEITHER --max-cost NOR --max-gen
     must refuse to start -- before building a client, before any preflight
     call, before touching the run directory's ledger."""
@@ -143,12 +161,53 @@ def test_run_live_without_budget_ceiling_refuses_exit_2(tmp_path, capsys):
     assert not (run_dir / "ledger.db").exists()
 
 
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_run_live_rejects_max_gen_below_one_before_client(tmp_path, capsys, value):
+    run_dir = tmp_path / "run"
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    rc = main(
+        [
+            "run", "P5", "--run-dir", str(run_dir), "--live",
+            "--max-gen", value, *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 2
+    assert "--max-gen must be at least 1" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "nan", "inf"])
+def test_run_live_rejects_invalid_max_cost_before_client(tmp_path, capsys, value):
+    run_dir = tmp_path / "run"
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    rc = main(
+        [
+            "run", "P5", "--run-dir", str(run_dir), "--live",
+            "--max-cost", value, *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 2
+    assert "--max-cost must be a finite number greater than 0" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
 @pytest.mark.parametrize("budget_flags", [["--max-cost", "100"], ["--max-gen", "1"]])
 def test_run_live_with_either_budget_flag_proceeds(tmp_path, budget_flags):
-    """Either ceiling alone satisfies the guard; the campaign runs and the
+    """Either stop condition alone satisfies the guard; the campaign runs and the
     report is written."""
     run_dir = tmp_path / "run"
-    scripted = [make_result(None)] * 500  # preflight ok + all-refusal waves
+    scripted = (
+        [make_result(PREFLIGHT_OK)]
+        + [make_result(None)] * 499
+    )  # strict preflight canary + all-refusal waves
 
     rc = main(
         ["run", "P5", "--run-dir", str(run_dir), "--live", *budget_flags, *FAST_FLAGS],
@@ -156,6 +215,109 @@ def test_run_live_with_either_budget_flag_proceeds(tmp_path, budget_flags):
     )
     assert rc == 0
     assert (run_dir / "report.md").exists()
+
+
+def test_resume_at_generation_limit_skips_client_and_paid_preflight(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.population.log_event(1, "generation", {"inserted": 0})
+    state.close()
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    rc = main(
+        [
+            "resume", "--run-dir", str(run_dir), "--live",
+            "--max-gen", "1", *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "already at configured stop condition" in out
+    assert "no preflight/model call" in out
+
+
+def test_resume_at_cost_threshold_skips_client_and_paid_preflight(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.ledger.start_run(Run(run_id="prior", move="SAMPLE", role="searcher"))
+    state.ledger.finish_run(
+        "prior", exit_code=0, wall_s=1.0, tokens_in=1, tokens_out=1, cost_usd=2.0
+    )
+    state.close()
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    rc = main(
+        [
+            "resume", "--run-dir", str(run_dir), "--live",
+            "--max-cost", "2", *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 0
+    assert "already at configured stop condition" in capsys.readouterr().out
+
+
+def test_resume_blocks_unknown_billing_until_explicitly_acknowledged(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.ledger.start_run(
+        Run(
+            run_id="ambiguous-openai-call",
+            move="SAMPLE",
+            provider="openai",
+            exit_code=UNKNOWN_BILLING_EXIT_CODE,
+            ended="2026-07-24T00:00:00+00:00",
+            cost_usd=2.0,
+        )
+    )
+    state.close()
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    base_args = [
+        "resume", "--run-dir", str(run_dir), "--live",
+        "--max-cost", "2", *FAST_FLAGS,
+    ]
+    assert main(base_args, _client_factory=factory) == 1
+    err = capsys.readouterr().err
+    assert "billing is unknown" in err
+    assert "--acknowledge-unknown-billing" in err
+
+    assert main(
+        [*base_args, "--acknowledge-unknown-billing"],
+        _client_factory=factory,
+    ) == 0
+    out = capsys.readouterr().out
+    assert "acknowledged unresolved billing" in out
+    assert "already at configured stop condition" in out
+
+
+def test_resume_blocks_unreconciled_provider_orphan_before_preflight(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.ledger.start_run(
+        Run(run_id="crashed-paid-call", move="SAMPLE", provider="openai")
+    )
+    state.close()
+
+    def factory():
+        raise AssertionError("client must never be constructed")
+
+    rc = main(
+        [
+            "resume", "--run-dir", str(run_dir), "--live",
+            "--max-gen", "1", *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 1
+    assert "crashed-paid-call" in capsys.readouterr().err
 
 
 def test_run_live_preflight_failure_returns_1(tmp_path, capsys):
@@ -177,6 +339,80 @@ def test_run_live_preflight_failure_returns_1(tmp_path, capsys):
     assert not (run_dir / "report.md").exists()
 
 
+def test_openai_provider_builds_gpt56_pro_client_without_reusing_codex_auth(tmp_path):
+    args = build_parser().parse_args([
+        "run",
+        "P5",
+        "--run-dir",
+        str(tmp_path / "run"),
+        "--provider",
+        "openai",
+        "--openai-model",
+        "gpt-5.6-sol",
+        "--openai-reasoning-mode",
+        "pro",
+    ])
+    client = _build_client(args)
+    assert isinstance(client, OpenAIResponsesClient)
+    assert client.model == "gpt-5.6-sol"
+    assert client.reasoning_mode == "pro"
+    assert client.has_cost_accounting is False
+
+
+def test_openai_max_cost_requires_explicit_pricing_before_client_construction(
+    tmp_path, capsys
+):
+    run_dir = tmp_path / "run"
+
+    def factory():
+        raise AssertionError("client must not be built when accounting is unsafe")
+
+    rc = main(
+        [
+            "run", "P5", "--run-dir", str(run_dir), "--live",
+            "--provider", "openai", "--max-cost", "1", *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 2
+    assert "explicit current pricing" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+def test_openai_pricing_flags_are_all_or_nothing(tmp_path, capsys):
+    rc = main(
+        [
+            "run", "P5", "--run-dir", str(tmp_path / "run"), "--live",
+            "--provider", "openai", "--max-gen", "1",
+            "--openai-input-usd-per-mtok", "1", *FAST_FLAGS,
+        ],
+        _client_factory=lambda: FakeLLMClient([]),
+    )
+    assert rc == 2
+    assert "all-or-nothing" in capsys.readouterr().err
+
+
+def test_openai_live_requires_cost_threshold_not_only_generation_limit(
+    tmp_path, capsys
+):
+    def factory():
+        raise AssertionError("client must not be built without a cost threshold")
+
+    rc = main(
+        [
+            "run", "P5", "--run-dir", str(tmp_path / "run"), "--live",
+            "--provider", "openai", "--max-gen", "1",
+            "--openai-input-usd-per-mtok", "1",
+            "--openai-cached-input-usd-per-mtok", "1",
+            "--openai-output-usd-per-mtok", "1",
+            *FAST_FLAGS,
+        ],
+        _client_factory=factory,
+    )
+    assert rc == 2
+    assert "require --max-cost" in capsys.readouterr().err
+
+
 # -- status ---------------------------------------------------------------------
 
 
@@ -192,11 +428,42 @@ def test_status_reports_counts_spend_and_population(tmp_path, capsys):
     assert "population size: 0" in out
 
 
-def test_status_on_empty_run_dir_exits_0(tmp_path, capsys):
-    run_dir = tmp_path / "empty"
+def test_status_on_missing_run_dir_returns_1_without_creating(tmp_path, capsys):
+    run_dir = tmp_path / "missing"
     rc = main(["status", "--run-dir", str(run_dir)])
+    assert rc == 1
+    assert "campaign ledger does not exist" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+# -- audit ----------------------------------------------------------------------
+
+
+def test_audit_reports_clean_campaign(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    main(["run", "P5", "--run-dir", str(run_dir), *FAST_FLAGS])
+
+    rc = main(["audit", "--run-dir", str(run_dir)])
     assert rc == 0
-    assert "(none)" in capsys.readouterr().out
+    assert "audit OK" in capsys.readouterr().out
+
+
+def test_audit_returns_1_for_missing_cas_blob(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.ledger.add_artifact(Artifact(
+        id="a" * 64,
+        kind="report",
+        problem="P5",
+        title="missing",
+        content_path="b" * 64,
+        status=Status.HEURISTIC,
+    ))
+    state.close()
+
+    rc = main(["audit", "--run-dir", str(run_dir)])
+    assert rc == 1
+    assert "artifact_blob_missing" in capsys.readouterr().out
 
 
 # -- certify ----------------------------------------------------------------------
@@ -216,6 +483,9 @@ def test_certify_stamps_both_fusion_verifiers(tmp_path, capsys):
 
 def test_gates_list_empty(tmp_path, capsys):
     run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.close()
+
     rc = main(["gates", "--run-dir", str(run_dir), "list"])
     assert rc == 0
     assert "no gates" in capsys.readouterr().out
@@ -298,6 +568,25 @@ def test_report_writes_to_out_file(tmp_path, capsys):
     assert out_file.exists()
     assert "# Empiricist Campaign Report" in out_file.read_text()
     assert f"report written to {out_file}" in capsys.readouterr().out
+
+
+def test_inspection_commands_do_not_mutate_campaign(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.close()
+    before = _tree_snapshot(run_dir)
+
+    commands = (
+        ["status", "--run-dir", str(run_dir)],
+        ["audit", "--run-dir", str(run_dir)],
+        ["gates", "--run-dir", str(run_dir), "list"],
+        ["report", "--run-dir", str(run_dir)],
+    )
+    for argv in commands:
+        assert main(argv) == 0
+        capsys.readouterr()
+
+    assert _tree_snapshot(run_dir) == before
 
 
 # -- argparse-level usage errors (SystemExit(2), left to argparse) ---------------

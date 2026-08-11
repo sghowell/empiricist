@@ -34,14 +34,11 @@ existing additive sibling verbatim: its own suite lives in `verifiers/p3_goldens
 `certifications` table); the per-artifact provenance trail is an `EvidenceRow`
 (`verifier`/`verifier_version`/`binary_hash`/`verdict`/`details`) written by the
 CALLER at ingestion time (`search/loop.py`'s exact-upgrade path, `domain/p5/dataset.py`
-`_validate_dataset`) -- never inside `verify()`/`verify_agreed()` itself. `runs` rows
-are reserved for actual subprocess executions through `executor.execute()` (even
-LeanVerifier's own subprocess calls pass `ledger=None` -- see lean.py -- so its `runs`
-row discipline is likewise "none, from inside verify()"). `P3SchemeVerifier.verify()`
-mirrors this exactly: it is pure in-process Python (no subprocess, no executor), calls
-`verify_scheme_agreed` directly, and writes nothing to the ledger itself. A future P3
-ingestion helper (the `ingest_lean_artifact` analog) is responsible for the
-`EvidenceRow`, exactly as `search/loop.py`/`dataset.py` are for P5.
+`_validate_dataset`) -- never inside `verify()`/`verify_agreed()` itself.
+`P3SchemeVerifier.verify()` mirrors this exactly: it is pure in-process Python
+(no subprocess, no executor), calls `verify_scheme_agreed` directly, and writes
+nothing itself. `verify_and_ingest_scheme` owns the canonical Claim plus
+certified EvidenceRow transaction.
 """
 
 from __future__ import annotations
