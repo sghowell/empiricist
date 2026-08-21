@@ -28,7 +28,7 @@ name = "EmpiricistLean"
 # `components_merge_bound`, so keeping it out of the root avoids any name clash). The
 # root aggregate (`EmpiricistLean`) builds only `Basic` and the trivial `NonTrusted`
 # test fixture.
-globs = ["EmpiricistLean", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp", "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm", "EmpiricistLean.DoubleStar", "EmpiricistLean.CenterMerge", "EmpiricistLean.TrueTwin", "EmpiricistLean.ProducibleExt", "EmpiricistLean.DHCharacterization", "EmpiricistLean.P3Amplitudes", "EmpiricistLean.P3Pauli", "EmpiricistLean.P3L1", "EmpiricistLean.P3L2", "EmpiricistLean.P3Counting", "EmpiricistLean.P3Bridge", "EmpiricistLean.P3Doubled", "EmpiricistLean.P3TwoByTwo", "EmpiricistLean.P3Eigvec", "EmpiricistLean.P3Sesq"]
+globs = ["EmpiricistLean", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp", "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm", "EmpiricistLean.DoubleStar", "EmpiricistLean.CenterMerge", "EmpiricistLean.TrueTwin", "EmpiricistLean.ProducibleExt", "EmpiricistLean.DHCharacterization", "EmpiricistLean.P3Amplitudes", "EmpiricistLean.P3Pauli", "EmpiricistLean.P3L1", "EmpiricistLean.P3L2", "EmpiricistLean.P3Counting", "EmpiricistLean.P3Bridge", "EmpiricistLean.P3Doubled", "EmpiricistLean.P3TwoByTwo", "EmpiricistLean.P3Eigvec", "EmpiricistLean.P3Sesq", "EmpiricistLean.P3SesqSum"]
 
 # Compiled axiom-audit driver: the SOLE axiom authority for the FORMALIZED trust
 # gate (M8 soundness fix). Only imports `Lean`, so it builds in seconds; the
