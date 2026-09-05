@@ -64,13 +64,44 @@ The exact witnesses are ledger artifacts of kind `certificate` with claims of th
 p*(1) = sup min_B p_B ≥ 1/4"; the artifact content is the isometry itself in ℚ(i)(√d)
 notation, re-checkable by `P3ExactVerifier` from the stored bytes.
 
+## The strategist round (two free-form calls, $5.90)
+
+Verbatim answers with provenance: `docs/science/2026-09-05-p3-strategist/`. What they say,
+and what the harness could check today:
+
+- **Mechanism of the (1, 1/6, 1/2, 2/9) family.** The strategist decodes it as an X-basis
+  Bell analyser whose two HOM output ports feed a balanced tritter together with the ancilla
+  photon: within-pair Bell states HOM-bunch, and the three-photon permanents in the tritter
+  — linear in the ancilla column — zero the unwanted sign pattern by pattern, which is
+  exactly what the k = 0 obstruction forbade. **Checked (exact arithmetic):** in the certified
+  witness the Bell block of the three tritter rows has rank 2, its flat left-null vector
+  (|entries|² = 1/3 each) carries the ancilla entirely, and the two trigger rows never see
+  the ancilla — i.e. rows 1–3 are a balanced three-mode mixer on two Bell-only ports plus
+  the ancilla. The literal layer-by-layer factorisation as written (Hadamards, two 50:50
+  splitters on the rotated pairs, DFT tritter) evaluates, with the harness's conventions, to
+  the sibling design (2/3, 0, 1, 2/9) (same total 17/9, one state at 0), so the exact
+  matrix identity is not confirmed as stated; the structural claim is.
+- **Optimality.** Conjecture (their confidence 0.75): max_U min_B p_B = 1/4 for k = 1 and
+  every m, attained by the balanced witness; sharper frontier conjecture (0.6):
+  p₍₁₎ + p₍₂₎ ≤ 1/2 (the two smallest successes). Both are now optimizer targets
+  (`p_low2`, `p_sum_all4`); the frontier batch at m = 5, 6 is recorded in
+  `runs/p3-campaign/opt/`. Their proof route: the orthonormal 4-frame relaxation alone
+  permits min = 1 (so any bound is genuinely bosonic), then a rational-SOS certificate for
+  p₍₁₎ + p₍₂₎ ≤ 1/2 on the permanental variety at m = 5.
+- **Average metric.** A lemma ladder S0–L6\* for p_avg ≤ 1/2 at k = 1: S0–L5\* (frame
+  reduction, three-photon Pauli reduction T(n) with the k = 0 matrix Q as the cofactor,
+  coherence budget, phase rigidity) are mechanical on the existing Lean development; L6\*,
+  the "one-photon distillation bound" Σ_{identified} ‖T(n)‖² ≤ 2, is the content
+  (their confidence in the claim 0.9, in the route 0.5). Named machine milestones: the
+  reduction lemma "a non-interfering ancilla reduces to k = 0" (cheap), and a certified
+  p_avg ≤ 3/4 at m = 5 via rational SOS (heavy, same technology as the k = 0 certificate).
+
 ## Honest accounting
 
 - Float optima are HEURISTIC (two-engine agreement, declared leakage budget 1e-9); only
   lifted exact witnesses are CERTIFIED.
-- Nothing here bounds p*(1) from above. The next step (M21c) asks the strategist for the
-  mechanism of the two families, whether 1/4 is optimal at k = 1, and for a formalizable
-  route to p_avg ≤ 1/2 at k = 1 — with the landscape above as refutable input.
+- Nothing here bounds p*(1) from above; the strategist's conjectures and lemma ladder are
+  HEURISTIC and stay so until a certificate or a Lean proof lands.
 - The lost wave-1 design with vector (1/16, 3/16, 9/16, 1) (min 1/16) was never
   re-found; both certified families dominate it on the min metric.
 - k = 2 sanity runs (m = 8, 12 restarts per metric) are recorded in
