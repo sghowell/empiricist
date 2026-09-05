@@ -30,7 +30,9 @@ _ELEVATED_STATUSES = frozenset(
 # check. Keying on (status, kind) rather than on the suite-hash column being
 # populated lets the audit distinguish a self-validating promotion from a
 # certification-gated one that is missing its checkable provenance.
-_CERT_GATED_KINDS = frozenset({"lean"})
+# `lean` = kernel-checked Lean modules (LeanVerifier); `certificate` = exact SOS
+# certificates checked by certificates.verifier.SOSCertificateVerifier.
+_CERT_GATED_KINDS = frozenset({"lean", "certificate"})
 
 
 @dataclass(frozen=True)

@@ -447,3 +447,18 @@ def test_audit_cross_check_needs_a_pass_row_with_the_suite_hash(
     ledger.record_evidence(_evidence(art.id, golden_suite_hash="f" * 64))  # PASS + hash
     codes = {i.code for i in audit_ledger(ledger, store).issues if i.artifact_id == art.id}
     assert "elevated_missing_certified_evidence" not in codes
+
+
+def test_audit_treats_certificate_kind_as_certification_gated(
+    ledger: Ledger,
+    store: Store,
+) -> None:
+    digest = store.put(b'{"bound": "1/2"}')
+    art = Artifact(
+        id=digest, kind="certificate", problem="P3", problem_version="p3-sos-certificate-v1",
+        title="cert", content_path=digest, status=Status.CERTIFIED,
+    )
+    ledger.add_artifact(art)
+    ledger.record_evidence(_evidence(art.id))  # PASS, no golden_suite_hash
+    codes = {i.code for i in audit_ledger(ledger, store).issues if i.artifact_id == art.id}
+    assert "elevated_missing_certified_evidence" in codes
