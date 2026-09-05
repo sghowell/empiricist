@@ -718,9 +718,9 @@ its exact vector, `require_all_identified = all four > 0`).
 
 ### Task 4: Campaign actions (after the PR merges; no code)
 
-- [ ] **4.1** `empiricist p3-optimize --run-dir runs/p3-campaign --k 1 --m 5 --target p_min --restarts 200 --seed 1 --out runs/p3-campaign/opt-k1-m5-pmin.json --ingest`, then m=6, m=7; then `--target p_avg` for the same; then k=0/m=4 and k=2/m=8 as sanity rows. Expect: the 1/16 design recovered at m=5; report the best exact vectors per (k, m, target).
-- [ ] **4.2** Certify + ingest: the best exact k=1 witness at CERTIFIED (`p*_min(1) ≥ …`, all four identified). `empiricist audit` must stay clean; `status` should show CERTIFIED ≥ 2.
-- [ ] **4.3** Science note `docs/science/2026-09-xx-p3-min-metric-landscape.md`: the metric clarification, per-(k,m) landscape tables (float, HEURISTIC) and exact witnesses (CERTIFIED), the k=0 theorem, the k=2 randomization gap. Feed the strategist targets (M21c) from what plateaus.
+- [x] **4.1** (done 2026-09-05; results in `runs/p3-campaign/opt/`) `empiricist p3-optimize --run-dir runs/p3-campaign --k 1 --m 5 --target p_min --restarts 200 --seed 1 --out runs/p3-campaign/opt-k1-m5-pmin.json --ingest`, then m=6, m=7; then `--target p_avg` for the same; then k=0/m=4 and k=2/m=8 as sanity rows. Expect: the 1/16 design recovered at m=5; report the best exact vectors per (k, m, target).
+- [x] **4.2** (done via `p3-ingest-results`; 6 exact witnesses at CERTIFIED, best min 1/4) Certify + ingest: the best exact k=1 witness at CERTIFIED (`p*_min(1) ≥ …`, all four identified). `empiricist audit` must stay clean; `status` should show CERTIFIED ≥ 2.
+- [x] **4.3** (`docs/science/2026-09-05-p3-min-metric-landscape.md`) Science note `docs/science/2026-09-xx-p3-min-metric-landscape.md`: the metric clarification, per-(k,m) landscape tables (float, HEURISTIC) and exact witnesses (CERTIFIED), the k=0 theorem, the k=2 randomization gap. Feed the strategist targets (M21c) from what plateaus.
 
 ## Self-review
 
