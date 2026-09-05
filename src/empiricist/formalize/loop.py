@@ -38,7 +38,9 @@ same discipline M10-M15 used for their own claims).
 
 from __future__ import annotations
 
+import asyncio
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,6 +52,7 @@ from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Verdict
 from empiricist.llm.client import LLMClient
 from empiricist.llm.roles import ROLES
+from empiricist.llm.throttle import DEFAULT_THROTTLE, ThrottlePolicy, is_throttled_run
 from empiricist.store import Store
 from empiricist.verifiers.lean import (
     DEFAULT_LEAN_PROBLEM_VERSION,
@@ -85,6 +88,9 @@ class FormalizeReport:
     decl: str | None
     module_source: str | None
     history: tuple          # per round: (verdict, gate, short feedback)
+    # True iff the task was ABORTED because the provider rate limit persisted
+    # past ThrottlePolicy.max_attempts (final_verdict == "THROTTLED").
+    throttled: bool = False
 
 
 @dataclass(frozen=True)
@@ -109,7 +115,12 @@ class FormalizeLoop:
         verifier: Any,   # LeanVerifier-shaped: .verify(module_source, *, decl, timeout_s=...)
         *,
         max_rounds: int = 12,
+        throttle: ThrottlePolicy | None = DEFAULT_THROTTLE,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
+        """`throttle=None` disables rate-limit recognition (a throttled call is
+        then just a NO_ARTIFACT round, the pre-M21 behaviour); `sleep` is the
+        backoff coroutine (tests inject a recorder)."""
         if max_rounds < 1:
             raise ValueError("max_rounds must be >= 1")
         self._client = client
@@ -117,6 +128,17 @@ class FormalizeLoop:
         self._store = store
         self._verifier = verifier
         self._max_rounds = max_rounds
+        self._throttle = throttle
+        self._sleep = sleep
+
+    def _is_throttled(self, rid: str) -> bool:
+        """Consult the provider receipt the client wrote for `rid`; a client
+        that writes no runs row (offline fakes) can never look throttled."""
+        try:
+            run_row = self._ledger.get_run(rid)
+        except KeyError:
+            return False
+        return is_throttled_run(run_row)
 
     def build_prompt(self, task: FormalizeTask, history: list) -> str:
         header = f"Goal: {task.goal}\n\nContext: {task.context}\n\n"
@@ -166,18 +188,46 @@ class FormalizeLoop:
         last_module_source: str | None = None
 
         for round_num in range(1, self._max_rounds + 1):
-            rid = f"formalize-{task.name}-{run_nonce}-r{round_num}"
+            base_rid = f"formalize-{task.name}-{run_nonce}-r{round_num}"
             prompt = self.build_prompt(task, history)
-            result = await self._client.complete(
-                ROLES["formalizer"], prompt, schema=LeanModuleOut,
-                ledger=self._ledger, run_id=rid,
-            )
-
-            if result is None or not result.has_artifact:
-                history.append(_Round(
-                    verdict="NO_ARTIFACT", gate=None,
-                    feedback=_NO_ARTIFACT_FEEDBACK,
-                ))
+            attempt = 1
+            result = None
+            while True:
+                # Attempt 1 keeps the pre-M21 run_id shape; retries of the SAME
+                # round get a distinct suffix so every provider receipt survives.
+                rid = base_rid if attempt == 1 else f"{base_rid}a{attempt}"
+                result = await self._client.complete(
+                    ROLES["formalizer"], prompt, schema=LeanModuleOut,
+                    ledger=self._ledger, run_id=rid,
+                )
+                if result is not None and result.has_artifact:
+                    break
+                if self._throttle is None or not self._is_throttled(rid):
+                    history.append(_Round(
+                        verdict="NO_ARTIFACT", gate=None,
+                        feedback=_NO_ARTIFACT_FEEDBACK,
+                    ))
+                    result = None
+                    break
+                if attempt >= self._throttle.max_attempts:
+                    history.append(_Round(
+                        verdict="THROTTLED", gate=None,
+                        feedback=(
+                            f"provider rate limit persisted across {attempt} attempts; "
+                            "task aborted (resume later)"
+                        ),
+                    ))
+                    return FormalizeReport(
+                        ok=False, rounds=round_num, artifact_id=None,
+                        final_verdict="THROTTLED", final_gate=None,
+                        recorded_statement=None, recorded_axioms=None,
+                        decl=last_decl, module_source=last_module_source,
+                        history=tuple((r.verdict, r.gate, r.feedback) for r in history),
+                        throttled=True,
+                    )
+                await self._sleep(self._throttle.delay(attempt))
+                attempt += 1
+            if result is None:
                 continue
 
             try:

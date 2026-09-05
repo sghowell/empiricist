@@ -371,3 +371,119 @@ def test_build_prompt_round_one_has_no_prior_attempt(tmp_path):
     assert "ctx Y" in prompt
     assert "previous round" not in prompt
     lg.close()
+
+
+# -- M21a: throttle backoff + per-round persistence ------------------------------
+
+
+from empiricist.llm.throttle import ThrottlePolicy  # noqa: E402
+
+
+class ThrottlingFakeClient(FakeLLMClient):
+    """First `n_throttled` calls: open+close a runs row with the rate-limit
+    signature (exit 1, 0 output tokens, sub-second wall) and return None. Later
+    calls write a healthy receipt and hand out the scripted results."""
+
+    def __init__(self, scripted, *, n_throttled):
+        super().__init__(scripted)
+        self.n_throttled = n_throttled
+        self.run_ids: list[str] = []
+
+    async def complete(self, role, prompt, *, session_id=None, system_prompt=None,
+                       schema=None, run_id=None, ledger=None):
+        self.run_ids.append(run_id)
+        ledger.start_run(Run(run_id=run_id, move="SAMPLE", role=role.name))
+        if self.n_throttled > 0:
+            self.n_throttled -= 1
+            ledger.finish_run(run_id, exit_code=1, wall_s=0.3, tokens_out=0)
+            return None
+        ledger.finish_run(run_id, exit_code=0, wall_s=5.0, tokens_out=100)
+        return await super().complete(role, prompt, schema=schema, run_id=run_id, ledger=ledger)
+
+
+def _certified_env(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    st = Store(tmp_path / "store")
+    certify_p3(lg, P3SchemeVerifier())
+    return lg, st
+
+
+def test_throttled_call_backs_off_then_retries_same_round(tmp_path):
+    lg, st = _certified_env(tmp_path)
+    slept: list[float] = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+
+    client = ThrottlingFakeClient([make_result(_bsm_dict(claimed_p_avg=0.5))], n_throttled=2)
+    loop = P3SearchLoop(
+        client, lg, st, max_rounds=3, role=_STUB_ROLE,
+        throttle=ThrottlePolicy(base_s=1.0, max_s=4.0, max_attempts=4), sleep=fake_sleep,
+    )
+    rep = run(loop.run(P3SearchTask(name="t", goal="g", context="c", target_p_avg=0.5)))
+    assert rep.ok and rep.rounds == 1 and not rep.throttled
+    assert slept == [1.0, 2.0]
+    assert [r.split("-")[-1] for r in client.run_ids] == ["r1", "r1a2", "r1a3"]
+    assert [e["outcome"] for e in rep.rounds_log] == ["THROTTLED", "THROTTLED", "PASS"]
+    assert [e["attempt"] for e in rep.rounds_log] == [1, 2, 3]
+    assert [h[0] for h in rep.history] == ["PASS"]  # throttled attempts never churn rounds
+    lg.close()
+
+
+def test_throttle_exhaustion_aborts_task_without_alarm(tmp_path):
+    lg, st = _certified_env(tmp_path)
+
+    async def fake_sleep(s):
+        pass
+
+    client = ThrottlingFakeClient([], n_throttled=99)
+    loop = P3SearchLoop(
+        client, lg, st, max_rounds=5, role=_STUB_ROLE,
+        throttle=ThrottlePolicy(base_s=1.0, max_s=1.0, max_attempts=3), sleep=fake_sleep,
+    )
+    rep = run(loop.run(P3SearchTask(name="t", goal="g", context="c", target_p_avg=0.5)))
+    assert not rep.ok and rep.throttled and not rep.f3_alarm
+    assert rep.rounds == 1 and len(client.run_ids) == 3
+    assert rep.history[-1][0] == "THROTTLED"
+    assert [e["outcome"] for e in rep.rounds_log] == ["THROTTLED"] * 3
+    lg.close()
+
+
+def test_round_sink_receives_every_round_including_failed_schemes(tmp_path):
+    lg, st = _certified_env(tmp_path)
+    seen: list[dict] = []
+    # Round 1: an empty mesh (every Bell state ambiguous, p_avg = 0) misses the
+    # task's 0.5 target -> FAIL; round 2: the standard BSM hits it -> PASS.
+    client = FakeLLMClient([
+        make_result(_bsm_dict(mesh=[])),
+        make_result(_bsm_dict()),
+    ])
+    loop = P3SearchLoop(client, lg, st, max_rounds=2, role=_STUB_ROLE, round_sink=seen.append)
+    rep = run(loop.run(P3SearchTask(name="t", goal="g", context="c", target_p_avg=0.5)))
+    assert rep.ok
+    assert [e["outcome"] for e in seen] == ["FAIL", "PASS"]
+    assert seen[0]["scheme"]["mesh"] == []  # the FAILED scheme itself survives
+    assert seen[0]["summary"]["p_avg"] == pytest.approx(0.0)
+    assert seen[1]["scheme"]["mesh"] == _bsm_dict()["mesh"]
+    assert seen[1]["summary"]["p_avg"] == pytest.approx(0.5)
+    assert seen[0]["run_id"].endswith("-r1") and seen[1]["run_id"].endswith("-r2")
+    assert rep.rounds_log == seen
+
+
+def test_no_throttle_policy_keeps_legacy_no_artifact_behaviour(tmp_path):
+    lg, st = _certified_env(tmp_path)
+    client = ThrottlingFakeClient([], n_throttled=99)
+    loop = P3SearchLoop(client, lg, st, max_rounds=2, role=_STUB_ROLE, throttle=None)
+    rep = run(loop.run(P3SearchTask(name="t", goal="g", context="c", target_p_avg=0.5)))
+    assert [h[0] for h in rep.history] == ["NO_ARTIFACT", "NO_ARTIFACT"] and not rep.throttled
+    assert [e["outcome"] for e in rep.rounds_log] == ["NO_ARTIFACT", "NO_ARTIFACT"]
+    lg.close()
+
+
+def test_offline_fake_without_receipts_is_never_throttled(tmp_path):
+    lg, st = _certified_env(tmp_path)
+    client = FakeLLMClient([])  # writes no runs rows -> NO_ARTIFACT, not THROTTLED
+    loop = P3SearchLoop(client, lg, st, max_rounds=1, role=_STUB_ROLE)
+    rep = run(loop.run(P3SearchTask(name="t", goal="g", context="c", target_p_avg=0.5)))
+    assert [h[0] for h in rep.history] == ["NO_ARTIFACT"] and not rep.throttled
+    lg.close()

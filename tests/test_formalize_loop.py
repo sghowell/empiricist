@@ -520,3 +520,69 @@ def test_max_rounds_must_be_positive(tmp_path):
         raised = True
     assert raised
     lg.close()
+
+
+# -- M21a: throttle backoff --------------------------------------------------------
+
+
+from empiricist.llm.throttle import ThrottlePolicy  # noqa: E402
+
+
+class ThrottlingFakeClient(FakeLLMClient):
+    """First `n_throttled` calls write the rate-limit receipt and return None."""
+
+    def __init__(self, scripted, *, n_throttled):
+        super().__init__(scripted)
+        self.n_throttled = n_throttled
+        self.run_ids: list[str] = []
+
+    async def complete(self, role, prompt, *, session_id=None, system_prompt=None,
+                       schema=None, run_id=None, ledger=None):
+        self.run_ids.append(run_id)
+        ledger.start_run(Run(run_id=run_id, move="SAMPLE", role=role.name, model=role.model))
+        if self.n_throttled > 0:
+            self.n_throttled -= 1
+            ledger.finish_run(run_id, exit_code=1, wall_s=0.2, tokens_out=0)
+            return None
+        ledger.finish_run(run_id, exit_code=0, wall_s=9.0, tokens_out=500)
+        return await super().complete(role, prompt, schema=schema, run_id=run_id, ledger=ledger)
+
+
+def test_formalize_throttled_attempts_back_off_then_pass(tmp_path):
+    lg, st = make_env(tmp_path)
+    slept: list[float] = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+
+    client = ThrottlingFakeClient([make_result(out_dict(_MODULE_V2))], n_throttled=2)
+    verifier = FakeVerifier([pass_result()])
+    loop = FormalizeLoop(
+        client, lg, st, verifier, max_rounds=2,
+        throttle=ThrottlePolicy(base_s=1.0, max_s=8.0, max_attempts=4), sleep=fake_sleep,
+    )
+    report = run(loop.run(FormalizeTask(name="th", goal="g", context="c")))
+    assert report.ok and report.rounds == 1 and not report.throttled
+    assert slept == [1.0, 2.0]
+    assert [r.split("-")[-1] for r in client.run_ids] == ["r1", "r1a2", "r1a3"]
+    assert [h[0] for h in report.history] == ["PASS"]
+    lg.close()
+
+
+def test_formalize_throttle_exhaustion_aborts(tmp_path):
+    lg, st = make_env(tmp_path)
+
+    async def fake_sleep(s):
+        pass
+
+    client = ThrottlingFakeClient([], n_throttled=99)
+    verifier = FakeVerifier([])
+    loop = FormalizeLoop(
+        client, lg, st, verifier, max_rounds=4,
+        throttle=ThrottlePolicy(base_s=1.0, max_s=1.0, max_attempts=2), sleep=fake_sleep,
+    )
+    report = run(loop.run(FormalizeTask(name="th", goal="g", context="c")))
+    assert not report.ok and report.throttled
+    assert report.final_verdict == "THROTTLED" and report.rounds == 1
+    assert len(client.run_ids) == 2 and verifier.calls == []
+    lg.close()
