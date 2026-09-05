@@ -178,7 +178,9 @@ def build_parser() -> argparse.ArgumentParser:
     opt_p.add_argument("--run-dir", required=True, type=Path)
     opt_p.add_argument("--k", required=True, type=int, help="ancilla photons")
     opt_p.add_argument("--m", required=True, type=int, help="modes (>= 4)")
-    opt_p.add_argument("--target", required=True, choices=("p_min", "p_avg", "p_low2", "p_sum_all4"))
+    opt_p.add_argument(
+        "--target", required=True, choices=("p_min", "p_avg", "p_low2", "p_sum_all4")
+    )
     opt_p.add_argument("--restarts", type=int, default=20)
     opt_p.add_argument("--seed", type=int, default=0)
     opt_p.add_argument("--max-iter", type=int, default=300)
