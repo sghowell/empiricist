@@ -151,7 +151,8 @@ def audit_ledger(ledger: Ledger, store: Store) -> AuditReport:
             artifact.status in _ELEVATED_STATUSES
             and artifact.kind in _CERT_GATED_KINDS
             and not any(
-                getattr(row, "golden_suite_hash", None) is not None
+                row.verdict is Verdict.PASS
+                and getattr(row, "golden_suite_hash", None) is not None
                 for row in evidence
             )
         ):
@@ -161,7 +162,7 @@ def audit_ledger(ledger: Ledger, store: Store) -> AuditReport:
                     artifact_id=artifact.id,
                     message=(
                         f"{artifact.status.value} {artifact.kind} artifact "
-                        f"{artifact.id} has no evidence carrying a golden_suite_hash "
+                        f"{artifact.id} has no PASS evidence carrying a golden_suite_hash "
                         "to cross-check against a certification (certification-gated "
                         "kind); re-verify under the current gate for full provenance"
                     ),

@@ -422,3 +422,28 @@ def test_audit_requires_exact_current_pass_certification_for_suite_hash(
 
     ledger.add_certification(_certification(suite="suite-current"))
     assert audit_ledger(ledger, store).ok
+
+
+def test_audit_cross_check_needs_a_pass_row_with_the_suite_hash(
+    ledger: Ledger,
+    store: Store,
+) -> None:
+    """A non-PASS row that carries a golden_suite_hash (e.g. a re-verification
+    FAIL under the current gate) must NOT clear the flag: the cross-check is
+    about certified PASS provenance, not about any row mentioning a suite."""
+    digest = store.put(b"theorem t : True := trivial")
+    art = Artifact(
+        id=digest, kind="lean", problem="P5", problem_version="legacy",
+        title="Empiricist.t", content_path=digest, status=Status.FORMALIZED,
+    )
+    ledger.add_artifact(art)
+    ledger.record_evidence(_evidence(art.id))  # legacy PASS, no suite hash
+    ledger.record_evidence(
+        _evidence(art.id, verdict=Verdict.FAIL, golden_suite_hash="f" * 64)
+    )
+    codes = {i.code for i in audit_ledger(ledger, store).issues if i.artifact_id == art.id}
+    assert "elevated_missing_certified_evidence" in codes
+
+    ledger.record_evidence(_evidence(art.id, golden_suite_hash="f" * 64))  # PASS + hash
+    codes = {i.code for i in audit_ledger(ledger, store).issues if i.artifact_id == art.id}
+    assert "elevated_missing_certified_evidence" not in codes
