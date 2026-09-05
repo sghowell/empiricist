@@ -620,3 +620,87 @@ def test_reverify_missing_ledger_is_an_error(tmp_path, capsys):
     rc = main(["reverify", "--run-dir", str(tmp_path / "nope")])
     assert rc == 1
     assert "does not exist" in capsys.readouterr().err
+
+
+# -- p3-optimize ------------------------------------------------------------------
+
+
+def test_p3_optimize_writes_results_and_ingests(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    out = tmp_path / "opt.json"
+    rc = main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "4",
+               "--target", "p_avg", "--restarts", "2", "--max-iter", "120",
+               "--out", str(out), "--ingest"])
+    assert rc == 0
+    text = capsys.readouterr().out
+    assert "p3-optimize k=0 m=4 p_avg: best=0.5" in text
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text
+    import json
+
+    data = json.loads(out.read_text())
+    assert data["results"][0]["exact"]["p_avg"] == "1/2"
+    rc = main(["status", "--run-dir", str(run_dir)])
+    assert rc == 0
+    assert "CERTIFIED: 1" in capsys.readouterr().out
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        arts = state.ledger.find_artifacts()
+        assert all(a.run_id is not None and a.run_id.startswith("p3opt-") for a in arts)
+    finally:
+        state.close()
+    assert main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "20",
+                 "--target", "p_avg", "--out", str(out)]) == 2
+    assert "need 4 <= m" in capsys.readouterr().err
+
+
+def test_p3_ingest_results_re_verifies_from_a_saved_file(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    out = tmp_path / "opt.json"
+    assert main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "4",
+                 "--target", "p_avg", "--restarts", "2", "--max-iter", "120",
+                 "--out", str(out)]) == 0
+    capsys.readouterr()
+    rc = main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)])
+    assert rc == 0
+    text = capsys.readouterr().out
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text
+    # idempotent: a second ingest adds no artifacts
+    assert main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)]) == 0
+    main(["status", "--run-dir", str(run_dir)])
+    status = capsys.readouterr().out
+    assert "CERTIFIED: 1" in status and "HEURISTIC: 1" in status
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        assert all(a.run_id.startswith("p3ingest-") for a in state.ledger.find_artifacts())
+    finally:
+        state.close()
+    assert main(["p3-ingest-results", "--run-dir", str(run_dir),
+                 "--results", str(tmp_path / "missing.json")]) == 1
+    assert "cannot read results file" in capsys.readouterr().err
+
+
+def test_p3_ingest_results_accepts_float_leakage_within_the_budget(tmp_path, capsys):
+    """An optimum a hair off the lattice (leakage ~1e-12) must still ingest at
+    HEURISTIC and, since it snaps back onto the lattice, lift to CERTIFIED."""
+    import json
+    import math
+
+    run_dir = tmp_path / "run"
+    eps = 1e-7  # leakage ~1e-14: above the verifier's 1e-15 floor, inside the budget
+    scheme = {
+        "n_modes": 4, "n_ancilla_photons": 0, "ancilla": [],
+        "mesh": [
+            {"kind": "bs", "i": 0, "j": 2, "theta": math.pi / 4 + eps, "phi": 0.0},
+            {"kind": "bs", "i": 1, "j": 3, "theta": math.pi / 4 - eps, "phi": 0.0},
+        ],
+    }
+    results = {"k": 0, "m": 4, "target": "p_avg", "restarts": 1, "seed": 0, "max_iter": 1,
+               "results": [{"restart": 0, "objective": 0.5, "metric": 0.5, "scheme": scheme,
+                            "float": {}, "witness": None, "exact": None}]}
+    out = tmp_path / "leaky.json"
+    out.write_text(json.dumps(results))
+    CampaignState.load(run_dir).close()
+    rc = main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)])
+    text = capsys.readouterr().out
+    assert rc == 0, text
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text
