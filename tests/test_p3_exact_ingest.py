@@ -8,6 +8,7 @@ import pytest
 from empiricist.domain.p3.exact_ingest import (
     ingest_exact_witness,
     verify_and_ingest_exact_witness,
+    witness_json_from_scheme_json,
 )
 from empiricist.domain.p3.ingest import ingest_scheme_artifact
 from empiricist.ledger.audit import audit_ledger
@@ -64,8 +65,9 @@ def env(tmp_path):
 
 def test_grice_witness_ingests_at_certified_with_claim_and_clean_audit(env):
     lg, st = env
+    w = witness_json_from_scheme_json(_grice_json())
     art = ingest_exact_witness(
-        lg, st, scheme_json=_grice_json(), claimed_success=GRICE_CLAIM,
+        lg, st, witness_json=w, claimed_success=GRICE_CLAIM,
         require_all_identified=True, title="Grice k=2 exact witness",
     )
     assert art.status is Status.CERTIFIED and art.kind == "certificate" and art.problem == "P3"
@@ -73,7 +75,7 @@ def test_grice_witness_ingests_at_certified_with_claim_and_clean_audit(env):
     assert "p*_min(2) >= 1/2" in claim.statement and "p*_avg(2) >= 3/4" in claim.statement
     assert "Every Bell state is identified" in claim.statement
     assert claim.family == "k2_m8_exact_witness" and claim.scope["all_identified"] is True
-    assert claim.scope["success"]["phi+"] == ["1/2", "0"]
+    assert claim.scope["success"]["phi+"] == [[1, "1/2", "0"]] and claim.scope["n_in"] == 8
     rows = lg.evidence_for(art.id)
     assert len(rows) == 1 and rows[0].golden_suite_hash == p3_exact_suite_hash()
     assert rows[0].verdict is Verdict.PASS
@@ -82,9 +84,10 @@ def test_grice_witness_ingests_at_certified_with_claim_and_clean_audit(env):
 
 def test_ingest_is_idempotent_and_distinct_from_the_float_artifact(env):
     lg, st = env
-    kw = dict(scheme_json=_grice_json(), claimed_success=GRICE_CLAIM, title="t")
-    a = ingest_exact_witness(lg, st, **kw)
-    b = ingest_exact_witness(lg, st, **kw)
+    w = witness_json_from_scheme_json(_grice_json())
+    a = ingest_exact_witness(lg, st, witness_json=w, claimed_success=GRICE_CLAIM, title="t")
+    b = ingest_exact_witness(lg, st, witness_json={**w, "comment": "x"},
+                             claimed_success=GRICE_CLAIM, title="t")
     assert a.id == b.id and len(lg.evidence_for(a.id)) == 1
     fl = ingest_scheme_artifact(lg, st, scheme_json=_grice_json(), title="float",
                                 claimed_p_avg=0.75)
@@ -94,31 +97,31 @@ def test_ingest_is_idempotent_and_distinct_from_the_float_artifact(env):
 
 def test_wrong_vector_and_missing_all_identified_record_nothing(env):
     lg, st = env
+    w = witness_json_from_scheme_json(_grice_json())
     result, art = verify_and_ingest_exact_witness(
-        lg, st, scheme_json=_grice_json(),
-        claimed_success={**GRICE_CLAIM, "phi+": "1/4"}, title="t",
-    )
+        lg, st, witness_json=w, claimed_success={**GRICE_CLAIM, "phi+": "1/4"}, title="t")
     assert result.verdict is Verdict.FAIL and art is None
+    std = witness_json_from_scheme_json(_bsm_json())
     result, art = verify_and_ingest_exact_witness(
-        lg, st, scheme_json=_bsm_json(),
+        lg, st, witness_json=std,
         claimed_success={"phi+": "0", "phi-": "0", "psi+": "1", "psi-": "1"},
-        require_all_identified=True, title="t",
-    )
+        require_all_identified=True, title="t")
     assert result.verdict is Verdict.FAIL and art is None
     assert lg.find_artifacts() == []
     with pytest.raises(ValueError, match="non-PASS"):
-        ingest_exact_witness(lg, st, scheme_json=_bsm_json(),
-                             claimed_success={**GRICE_CLAIM}, title="t")
+        ingest_exact_witness(lg, st, witness_json=std, claimed_success=GRICE_CLAIM, title="t")
 
 
-def test_bad_claim_shape_and_bad_scheme_are_refused_before_verification(env):
+def test_bad_claim_shape_and_bad_scheme_are_refused(env):
     lg, st = env
+    w = witness_json_from_scheme_json(_grice_json())
     with pytest.raises(ValueError, match="claimed_success"):
-        ingest_exact_witness(lg, st, scheme_json=_grice_json(),
-                             claimed_success={"phi+": "1"}, title="t")
+        ingest_exact_witness(lg, st, witness_json=w, claimed_success={"phi+": "1"}, title="t")
     with pytest.raises(ScreenReject):
-        ingest_exact_witness(lg, st, scheme_json={"n_modes": 99}, claimed_success=GRICE_CLAIM,
-                             title="t")
+        witness_json_from_scheme_json({"n_modes": 99})
+    result, art = verify_and_ingest_exact_witness(
+        lg, st, witness_json={"garbage": True}, claimed_success=GRICE_CLAIM, title="t")
+    assert result.verdict is Verdict.FAIL and art is None and result.details["invalid"]
     assert lg.find_artifacts() == []
 
 
@@ -127,7 +130,7 @@ def test_uncertified_exact_verifier_fails_closed(tmp_path):
     st = Store(tmp_path / "store")
     try:
         with pytest.raises(PromotionIntegrityError):
-            ingest_exact_witness(lg, st, scheme_json=_grice_json(),
+            ingest_exact_witness(lg, st, witness_json=witness_json_from_scheme_json(_grice_json()),
                                  claimed_success=GRICE_CLAIM, title="t")
         assert lg.find_artifacts() == []
     finally:

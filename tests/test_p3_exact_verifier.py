@@ -1,16 +1,16 @@
 """P3ExactVerifier + its golden suite (the exact-witness trust boundary)."""
 from __future__ import annotations
 
+import json
 from fractions import Fraction
-from math import pi
 
-from empiricist.domain.p3.exact import QR
-from empiricist.domain.p3.interferometer import Mesh
+import pytest
+
+from empiricist.domain.p3.exact import Alg, ExactWitness, alg_to_json, witness_to_json
 from empiricist.domain.p3.known_schemes import grice_boosted_bsm, standard_bsm
-from empiricist.domain.p3.scheme import BellScheme
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Verdict
-from empiricist.verifiers.p3_exact import P3ExactVerifier, qr_from_json, qr_str, qr_to_json
+from empiricist.verifiers.p3_exact import P3ExactVerifier
 from empiricist.verifiers.p3_exact_goldens import (
     P3_EXACT_GOLDEN_SUITE,
     certify_p3_exact,
@@ -20,72 +20,61 @@ from empiricist.verifiers.p3_exact_goldens import (
 
 def _vec(pp, pm, sp, sm):
     return {
-        "phi+": QR(Fraction(pp), Fraction(0)),
-        "phi-": QR(Fraction(pm), Fraction(0)),
-        "psi+": QR(Fraction(sp), Fraction(0)),
-        "psi-": QR(Fraction(sm), Fraction(0)),
+        "phi+": Alg.rational(Fraction(pp)),
+        "phi-": Alg.rational(Fraction(pm)),
+        "psi+": Alg.rational(Fraction(sp)),
+        "psi-": Alg.rational(Fraction(sm)),
     }
 
 
-def test_qr_json_round_trip_and_str():
-    q = QR(Fraction(1, 16), Fraction(-3, 8))
-    assert qr_from_json(qr_to_json(q)) == q
-    assert qr_from_json("1/2") == QR(Fraction(1, 2), Fraction(0))
-    assert qr_from_json(3) == QR(Fraction(3), Fraction(0))
-    assert qr_str(QR(Fraction(1, 16), Fraction(0))) == "1/16"
-    assert qr_str(q) == "1/16 + -3/8*sqrt2"
-    import pytest
-
-    with pytest.raises(ValueError):
-        qr_from_json(["1/2"])
-    with pytest.raises(ValueError):
-        qr_from_json({"a": 1})
+GRICE = witness_to_json(ExactWitness.from_mesh(grice_boosted_bsm()))
+STD = witness_to_json(ExactWitness.from_mesh(standard_bsm()))
 
 
 def test_verifier_pass_and_mismatch_details():
     v = P3ExactVerifier()
-    ok = v.verify(grice_boosted_bsm(), claimed_success=_vec("1/2", "1/2", 1, 1))
+    ok = v.verify(GRICE, claimed_success=_vec("1/2", "1/2", 1, 1))
     assert ok.verdict is Verdict.PASS
-    assert ok.details["p_min"] == ["1/2", "0"] and ok.details["p_avg"] == ["3/4", "0"]
-    assert ok.details["all_identified"] is True
-    bad = v.verify(grice_boosted_bsm(), claimed_success=_vec("1/4", "1/2", 1, 1))
+    assert ok.details["p_min"] == alg_to_json(Alg.rational(Fraction(1, 2)))
+    assert ok.details["p_avg"] == alg_to_json(Alg.rational(Fraction(3, 4)))
+    assert ok.details["all_identified"] is True and ok.details["k"] == 2
+    bad = v.verify(GRICE, claimed_success=_vec("1/4", "1/2", 1, 1))
     assert bad.verdict is Verdict.FAIL and "phi+: 1/2 != 1/4" in bad.details["detail"]
 
 
-def test_verifier_all_identified_teeth_and_unsupported_and_invalid():
+def test_verifier_all_identified_teeth_and_invalid_inputs():
     v = P3ExactVerifier()
-    r = v.verify(standard_bsm(), claimed_success=_vec(0, 0, 1, 1), require_all_identified=True)
+    r = v.verify(STD, claimed_success=_vec(0, 0, 1, 1), require_all_identified=True)
     assert r.verdict is Verdict.FAIL and "never identified" in r.details["detail"]
-    non_octant = BellScheme(
-        n_modes=4, n_ancilla_photons=0, ancilla={},
-        mesh=Mesh(n_modes=4, elements=(("bs", 0, 2, 0.3, 0.0),)),
-    )
-    u = v.verify(non_octant, claimed_success=_vec(0, 0, 1, 1))
-    assert u.verdict is Verdict.FAIL and u.details.get("unsupported") is True
-    partial = v.verify(standard_bsm(), claimed_success={"phi+": QR(Fraction(0), Fraction(0))})
+    partial = v.verify(STD, claimed_success={"phi+": Alg.rational(0)})
     assert partial.verdict is Verdict.FAIL and partial.details.get("invalid") is True
-    malformed = BellScheme(n_modes=5, n_ancilla_photons=1, ancilla={(1,): 2.0 + 0j},
-                           mesh=Mesh(n_modes=5, elements=()))
-    assert v.verify(malformed, claimed_success=_vec(0, 0, 1, 1)).details.get("invalid") is True
+    assert v.verify(None, claimed_success=_vec(0, 0, 1, 1)).details.get("invalid") is True
+    scaled = json.loads(json.dumps(GRICE))
+    scaled["isometry"][0][0] = [
+        [d, str(Fraction(a) * 2), b] for d, a, b in scaled["isometry"][0][0]
+    ]
+    assert v.verify(scaled, claimed_success=_vec("1/2", "1/2", 1, 1)).details["invalid"] is True
 
 
 def test_verifier_accepts_irrational_exact_claims():
-    # A single 50:50 beamsplitter between a rail of each qubit: the psi states
-    # still land on distinct patterns but with irrational-looking amplitudes;
-    # whatever the exact vector is, claiming it back must PASS.
+    from math import pi
+
     from empiricist.domain.p3.exact import exact_report
+    from empiricist.domain.p3.interferometer import Mesh
+    from empiricist.domain.p3.scheme import BellScheme
 
     s = BellScheme(n_modes=4, n_ancilla_photons=0, ancilla={},
-                   mesh=Mesh(n_modes=4, elements=(("bs", 0, 2, pi / 4, pi / 4),
+                   mesh=Mesh(n_modes=4, elements=(("bs", 0, 2, pi / 6, pi / 12),
                                                  ("bs", 1, 3, 3 * pi / 4, 0.0))))
-    rep = exact_report(s)
-    r = P3ExactVerifier().verify(s, claimed_success=dict(rep.success))
+    w = ExactWitness.from_mesh(s)
+    rep = exact_report(w)
+    r = P3ExactVerifier().verify(witness_to_json(w), claimed_success=dict(rep.success))
     assert r.verdict is Verdict.PASS
 
 
 def test_golden_suite_has_teeth_and_stable_hash():
     verdicts = [e for _, _, e in P3_EXACT_GOLDEN_SUITE]
-    assert verdicts.count(Verdict.PASS) == 3 and verdicts.count(Verdict.FAIL) == 4
+    assert verdicts.count(Verdict.PASS) == 3 and verdicts.count(Verdict.FAIL) == 5
     assert len(p3_exact_suite_hash()) == 64 and p3_exact_suite_hash() == p3_exact_suite_hash()
 
 
@@ -101,7 +90,7 @@ def test_certify_p3_exact_stamps_pass_and_rejects_a_verifier_without_teeth(tmp_p
         )
 
         class _AlwaysPass(P3ExactVerifier):
-            def verify(self, scheme, *, claimed_success, require_all_identified=False):
+            def verify(self, witness_json, *, claimed_success, require_all_identified=False):
                 from empiricist.verifiers.base import VerifierResult
 
                 return VerifierResult(verdict=Verdict.PASS, details={})
@@ -109,3 +98,12 @@ def test_certify_p3_exact_stamps_pass_and_rejects_a_verifier_without_teeth(tmp_p
         assert certify_p3_exact(lg, _AlwaysPass()).verdict is Verdict.FAIL
     finally:
         lg.close()
+
+
+def test_verify_never_raises_on_garbage():
+    v = P3ExactVerifier()
+    for garbage in (None, 5, "x", [], {"isometry": "nope"}):
+        r = v.verify(garbage, claimed_success=_vec(0, 0, 1, 1))
+        assert r.verdict is Verdict.FAIL
+    with pytest.raises(TypeError):
+        v.verify(GRICE)  # claimed_success is keyword-required

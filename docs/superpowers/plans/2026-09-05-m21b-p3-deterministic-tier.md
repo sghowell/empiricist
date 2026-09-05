@@ -732,3 +732,23 @@ its exact vector, `require_all_identified = all four > 0`).
   `SchemeReport`.
 - Scope guard: k ≤ 2 for exactness (occupation ≤ 2 per ancilla mode); the optimizer's
   fast path handles n = k+2 ≤ 4 photons via batched Ryser.
+
+## Amendment (2026-09-05, during execution)
+
+The first k=1 optimum (p_min = 1/6, vector (1, 1/6, 1/2, 2/9)) showed that the exact
+structure lives in the overall unitary, not in mesh angles: gauge-fixed, its entries have
+|U|² ∈ {1/4, 1/6, 1/3, 0} and phases on the π/6 lattice (a tritter coupling the ancilla
+into three modes), which needs √3 and √6. Tasks 1–3 were therefore built as:
+
+- `domain/p3/exact.py`: the multiquadratic field ℚ(i)(√d …) (`Alg`, exact zero test via
+  linear independence of √ of distinct square-free integers; exact signs by rational
+  interval arithmetic), roots of unity on the π/12 lattice, `ExactWitness` = an m × n_in
+  isometry over the photon-carrying input modes + exact ancilla, `from_mesh` for lattice
+  meshes, `snap_isometry` for numeric matrices.
+- `verifiers/p3_exact.py` certifies witness JSON (the artifact bytes) directly.
+- `domain/p3/optimize.py`: `to_exact_witness` = absorb a single ancilla photon into one
+  column, gauge-fix rows / qubit pairs / the ancilla column onto the lattice (numeric
+  search), snap, require an exact isometry whose exact vector reproduces the engines'.
+- The p_min surrogate uses a log-product shaping during annealing (the soft minimum is
+  flat at 0 whenever a Bell state is unidentified) and anneals τ down to 1e-5, at which
+  point the gate is effectively an exact-unambiguity indicator.
