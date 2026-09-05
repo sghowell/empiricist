@@ -677,3 +677,30 @@ def test_p3_ingest_results_re_verifies_from_a_saved_file(tmp_path, capsys):
     assert main(["p3-ingest-results", "--run-dir", str(run_dir),
                  "--results", str(tmp_path / "missing.json")]) == 1
     assert "cannot read results file" in capsys.readouterr().err
+
+
+def test_p3_ingest_results_accepts_float_leakage_within_the_budget(tmp_path, capsys):
+    """An optimum a hair off the lattice (leakage ~1e-12) must still ingest at
+    HEURISTIC and, since it snaps back onto the lattice, lift to CERTIFIED."""
+    import json
+    import math
+
+    run_dir = tmp_path / "run"
+    eps = 1e-7  # leakage ~1e-14: above the verifier's 1e-15 floor, inside the budget
+    scheme = {
+        "n_modes": 4, "n_ancilla_photons": 0, "ancilla": [],
+        "mesh": [
+            {"kind": "bs", "i": 0, "j": 2, "theta": math.pi / 4 + eps, "phi": 0.0},
+            {"kind": "bs", "i": 1, "j": 3, "theta": math.pi / 4 - eps, "phi": 0.0},
+        ],
+    }
+    results = {"k": 0, "m": 4, "target": "p_avg", "restarts": 1, "seed": 0, "max_iter": 1,
+               "results": [{"restart": 0, "objective": 0.5, "metric": 0.5, "scheme": scheme,
+                            "float": {}, "witness": None, "exact": None}]}
+    out = tmp_path / "leaky.json"
+    out.write_text(json.dumps(results))
+    CampaignState.load(run_dir).close()
+    rc = main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)])
+    text = capsys.readouterr().out
+    assert rc == 0, text
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text

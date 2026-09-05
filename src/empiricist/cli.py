@@ -59,6 +59,10 @@ from empiricist.verifiers.reverify import reverify_lean_artifacts
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 SUPPORTED_PROBLEMS = ("P5",)  # spec: P5 is the only problem in v0
+# Leakage budget declared for optimizer-found float schemes (HEURISTIC): a fixed,
+# falsifiable bound well above float noise (~1e-12) and far below any physical
+# ambiguity.
+FLOAT_LEAKAGE_BUDGET = 1e-9
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -644,7 +648,9 @@ def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
             except (ScreenReject, KeyError, TypeError) as exc:
                 print(f"  skipped a row: {exc}")
                 continue
-            res = verify_scheme_agreed(scheme)
+            # The same fixed leakage budget the float claim declares (the default
+            # budget of 0.0 would reject every optimum with 1e-12 of float leakage).
+            res = verify_scheme_agreed(scheme, claimed_max_leakage=FLOAT_LEAKAGE_BUDGET)
             if res.verdict != "PASS" or res.report is None:
                 continue
             value = res.report.p_min if target == "p_min" else res.report.p_avg
@@ -714,7 +720,8 @@ def _ingest_float_result(ledger: Ledger, store: Store, best, target: str) -> Non
     art = ingest_scheme_artifact(
         ledger, store, scheme_json=best.scheme_json,
         title=f"P3 optimizer k={k} m={m} {target} (float, two-engine)",
-        claimed_max_leakage=1e-9, run_id=getattr(best, "run_id", None), **claim,
+        claimed_max_leakage=FLOAT_LEAKAGE_BUDGET, run_id=getattr(best, "run_id", None),
+        **claim,
     )
     print(f"  ingested float scheme {art.id[:12]} at {art.status.value}")
 
