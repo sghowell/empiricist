@@ -55,6 +55,7 @@ from empiricist.llm.openai_responses import (
 from empiricist.llm.preflight import PreflightError, preflight
 from empiricist.store import Store
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
+from empiricist.verifiers.reverify import reverify_lean_artifacts
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 SUPPORTED_PROBLEMS = ("P5",)  # spec: P5 is the only problem in v0
@@ -150,6 +151,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     audit_p = sub.add_parser("audit", help="read-only ledger/CAS consistency check")
     audit_p.add_argument("--run-dir", required=True, type=Path)
+
+    reverify_p = sub.add_parser(
+        "reverify",
+        help=(
+            "re-verify FORMALIZED Lean artifacts under the current gate "
+            "(opens the ledger for writing: a v0 pilot ledger migrates in place)"
+        ),
+    )
+    reverify_p.add_argument("--run-dir", required=True, type=Path)
+    reverify_p.add_argument("--dry-run", action="store_true", help="list targets, write nothing")
+    reverify_p.add_argument(
+        "--artifact", action="append", default=None,
+        help="restrict to this artifact id (repeatable)",
+    )
+    reverify_p.add_argument("--timeout-s", type=float, default=600.0)
 
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
@@ -471,6 +487,31 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         state.close()
 
 
+def _cmd_reverify(args: argparse.Namespace) -> int:
+    ledger_path = args.run_dir / "ledger.db"
+    if not ledger_path.is_file():
+        print(f"error: campaign ledger does not exist: {ledger_path}", file=sys.stderr)
+        return 1
+    ledger = Ledger(ledger_path)  # write mode: a v0 ledger migrates in place (spec App. A)
+    store = Store(args.run_dir / "store")
+    try:
+        report = reverify_lean_artifacts(
+            ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
+            timeout_s=args.timeout_s,
+        )
+    finally:
+        ledger.close()
+    suffix = ""
+    if report.dry_run:
+        suffix += " [dry run]"
+    if report.certified_now:
+        suffix += " [certified LeanVerifier in this pass]"
+    print(f"reverify: {len(report.outcomes)} lean artifact(s){suffix}")
+    for o in report.outcomes:
+        print(f"{o.verdict}: {o.decl} artifact={o.artifact_id} {o.detail}")
+    return 0 if (report.ok or report.dry_run) else 1
+
+
 def _cmd_certify(args: argparse.Namespace) -> int:
     state = CampaignState.load(args.run_dir)
     try:
@@ -566,6 +607,8 @@ def main(
         return _cmd_status(args)
     if args.command == "audit":
         return _cmd_audit(args)
+    if args.command == "reverify":
+        return _cmd_reverify(args)
     if args.command == "certify":
         return _cmd_certify(args)
     if args.command == "gates":

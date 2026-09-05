@@ -8,7 +8,7 @@ suite and NEVER skips (acceptance criterion 1: the checker never skips). It is
 the standing warrant that the pinned certificate is sound: the checker proves,
 in exact `Fraction` arithmetic, that `objective <= 1/2` on the stated variety.
 
-Provenance of the golden (see `tests/goldens/p3_k0_standard_assignment.json`'s
+Provenance of the golden (see `certificates/data/p3_k0_standard_assignment.json`'s
 `statement` and the M20c Task 4 report): the numeric SDP pipeline
 (`solve_sos` + `rationalize`) was exercised but could not land this particular
 certificate -- the full U(4) SDP (561-monomial Gram, ~58,905 identity rows)
@@ -23,40 +23,15 @@ trusted checker the SDP pipeline targets. Either route is sound because the
 checker, not the finder, is the trust boundary.
 """
 
-import json
 from fractions import Fraction
-from pathlib import Path
 
-from empiricist.certificates.core import SOSCertificate, check_certificate
+from empiricist.certificates.core import check_certificate
+from empiricist.certificates.goldens import load_k0_golden as _load_certificate
 from empiricist.certificates.p3_targets import (
     standard_assignment_objective,
     unambiguity_constraints,
     unitarity_constraints,
 )
-
-GOLDEN_PATH = Path(__file__).parent / "goldens" / "p3_k0_standard_assignment.json"
-
-
-def _mono(key: str) -> tuple[int, ...]:
-    return tuple(int(x) for x in key.split(",")) if key else ()
-
-
-def _poly(d: dict[str, str]) -> dict[tuple[int, ...], Fraction]:
-    return {_mono(k): Fraction(v) for k, v in d.items()}
-
-
-def _load_certificate() -> SOSCertificate:
-    data = json.loads(GOLDEN_PATH.read_text())
-    return SOSCertificate(
-        statement=data["statement"],
-        variables=tuple(data["variables"]),
-        objective=_poly(data["objective"]),
-        bound=Fraction(data["bound"]),
-        constraints=tuple(_poly(c) for c in data["constraints"]),
-        multipliers=tuple(_poly(m) for m in data["multipliers"]),
-        gram_basis=tuple(tuple(m) for m in data["gram_basis"]),
-        gram=tuple(tuple(Fraction(v) for v in row) for row in data["gram"]),
-    )
 
 
 def test_golden_certificate_passes_exact_checker():

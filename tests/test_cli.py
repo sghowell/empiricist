@@ -602,3 +602,21 @@ def test_no_command_is_argparse_usage_error():
     with pytest.raises(SystemExit) as exc_info:
         main([])
     assert exc_info.value.code == 2
+
+
+# -- reverify ---------------------------------------------------------------------
+
+
+def test_reverify_dry_run_on_campaign_without_lean_artifacts(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    state = CampaignState.load(run_dir)
+    state.close()
+    rc = main(["reverify", "--run-dir", str(run_dir), "--dry-run"])
+    assert rc == 0
+    assert "reverify: 0 lean artifact(s) [dry run]" in capsys.readouterr().out
+
+
+def test_reverify_missing_ledger_is_an_error(tmp_path, capsys):
+    rc = main(["reverify", "--run-dir", str(tmp_path / "nope")])
+    assert rc == 1
+    assert "does not exist" in capsys.readouterr().err

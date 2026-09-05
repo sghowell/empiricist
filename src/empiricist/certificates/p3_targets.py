@@ -85,7 +85,7 @@ MEASUREMENT REPORT (M20c Task 4 sizing / decision gate) -- see `measure_sdp`:
         tight problems, not the (already-fixed) bound-rounding bug.
 
     GOLDEN LANDED (not via the numeric pipeline): the exact certificate in
-    `tests/goldens/p3_k0_standard_assignment.json` (bound EXACTLY 1/2, over the
+    `certificates/data/p3_k0_standard_assignment.json` (bound EXACTLY 1/2, over the
     full U(4) unitary variety) is constructed analytically from the
     probability-conservation identity `sum_all_S Pr[S|B] = 1` (each `Pr` is a
     manifest sum of squares `re^2 + im^2`) and verified by the exact checker
