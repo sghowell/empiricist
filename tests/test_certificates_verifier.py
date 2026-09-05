@@ -68,6 +68,25 @@ def test_from_json_rejects_malformed_shapes():
             certificate_from_json(bad)
 
 
+def test_from_json_refuses_floats():
+    import pytest
+
+    data = certificate_to_json(_tiny())
+    data["bound"] = 0.5
+    with pytest.raises(ValueError, match="malformed certificate JSON"):
+        certificate_from_json(data)
+    data = certificate_to_json(_tiny())
+    data["gram"] = [[1.0]]
+    with pytest.raises(ValueError, match="malformed certificate JSON"):
+        certificate_from_json(data)
+
+
+def test_binary_hash_covers_the_ingest_module():
+    from empiricist.certificates import verifier as v
+
+    assert "ingest.py" in v._HASHED_SOURCE_FILES
+
+
 def test_suite_has_teeth_and_a_stable_hash():
     verdicts = [e for _, e in SOS_GOLDEN_SUITE]
     assert verdicts.count(Verdict.PASS) == 2 and verdicts.count(Verdict.FAIL) == 3

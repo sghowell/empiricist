@@ -162,6 +162,16 @@ class P3SearchLoop:
             return False
         return is_throttled_run(run_row)
 
+    def _throttle_detail(self, rid: str) -> str:
+        """The receipt's exit code and wall time: an operator reading the log
+        can tell a rate limit from a broken config (auth, model id, DNS), which
+        wear the same instant-failure signature."""
+        run_row = self._ledger.get_run(rid)
+        return (
+            "rate-limit signature: instant non-zero exit with no output "
+            f"(exit_code={run_row.exit_code}, wall_s={run_row.wall_s}); backing off"
+        )
+
     def build_prompt(
         self,
         task: P3SearchTask,
@@ -261,8 +271,7 @@ class P3SearchLoop:
                     log(round_num, attempt, rid, "NO_ARTIFACT", _NO_ARTIFACT_FEEDBACK)
                     result = None
                     break
-                log(round_num, attempt, rid, "THROTTLED",
-                    "rate-limited provider call (instant non-zero exit, no output)")
+                log(round_num, attempt, rid, "THROTTLED", self._throttle_detail(rid))
                 if attempt >= self._throttle.max_attempts:
                     history.append(_Round(
                         "THROTTLED",

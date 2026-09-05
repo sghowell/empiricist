@@ -50,17 +50,22 @@ class ReverifyReport:
 
     @property
     def ok(self) -> bool:
-        """Every target passed the current gate (a dry run is never `ok`)."""
+        """Every target passed the current gate and every requested id existed
+        (a dry run is never `ok`)."""
         return (not self.dry_run) and all(o.verdict == "PASS" for o in self.outcomes)
 
 
 def _targets(ledger: Ledger, artifact_ids: Iterable[str] | None):
-    wanted = None if artifact_ids is None else set(artifact_ids)
-    return [
+    """FORMALIZED lean artifacts (optionally restricted to `artifact_ids`), plus a
+    MISSING outcome for every explicitly requested id that matched nothing."""
+    wanted = None if artifact_ids is None else list(dict.fromkeys(artifact_ids))
+    found = [
         a
         for a in ledger.find_artifacts(kind="lean", status=Status.FORMALIZED)
         if wanted is None or a.id in wanted
     ]
+    missing = [] if wanted is None else [i for i in wanted if i not in {a.id for a in found}]
+    return found, missing
 
 
 def reverify_lean_artifacts(
@@ -76,9 +81,14 @@ def reverify_lean_artifacts(
     """Re-run the current Lean gate over every FORMALIZED `lean` artifact.
 
     PASS -> a claim-bound evidence row pinned to the live golden suite (the
-    artifact keeps its id, content, and status; a `legacy` problem version is
-    replaced by the verifier's default, any other is kept). Non-PASS -> an
-    evidence-only row (`details["reverify"] is True`) with no status change.
+    artifact row keeps its id, content, status AND its stored problem version --
+    a pre-migration `legacy` row is immutable pilot data -- while the new claim
+    names the precise version the current gate checked: the verifier's default
+    for a `legacy` row, the artifact's own otherwise). Non-PASS -> an evidence-only row
+    (`details["reverify"] is True`) with no status change. An artifact whose id
+    is not its content digest, or one whose blob cannot be read/decoded, gets a
+    SKIPPED/ERROR outcome without aborting the pass; an explicitly requested id
+    that matches nothing is reported MISSING.
     `dry_run` lists the targets and touches nothing. With `certify=True` the
     current verifier is certified against the live Lean golden suite first if
     its stamp is missing or stale; a verifier that fails its own suite aborts
@@ -86,17 +96,24 @@ def reverify_lean_artifacts(
     """
     v = verifier if verifier is not None else LeanVerifier()
     suite_hash = lean_suite_hash()
-    targets = _targets(ledger, artifact_ids)
+    targets, missing = _targets(ledger, artifact_ids)
+    missing_outcomes = [
+        ReverifyOutcome(i, "", "MISSING", "no FORMALIZED lean artifact with this id")
+        for i in missing
+    ]
     if dry_run:
         return ReverifyReport(
             outcomes=tuple(
-                ReverifyOutcome(a.id, a.title, "SKIPPED", "dry run") for a in targets
+                [ReverifyOutcome(a.id, a.title, "SKIPPED", "dry run") for a in targets]
+                + missing_outcomes
             ),
             certified_now=False,
             dry_run=True,
         )
     if not targets:
-        return ReverifyReport(outcomes=(), certified_now=False, dry_run=False)
+        return ReverifyReport(
+            outcomes=tuple(missing_outcomes), certified_now=False, dry_run=False
+        )
 
     certified_now = False
     if certify:
@@ -118,40 +135,61 @@ def reverify_lean_artifacts(
 
     outcomes: list[ReverifyOutcome] = []
     for art in targets:
-        source = store.get(art.content_path).decode("utf-8")
         decl = art.title
-        result = v.verify(source, decl=decl, timeout_s=timeout_s)
-        if result.verdict is Verdict.PASS:
-            problem_version = (
-                DEFAULT_LEAN_PROBLEM_VERSION
-                if art.problem_version == _LEGACY_PROBLEM_VERSION
-                else art.problem_version
-            )
-            _record_verified_lean_artifact(
-                ledger,
-                store,
-                source,
-                decl,
-                result,
-                verifier=v,
-                suite_hash=suite_hash,
-                problem=art.problem,
-                problem_version=problem_version,
-                run_id=None,
-            )
-            outcomes.append(ReverifyOutcome(art.id, decl, "PASS", "re-verified"))
+        # The recorder binds evidence to blake3(source) == content_path; an artifact
+        # whose id is not its content digest would get a NEW artifact row instead of
+        # new evidence on itself. Refuse rather than silently duplicate.
+        if art.id != art.content_path:
+            outcomes.append(ReverifyOutcome(
+                art.id, decl, "SKIPPED", "artifact id is not its content digest"
+            ))
             continue
-        ledger.record_evidence(
-            EvidenceRow(
-                artifact_id=art.id,
-                verifier=v.name,
-                verifier_version=v.version,
-                binary_hash=v.binary_hash,
-                golden_suite_hash=suite_hash,
-                verdict=result.verdict,
-                details={"reverify": True, **result.details},
+        try:
+            outcomes.append(
+                _reverify_one(ledger, store, art, v, suite_hash, timeout_s=timeout_s)
             )
+        except Exception as exc:  # noqa: BLE001 - one bad artifact must not abort the pass
+            outcomes.append(ReverifyOutcome(
+                art.id, decl, "ERROR", f"{type(exc).__name__}: {exc}"
+            ))
+    return ReverifyReport(tuple(outcomes + missing_outcomes), certified_now, False)
+
+
+def _reverify_one(
+    ledger: Ledger, store: Store, art, v, suite_hash: str, *, timeout_s: float
+) -> ReverifyOutcome:
+    source = store.get(art.content_path).decode("utf-8")
+    decl = art.title
+    result = v.verify(source, decl=decl, timeout_s=timeout_s)
+    if result.verdict is Verdict.PASS:
+        problem_version = (
+            DEFAULT_LEAN_PROBLEM_VERSION
+            if art.problem_version == _LEGACY_PROBLEM_VERSION
+            else art.problem_version
         )
-        gate = result.details.get("gate") or result.details.get("error") or ""
-        outcomes.append(ReverifyOutcome(art.id, decl, result.verdict.value, str(gate)))
-    return ReverifyReport(tuple(outcomes), certified_now, False)
+        _record_verified_lean_artifact(
+            ledger,
+            store,
+            source,
+            decl,
+            result,
+            verifier=v,
+            suite_hash=suite_hash,
+            problem=art.problem,
+            problem_version=problem_version,
+            run_id=None,
+        )
+        return ReverifyOutcome(art.id, decl, "PASS", "re-verified")
+    ledger.record_evidence(
+        EvidenceRow(
+            artifact_id=art.id,
+            verifier=v.name,
+            verifier_version=v.version,
+            binary_hash=v.binary_hash,
+            golden_suite_hash=suite_hash,
+            verdict=result.verdict,
+            details={"reverify": True, **result.details},
+        )
+    )
+    gate = result.details.get("gate") or result.details.get("error") or ""
+    return ReverifyOutcome(art.id, decl, result.verdict.value, str(gate))

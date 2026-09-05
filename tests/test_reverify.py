@@ -220,6 +220,69 @@ def test_reverify_is_idempotent(env):
     assert len(lg.evidence_for(art.id)) == 2
 
 
+def test_reverify_leaves_the_legacy_row_and_versions_the_claim(env):
+    """The pilot artifact row is immutable data and stays `legacy` (the M-hardening
+    design, pinned by test_promotion_integrity); the NEW claim names the precise
+    problem version the current gate actually checked."""
+    from empiricist.verifiers.lean import DEFAULT_LEAN_PROBLEM_VERSION
+
+    lg, st = env
+    v = _StubLean()
+    _stamp(lg, v)
+    art = _legacy_formalized(lg, st, "theorem foo : 1 = 1 := rfl", "Empiricist.foo")
+    assert reverify_lean_artifacts(lg, st, verifier=v, certify=False).ok
+    assert lg.get_artifact(art.id).problem_version == "legacy"
+    assert lg.claims_for(art.id)[0].problem_version == DEFAULT_LEAN_PROBLEM_VERSION
+    assert DEFAULT_LEAN_PROBLEM_VERSION != "legacy"
+
+
+def test_reverify_skips_an_artifact_whose_id_is_not_its_content_digest(env):
+    lg, st = env
+    v = _StubLean()
+    _stamp(lg, v)
+    digest = st.put(b"theorem foo : 1 = 1 := rfl")
+    lg.add_artifact(Artifact(id="9" * 64, kind="lean", problem="P5", problem_version="legacy",
+                             title="Empiricist.foo", content_path=digest,
+                             status=Status.FORMALIZED))
+    rep = reverify_lean_artifacts(lg, st, verifier=v, certify=False)
+    assert [o.verdict for o in rep.outcomes] == ["SKIPPED"] and not rep.ok
+    assert v.calls == []
+    assert [a.id for a in lg.find_artifacts()] == ["9" * 64]  # no duplicate artifact
+
+
+def test_reverify_isolates_a_bad_blob_and_keeps_going(env):
+    lg, st = env
+    v = _StubLean()
+    _stamp(lg, v)
+    _legacy_formalized(lg, st, "theorem a : 1 = 1 := rfl", "Empiricist.a")
+    bad = st.put(b"\xff\xfe not utf-8")
+    lg.add_artifact(Artifact(id=bad, kind="lean", problem="P5", problem_version="legacy",
+                             title="Empiricist.bad", content_path=bad,
+                             status=Status.FORMALIZED))
+    lg.record_evidence(EvidenceRow(artifact_id=bad, verifier="lean", verifier_version="3.2",
+                                   binary_hash="cd" * 32, verdict=Verdict.PASS))
+    c = _legacy_formalized(lg, st, "theorem c : 3 = 3 := rfl", "Empiricist.c")
+    rep = reverify_lean_artifacts(lg, st, verifier=v, certify=False)
+    assert [o.verdict for o in rep.outcomes] == ["PASS", "ERROR", "PASS"]
+    assert "UnicodeDecodeError" in rep.outcomes[1].detail
+    assert v.calls == ["Empiricist.a", "Empiricist.c"]
+    assert not _flagged(lg, st, c.id)
+
+
+def test_reverify_reports_requested_ids_that_match_nothing(env):
+    lg, st = env
+    v = _StubLean()
+    _stamp(lg, v)
+    a = _legacy_formalized(lg, st, "theorem a : 1 = 1 := rfl", "Empiricist.a")
+    rep = reverify_lean_artifacts(lg, st, verifier=v, certify=False,
+                                  artifact_ids=[a.id, "f" * 64])
+    assert [o.verdict for o in rep.outcomes] == ["PASS", "MISSING"] and not rep.ok
+    assert rep.outcomes[1].artifact_id == "f" * 64
+    dry = reverify_lean_artifacts(lg, st, verifier=v, certify=False, dry_run=True,
+                                  artifact_ids=["f" * 64])
+    assert [o.verdict for o in dry.outcomes] == ["MISSING"]
+
+
 def test_reverify_keeps_an_explicit_problem_version(env):
     lg, st = env
     v = _StubLean()

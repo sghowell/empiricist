@@ -24,7 +24,11 @@ from empiricist.certificates.p3_targets import (
     unambiguity_constraints,
     unitarity_constraints,
 )
-from empiricist.certificates.verifier import SOSCertificateVerifier, certificate_from_json
+from empiricist.certificates.verifier import (
+    SOSCertificateVerifier,
+    certificate_from_json,
+    certificate_to_json,
+)
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
 from empiricist.store import Store
@@ -35,16 +39,36 @@ P3_CERTIFICATE_PROBLEM_VERSION = "p3-sos-certificate-v1"
 
 @dataclass(frozen=True)
 class CertificateTarget:
-    """What a certificate for `name` must encode, and the claim it then supports."""
+    """What a certificate for `name` must encode, and the claim it then supports.
+
+    `core_constraints` define the set the claim quantifies over (for P3: the
+    unitarity variety, i.e. every U in U(m)); `side_constraints` are auxiliary
+    equalities a certificate MAY use (for P3: the standard assignment's
+    unambiguity conditions). A certificate proves `objective <= bound` on the
+    variety of ALL its constraints. So the claim recorded is `statement_universal`
+    only when every side-constraint multiplier is identically zero (the identity
+    then holds on the core variety alone); otherwise `statement_restricted`,
+    which names the side conditions explicitly. Both are `.format(bound=...)`."""
 
     name: str
     n_modes: int
     k: int
     objective: Callable[[], Poly]
-    constraints: Callable[[], list[Poly]]
-    statement: str  # `.format(bound=<rational string>)`
+    core_constraints: Callable[[], list[Poly]]
+    side_constraints: Callable[[], list[Poly]]
+    statement_universal: str
+    statement_restricted: str
     metric: str
 
+    def constraints(self) -> list[Poly]:
+        return self.core_constraints() + self.side_constraints()
+
+
+_K0_OBJECTIVE_GLOSS = (
+    "the standard-assignment objective -- the total probability that the textbook "
+    "Bell-analyser detection patterns land on their assigned Bell states, an upper "
+    "bound on the unambiguous average success p_avg of that assignment --"
+)
 
 P3_CERTIFICATE_TARGETS: dict[str, CertificateTarget] = {
     "k0_standard_assignment_p_avg": CertificateTarget(
@@ -52,12 +76,20 @@ P3_CERTIFICATE_TARGETS: dict[str, CertificateTarget] = {
         n_modes=4,
         k=0,
         objective=lambda: standard_assignment_objective(4),
-        constraints=lambda: unitarity_constraints(4) + unambiguity_constraints(4),
-        statement=(
+        core_constraints=lambda: unitarity_constraints(4),
+        side_constraints=lambda: unambiguity_constraints(4),
+        statement_universal=(
             "For every passive interferometer U in U(4) acting on the ancilla-free "
-            "dual-rail Bell pair, the standard-assignment average Bell-identification "
-            "probability p_avg is at most {bound} (exact SOS certificate on the "
-            "unitarity variety)."
+            f"dual-rail Bell pair, {_K0_OBJECTIVE_GLOSS} is at most {{bound}} (exact "
+            "SOS certificate on the unitarity variety; no unambiguity side constraint "
+            "is used)."
+        ),
+        statement_restricted=(
+            "For every passive interferometer U in U(4) acting on the ancilla-free "
+            "dual-rail Bell pair AT WHICH the standard assignment is unambiguous "
+            f"(Pr[S|B'] = 0 for every assigned pattern S and B' != f(S)), {_K0_OBJECTIVE_GLOSS} "
+            "is at most {bound} (exact SOS certificate on the unitarity + unambiguity "
+            "variety)."
         ),
         metric="p_avg_upper_bound",
     ),
@@ -80,6 +112,12 @@ def _check_target(cert: SOSCertificate, target: str) -> CertificateTarget:
             "or constraint polynomials differ from p3_targets' definitions"
         )
     return spec
+
+
+def uses_side_constraints(cert: SOSCertificate, spec: CertificateTarget) -> bool:
+    """True iff some multiplier on a SIDE constraint is a non-zero polynomial."""
+    n_core = len(spec.core_constraints())
+    return any(bool(m) for m in cert.multipliers[n_core:])
 
 
 def verify_and_ingest_p3_certificate(
@@ -107,8 +145,12 @@ def verify_and_ingest_p3_certificate(
     result = verifier.verify(cert)
     if result.verdict is not Verdict.PASS:
         return result, None
-    content = _canonical_json(certificate_json)
+    # Hash the PARSED certificate's canonical form, not the caller's dict: keys the
+    # parser ignores must not mint distinct artifacts for the same certificate.
+    content = _canonical_json(certificate_to_json(cert))
     digest = store.put(content)
+    restricted = uses_side_constraints(cert, spec)
+    statement_template = spec.statement_restricted if restricted else spec.statement_universal
     evidence_run_id = run_id
     if evidence_run_id is not None:
         try:
@@ -130,10 +172,16 @@ def verify_and_ingest_p3_certificate(
         artifact_id=art.id,
         problem=art.problem,
         problem_version=art.problem_version,
-        statement=spec.statement.format(bound=bound),
+        statement=statement_template.format(bound=bound),
         family=spec.name,
         metric=spec.metric,
-        scope={"target": spec.name, "bound": bound, "n_modes": spec.n_modes, "k": spec.k},
+        scope={
+            "target": spec.name,
+            "bound": bound,
+            "n_modes": spec.n_modes,
+            "k": spec.k,
+            "uses_side_constraints": restricted,
+        },
     )
     evidence = EvidenceRow(
         artifact_id=art.id,
@@ -144,7 +192,7 @@ def verify_and_ingest_p3_certificate(
         binary_hash=verifier.binary_hash,
         golden_suite_hash=suite_hash,
         verdict=Verdict.PASS,
-        details={**result.details, "target": spec.name},
+        details={**result.details, "target": spec.name, "uses_side_constraints": restricted},
     )
     stored = ledger.record_claimed_artifact(
         art, claim, evidence, expected_golden_suite_hash=suite_hash

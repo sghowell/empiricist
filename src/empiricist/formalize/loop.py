@@ -91,6 +91,9 @@ class FormalizeReport:
     # True iff the task was ABORTED because the provider rate limit persisted
     # past ThrottlePolicy.max_attempts (final_verdict == "THROTTLED").
     throttled: bool = False
+    # Rate-limited attempts that were retried (they consume no round and leave
+    # no history entry -- the provider receipts in `runs` are their record).
+    throttled_attempts: int = 0
 
 
 @dataclass(frozen=True)
@@ -186,6 +189,7 @@ class FormalizeLoop:
         history: list[_Round] = []
         last_decl: str | None = None
         last_module_source: str | None = None
+        throttled_attempts = 0
 
         for round_num in range(1, self._max_rounds + 1):
             base_rid = f"formalize-{task.name}-{run_nonce}-r{round_num}"
@@ -209,6 +213,7 @@ class FormalizeLoop:
                     ))
                     result = None
                     break
+                throttled_attempts += 1
                 if attempt >= self._throttle.max_attempts:
                     history.append(_Round(
                         verdict="THROTTLED", gate=None,
@@ -223,7 +228,7 @@ class FormalizeLoop:
                         recorded_statement=None, recorded_axioms=None,
                         decl=last_decl, module_source=last_module_source,
                         history=tuple((r.verdict, r.gate, r.feedback) for r in history),
-                        throttled=True,
+                        throttled=True, throttled_attempts=throttled_attempts,
                     )
                 await self._sleep(self._throttle.delay(attempt))
                 attempt += 1
@@ -273,6 +278,7 @@ class FormalizeLoop:
                     recorded_axioms=tuple(vr.details.get("axioms") or ()),
                     decl=out.decl, module_source=out.module_source,
                     history=tuple((r.verdict, r.gate, r.feedback) for r in history),
+                    throttled_attempts=throttled_attempts,
                 )
 
             gate = vr.details.get("gate")
@@ -288,4 +294,5 @@ class FormalizeLoop:
             recorded_statement=None, recorded_axioms=None,
             decl=last_decl, module_source=last_module_source,
             history=tuple((r.verdict, r.gate, r.feedback) for r in history),
+            throttled_attempts=throttled_attempts,
         )

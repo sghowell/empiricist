@@ -22,6 +22,7 @@ from empiricist.ledger.models import Certification, Run, Verdict
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.models import Effort, LLMResult
 from empiricist.llm.roles import ROLES, Role
+from empiricist.llm.throttle import ThrottlePolicy
 from empiricist.search.p3_loop import P3SearchLoop, P3SearchReport, P3SearchTask
 from empiricist.store import Store
 from empiricist.verifiers.p3_goldens import certify_p3
@@ -374,9 +375,6 @@ def test_build_prompt_round_one_has_no_prior_attempt(tmp_path):
 
 
 # -- M21a: throttle backoff + per-round persistence ------------------------------
-
-
-from empiricist.llm.throttle import ThrottlePolicy  # noqa: E402
 
 
 class ThrottlingFakeClient(FakeLLMClient):

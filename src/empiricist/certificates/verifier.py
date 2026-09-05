@@ -21,9 +21,11 @@ from empiricist.verifiers.base import VerifierResult
 
 _CERT_DIR = Path(__file__).resolve().parent
 # The trust surface: the checker, the target definitions an ingest re-derives
-# domain meaning from, and this wrapper. Read fresh from disk on every access
-# (mirrors P3SchemeVerifier/LeanVerifier) so an edit invalidates existing stamps.
-_HASHED_SOURCE_FILES = ("core.py", "p3_targets.py", "verifier.py")
+# domain meaning from, the ingest module that turns a PASS into a ledger claim
+# (its target registry and claim wording), and this wrapper. Read fresh from disk
+# on every access (mirrors P3SchemeVerifier/LeanVerifier) so an edit to any of
+# them invalidates existing stamps.
+_HASHED_SOURCE_FILES = ("core.py", "ingest.py", "p3_targets.py", "verifier.py")
 
 
 def _mono_key(mono: Monomial) -> str:
@@ -38,10 +40,18 @@ def _poly_to_json(p: Poly) -> dict[str, str]:
     return {_mono_key(m): str(c) for m, c in sorted(p.items())}
 
 
+def _rational(v: Any) -> Fraction:
+    """Exact rationals only: strings ("1/2", "3") or ints. A JSON float is refused
+    (it would be converted exactly but silently launder a rounded number)."""
+    if isinstance(v, bool) or not isinstance(v, (str, int)):
+        raise ValueError(f"rational must be a string or int, got {type(v).__name__}")
+    return Fraction(v)
+
+
 def _poly_from_json(d: Any) -> Poly:
     if not isinstance(d, dict):
         raise ValueError("polynomial must be a JSON object")
-    return {_mono_from_key(k): Fraction(v) for k, v in d.items()}
+    return {_mono_from_key(k): _rational(v) for k, v in d.items()}
 
 
 def certificate_to_json(cert: SOSCertificate) -> dict:
@@ -67,11 +77,11 @@ def certificate_from_json(data: Any) -> SOSCertificate:
             statement=str(data["statement"]),
             variables=tuple(str(v) for v in data["variables"]),
             objective=_poly_from_json(data["objective"]),
-            bound=Fraction(data["bound"]),
+            bound=_rational(data["bound"]),
             constraints=tuple(_poly_from_json(c) for c in data["constraints"]),
             multipliers=tuple(_poly_from_json(m) for m in data["multipliers"]),
             gram_basis=tuple(tuple(int(i) for i in m) for m in data["gram_basis"]),
-            gram=tuple(tuple(Fraction(v) for v in row) for row in data["gram"]),
+            gram=tuple(tuple(_rational(v) for v in row) for row in data["gram"]),
         )
     except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
         raise ValueError(f"malformed certificate JSON: {type(exc).__name__}: {exc}") from exc
