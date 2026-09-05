@@ -584,18 +584,26 @@ def _cmd_p3_optimize(args: argparse.Namespace) -> int:
                 alg_str(r.exact.success[b]) for b in ("phi+", "phi-", "psi+", "psi-")) + ")"
             print(f"  restart {r.restart}: ({vec}) leak={r.report.leakage:.1e}{ex}")
         if args.ingest:
-            _ingest_optimizer_result(ledger, store, best, args.target)
+            _ingest_optimizer_results(ledger, store, results, args.target)
         return 0
     finally:
         ledger.close()
 
 
-def _ingest_optimizer_result(ledger: Ledger, store: Store, best, target: str) -> None:
-    from empiricist.domain.p3.exact import alg_to_json
-    from empiricist.domain.p3.exact_ingest import ingest_exact_witness
+def _ingest_optimizer_results(ledger: Ledger, store: Store, results, target: str) -> None:
+    """Ingest the best float scheme (HEURISTIC) and, separately, the best result
+    that lifted to an exact witness (CERTIFIED) -- which need not be the same
+    restart: an optimum can sit in a continuous family whose generic member is
+    off the exact lattice while another member is on it."""
+    best = results[0]
+    _ingest_float_result(ledger, store, best, target)
+    exact_ones = [r for r in results if r.exact is not None]
+    if exact_ones:
+        _ingest_exact_result(ledger, store, exact_ones[0], target)
+
+
+def _ingest_float_result(ledger: Ledger, store: Store, best, target: str) -> None:
     from empiricist.domain.p3.ingest import ingest_scheme_artifact
-    from empiricist.verifiers.p3_exact import P3ExactVerifier
-    from empiricist.verifiers.p3_exact_goldens import certify_p3_exact, p3_exact_suite_hash
     from empiricist.verifiers.p3_goldens import certify_p3, p3_suite_hash
     from empiricist.verifiers.p3_scheme import P3SchemeVerifier
 
@@ -615,8 +623,15 @@ def _ingest_optimizer_result(ledger: Ledger, store: Store, best, target: str) ->
         claimed_max_leakage=float(best.report.leakage), **claim,
     )
     print(f"  ingested float scheme {art.id[:12]} at {art.status.value}")
-    if best.exact is None:
-        return
+
+
+def _ingest_exact_result(ledger: Ledger, store: Store, best, target: str) -> None:
+    from empiricist.domain.p3.exact import alg_to_json
+    from empiricist.domain.p3.exact_ingest import ingest_exact_witness
+    from empiricist.verifiers.p3_exact import P3ExactVerifier
+    from empiricist.verifiers.p3_exact_goldens import certify_p3_exact, p3_exact_suite_hash
+
+    k, m = best.scheme_json["n_ancilla_photons"], best.scheme_json["n_modes"]
     ve = P3ExactVerifier()
     cert = ledger.get_certification(ve.name, ve.version, ve.binary_hash)
     if cert is None or cert.golden_suite_hash != p3_exact_suite_hash():

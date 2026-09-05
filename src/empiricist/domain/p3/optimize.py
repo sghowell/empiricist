@@ -500,5 +500,7 @@ def optimize_scheme(
     finally:
         if ledger is not None:
             ledger.finish_run(run_id, exit_code=0, wall_s=time.monotonic() - started)
-    results.sort(key=lambda r: r.metric(target), reverse=True)
+    # Best metric first; among equals, prefer a result that lifted to an exact
+    # witness (the certifiable object) and then the lower restart index.
+    results.sort(key=lambda r: (-r.metric(target), r.exact is None, r.restart))
     return results
