@@ -11,6 +11,7 @@ dependencies = [
     "networkx>=3.0",
     "pynauty>=2.8",
     "numpy>=2.0",
+    "scipy>=1.17.1",
 ]
 
 [project.scripts]

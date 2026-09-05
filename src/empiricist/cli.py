@@ -167,6 +167,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     reverify_p.add_argument("--timeout-s", type=float, default=600.0)
 
+    opt_p = sub.add_parser(
+        "p3-optimize",
+        help="P3 deterministic tier: optimise a (k, m) Bell scheme for p_min or p_avg (no model)",
+    )
+    opt_p.add_argument("--run-dir", required=True, type=Path)
+    opt_p.add_argument("--k", required=True, type=int, help="ancilla photons")
+    opt_p.add_argument("--m", required=True, type=int, help="modes (>= 4)")
+    opt_p.add_argument("--target", required=True, choices=("p_min", "p_avg"))
+    opt_p.add_argument("--restarts", type=int, default=20)
+    opt_p.add_argument("--seed", type=int, default=0)
+    opt_p.add_argument("--max-iter", type=int, default=300)
+    opt_p.add_argument("--out", required=True, type=Path, help="JSON results file")
+    opt_p.add_argument(
+        "--ingest", action="store_true",
+        help=(
+            "ingest the best float scheme (HEURISTIC) and, if lifted, "
+            "its exact witness (CERTIFIED)"
+        ),
+    )
+
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
 
@@ -512,6 +532,105 @@ def _cmd_reverify(args: argparse.Namespace) -> int:
     return 0 if (report.ok or report.dry_run) else 1
 
 
+def _cmd_p3_optimize(args: argparse.Namespace) -> int:
+    import json
+
+    from empiricist.domain.p3.exact import alg_str, alg_to_json
+    from empiricist.domain.p3.optimize import optimize_scheme
+
+    args.run_dir.mkdir(parents=True, exist_ok=True)
+    ledger = Ledger(args.run_dir / "ledger.db")
+    store = Store(args.run_dir / "store")
+    try:
+        results = optimize_scheme(
+            args.k, args.m, target=args.target, restarts=args.restarts, seed=args.seed,
+            max_iter=args.max_iter, ledger=ledger,
+            tau_schedule=(0.3, 0.1, 0.03, 0.01, 1e-3, 1e-4, 1e-5),
+        )
+        rows = []
+        for r in results:
+            rep = r.report
+            rows.append({
+                "restart": r.restart, "objective": r.objective,
+                "metric": r.metric(args.target),
+                "scheme": r.scheme_json,
+                "float": {"success_by_state": dict(rep.success_by_state), "p_min": rep.p_min,
+                          "p_avg": rep.p_avg, "leakage": rep.leakage},
+                "witness": r.witness_json,
+                "exact": None if r.exact is None else {
+                    "success": {b: alg_to_json(v) for b, v in r.exact.success.items()},
+                    "success_str": {b: alg_str(v) for b, v in r.exact.success.items()},
+                    "p_min": alg_str(r.exact.p_min), "p_avg": alg_str(r.exact.p_avg),
+                    "all_identified": r.exact.all_identified,
+                },
+            })
+        payload = {"k": args.k, "m": args.m, "target": args.target, "restarts": args.restarts,
+                   "seed": args.seed, "max_iter": args.max_iter, "results": rows}
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(payload, indent=1, sort_keys=True, allow_nan=False))
+        if not results:
+            print("p3-optimize: no valid result")
+            return 1
+        best = results[0]
+        print(
+            f"p3-optimize k={args.k} m={args.m} {args.target}: "
+            f"best={best.metric(args.target):.6f} restarts={len(results)} "
+            f"exact={'yes' if best.exact is not None else 'no'}"
+        )
+        for r in results[:5]:
+            vec = ", ".join(f"{r.report.success_by_state[b]:.4f}" for b in
+                            ("phi+", "phi-", "psi+", "psi-"))
+            ex = "" if r.exact is None else " exact=(" + ", ".join(
+                alg_str(r.exact.success[b]) for b in ("phi+", "phi-", "psi+", "psi-")) + ")"
+            print(f"  restart {r.restart}: ({vec}) leak={r.report.leakage:.1e}{ex}")
+        if args.ingest:
+            _ingest_optimizer_result(ledger, store, best, args.target)
+        return 0
+    finally:
+        ledger.close()
+
+
+def _ingest_optimizer_result(ledger: Ledger, store: Store, best, target: str) -> None:
+    from empiricist.domain.p3.exact import alg_to_json
+    from empiricist.domain.p3.exact_ingest import ingest_exact_witness
+    from empiricist.domain.p3.ingest import ingest_scheme_artifact
+    from empiricist.verifiers.p3_exact import P3ExactVerifier
+    from empiricist.verifiers.p3_exact_goldens import certify_p3_exact, p3_exact_suite_hash
+    from empiricist.verifiers.p3_goldens import certify_p3, p3_suite_hash
+    from empiricist.verifiers.p3_scheme import P3SchemeVerifier
+
+    k, m = best.scheme_json["n_ancilla_photons"], best.scheme_json["n_modes"]
+    v = P3SchemeVerifier()
+    cert = ledger.get_certification(v.name, v.version, v.binary_hash)
+    if cert is None or cert.golden_suite_hash != p3_suite_hash():
+        certify_p3(ledger, v)
+    achieved = best.report.p_min if target == "p_min" else best.report.p_avg
+    claim = {"claimed_p_min": max(0.0, achieved - 1e-9)} if target == "p_min" else {
+        "claimed_p_avg": max(0.0, achieved - 1e-9)}
+    # Declare the leakage the engines actually reported (float noise, <= 1e-12 for
+    # an unambiguous scheme): an honest budget, recorded in the claim's scope.
+    art = ingest_scheme_artifact(
+        ledger, store, scheme_json=best.scheme_json,
+        title=f"P3 optimizer k={k} m={m} {target} (float, two-engine)",
+        claimed_max_leakage=float(best.report.leakage), **claim,
+    )
+    print(f"  ingested float scheme {art.id[:12]} at {art.status.value}")
+    if best.exact is None:
+        return
+    ve = P3ExactVerifier()
+    cert = ledger.get_certification(ve.name, ve.version, ve.binary_hash)
+    if cert is None or cert.golden_suite_hash != p3_exact_suite_hash():
+        certify_p3_exact(ledger, ve)
+    ex = best.exact
+    wart = ingest_exact_witness(
+        ledger, store, witness_json=best.witness_json,
+        claimed_success={b: alg_to_json(val) for b, val in ex.success.items()},
+        require_all_identified=ex.all_identified,
+        title=f"P3 exact witness k={k} m={m}: {target} optimum",
+    )
+    print(f"  ingested exact witness {wart.id[:12]} at {wart.status.value}")
+
+
 def _cmd_certify(args: argparse.Namespace) -> int:
     state = CampaignState.load(args.run_dir)
     try:
@@ -609,6 +728,8 @@ def main(
         return _cmd_audit(args)
     if args.command == "reverify":
         return _cmd_reverify(args)
+    if args.command == "p3-optimize":
+        return _cmd_p3_optimize(args)
     if args.command == "certify":
         return _cmd_certify(args)
     if args.command == "gates":

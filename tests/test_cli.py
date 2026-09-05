@@ -620,3 +620,25 @@ def test_reverify_missing_ledger_is_an_error(tmp_path, capsys):
     rc = main(["reverify", "--run-dir", str(tmp_path / "nope")])
     assert rc == 1
     assert "does not exist" in capsys.readouterr().err
+
+
+# -- p3-optimize ------------------------------------------------------------------
+
+
+def test_p3_optimize_writes_results_and_ingests(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    out = tmp_path / "opt.json"
+    rc = main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "4",
+               "--target", "p_avg", "--restarts", "2", "--max-iter", "120",
+               "--out", str(out), "--ingest"])
+    assert rc == 0
+    text = capsys.readouterr().out
+    assert "p3-optimize k=0 m=4 p_avg: best=0.5" in text
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text
+    import json
+
+    data = json.loads(out.read_text())
+    assert data["results"][0]["exact"]["p_avg"] == "1/2"
+    rc = main(["status", "--run-dir", str(run_dir)])
+    assert rc == 0
+    assert "CERTIFIED: 1" in capsys.readouterr().out
