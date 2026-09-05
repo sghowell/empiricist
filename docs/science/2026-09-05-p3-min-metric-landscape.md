@@ -47,10 +47,12 @@ per-pattern distributions reproduce the engines' float distributions to 1e-6.
 
 ## The witnesses
 
-- **Balanced 1/4 (m = 5).** Gauge-fixed, the 5 × 5 isometry has |entry|² ∈ {1/4, 1/8, 0} on the
-  Bell columns and {1/4, 1/8, 0} on the ancilla column, with phases on the π/6 lattice; the
-  generic member of its family has irrational moduli (a one-parameter family with the same
-  vector), which is why only one restart in four lifted.
+- **Balanced 1/4 (m = 5).** Gauge-fixed, the 5 × 5 isometry has |entry|² ∈ {1/2, 1/4, 1/8, 0}
+  with phases on the π/6 lattice: each rail of qubit A feeds two output modes with weight 1/2,
+  qubit B's rails and the ancilla spread with weights 1/4 and 1/8, and each Bell state is
+  identified by exactly two detection patterns of probability 1/8 (eight identifying patterns
+  in all). The other restarts at 1/4 have moduli off the small-rational lattice, consistent
+  with a continuous family sharing the vector, which is why only one of four lifted.
 - **(1, 1/6, 1/2, 2/9) (m = 5).** Rows 0 and 4 form a standard analyser-like block that never
   sees the ancilla (|entry|² = 1/4); rows 1–3 split the ancilla photon evenly (1/3 each) and
   every Bell mode with weight 1/6, with phases on the π/6 lattice — a tritter coupling the
