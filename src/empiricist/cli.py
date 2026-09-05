@@ -187,6 +187,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    ing_p = sub.add_parser(
+        "p3-ingest-results",
+        help=(
+            "ingest a p3-optimize results file: best float scheme (HEURISTIC) "
+            "+ best exact witness (CERTIFIED)"
+        ),
+    )
+    ing_p.add_argument("--run-dir", required=True, type=Path)
+    ing_p.add_argument(
+        "--results", required=True, type=Path, help="JSON written by p3-optimize --out"
+    )
+
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
 
@@ -590,6 +602,65 @@ def _cmd_p3_optimize(args: argparse.Namespace) -> int:
         ledger.close()
 
 
+def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
+    """Re-verify and ingest from a saved results file (the batch may have run
+    without --ingest). Only the raw scheme / witness JSON is trusted from the
+    file: every number is re-derived by the certified verifiers at ingest."""
+    import json
+
+    from empiricist.domain.p3.exact import exact_report, witness_from_json
+    from empiricist.domain.p3.verify import verify_scheme_agreed
+    from empiricist.search.p3_screen import screen_scheme
+
+    data = json.loads(args.results.read_text())
+    target, rows = data["target"], data["results"]
+    if not rows:
+        print("p3-ingest-results: empty results file")
+        return 1
+    ledger = Ledger(args.run_dir / "ledger.db")
+    store = Store(args.run_dir / "store")
+    try:
+        # Best float scheme: re-evaluate with both engines; never trust the file's numbers.
+        best_float = None
+        for row in rows:
+            res = verify_scheme_agreed(screen_scheme(row["scheme"]))
+            if res.verdict != "PASS" or res.report is None:
+                continue
+            value = res.report.p_min if target == "p_min" else res.report.p_avg
+            if best_float is None or value > best_float[0]:
+                best_float = (value, row["scheme"], res.report)
+        if best_float is None:
+            print("p3-ingest-results: no scheme re-verified PASS")
+            return 1
+        _, scheme_json, report = best_float
+
+        class _Best:
+            pass
+
+        b = _Best()
+        b.scheme_json, b.report = scheme_json, report
+        _ingest_float_result(ledger, store, b, target)
+        # Best exact witness: re-derive its exact report from the witness JSON.
+        best_exact = None
+        for row in rows:
+            if not row.get("witness"):
+                continue
+            ex = exact_report(witness_from_json(row["witness"]))
+            value = ex.p_min if target == "p_min" else ex.p_avg
+            if best_exact is None or best_exact[0] < value:
+                best_exact = (value, row["witness"], ex, row["scheme"])
+        if best_exact is None:
+            print("  no exact witness in the results file")
+            return 0
+        _, witness_json, ex, scheme_json = best_exact
+        e = _Best()
+        e.scheme_json, e.witness_json, e.exact = scheme_json, witness_json, ex
+        _ingest_exact_result(ledger, store, e, target)
+        return 0
+    finally:
+        ledger.close()
+
+
 def _ingest_optimizer_results(ledger: Ledger, store: Store, results, target: str) -> None:
     """Ingest the best float scheme (HEURISTIC) and, separately, the best result
     that lifted to an exact witness (CERTIFIED) -- which need not be the same
@@ -745,6 +816,8 @@ def main(
         return _cmd_reverify(args)
     if args.command == "p3-optimize":
         return _cmd_p3_optimize(args)
+    if args.command == "p3-ingest-results":
+        return _cmd_p3_ingest_results(args)
     if args.command == "certify":
         return _cmd_certify(args)
     if args.command == "gates":

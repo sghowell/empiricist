@@ -642,3 +642,21 @@ def test_p3_optimize_writes_results_and_ingests(tmp_path, capsys):
     rc = main(["status", "--run-dir", str(run_dir)])
     assert rc == 0
     assert "CERTIFIED: 1" in capsys.readouterr().out
+
+
+def test_p3_ingest_results_re_verifies_from_a_saved_file(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    out = tmp_path / "opt.json"
+    assert main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "4",
+                 "--target", "p_avg", "--restarts", "2", "--max-iter", "120",
+                 "--out", str(out)]) == 0
+    capsys.readouterr()
+    rc = main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)])
+    assert rc == 0
+    text = capsys.readouterr().out
+    assert "at HEURISTIC" in text and "at CERTIFIED" in text
+    # idempotent: a second ingest adds no artifacts
+    assert main(["p3-ingest-results", "--run-dir", str(run_dir), "--results", str(out)]) == 0
+    main(["status", "--run-dir", str(run_dir)])
+    status = capsys.readouterr().out
+    assert "CERTIFIED: 1" in status and "HEURISTIC: 1" in status
