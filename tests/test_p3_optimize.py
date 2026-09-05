@@ -223,6 +223,27 @@ def test_optimize_records_a_failed_run_on_an_f3_alarm(tmp_path, monkeypatch):
         lg.close()
 
 
+def test_derived_targets_metric_and_surrogate():
+    from empiricist.domain.p3.optimize import exact_metric_of, metric_of
+
+    g = evaluate_scheme(grice_boosted_bsm(), PermanentEngine())
+    assert metric_of(g, "p_low2") == pytest.approx(1.0)      # 1/2 + 1/2
+    assert metric_of(g, "p_sum_all4") == pytest.approx(3.0)
+    s = evaluate_scheme(standard_bsm(), PermanentEngine())
+    assert metric_of(s, "p_low2") == pytest.approx(0.0)
+    assert metric_of(s, "p_sum_all4") == 0.0                 # a Bell state at 0 -> excluded
+    ex = exact_report(to_exact_witness(grice_boosted_bsm()))
+    assert exact_metric_of(ex, "p_low2") == pytest.approx(1.0)
+    k, m = 2, 8
+    ev = FastEvaluator(k, m)
+    anc = np.array([grice_boosted_bsm().ancilla.get(p, 0.0) for p in ancilla_basis(k, m)])
+    P = ev.probabilities(mesh_unitary(grice_boosted_bsm().mesh), anc)
+    assert surrogate(P, target="p_low2", tau=1e-5) == pytest.approx(1.0, abs=1e-4)
+    assert surrogate(P, target="p_sum_all4", tau=1e-5) == pytest.approx(3.0, abs=1e-2)
+    with pytest.raises(ValueError):
+        metric_of(g, "nope")
+
+
 def test_optimize_rejects_bad_arguments():
     with pytest.raises(ValueError):
         optimize_scheme(0, 4, target="p_max")

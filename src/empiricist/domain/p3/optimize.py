@@ -268,6 +268,34 @@ def gated_success(P: np.ndarray, *, tau: float) -> np.ndarray:
 
 
 _LOG_EPS = 1e-3
+TARGETS = ("p_min", "p_avg", "p_low2", "p_sum_all4")
+
+
+def metric_of(report: SchemeReport, target: str) -> float:
+    """The assignment-derived value of `target` for a (float) scheme report."""
+    v = sorted(report.success_by_state.values())
+    if target == "p_min":
+        return report.p_min
+    if target == "p_avg":
+        return report.p_avg
+    if target == "p_low2":
+        return v[0] + v[1]
+    if target == "p_sum_all4":
+        return sum(v) if v[0] > 0 else 0.0
+    raise ValueError(f"target must be one of {TARGETS}")
+
+
+def exact_metric_of(exact: ExactReport, target: str) -> float:
+    vals = sorted(x.to_float() for x in exact.success.values())
+    if target == "p_min":
+        return exact.p_min.to_float()
+    if target == "p_avg":
+        return exact.p_avg.to_float()
+    if target == "p_low2":
+        return vals[0] + vals[1]
+    if target == "p_sum_all4":
+        return sum(vals) if exact.all_identified else 0.0
+    raise ValueError(f"target must be one of {TARGETS}")
 
 
 def surrogate(P: np.ndarray, *, target: str, tau: float, shaping: str = "final") -> float:
@@ -281,11 +309,25 @@ def surrogate(P: np.ndarray, *, target: str, tau: float, shaping: str = "final")
     -tau log sum_B exp(-S_B/tau), which converges to min_B S_B as tau -> 0.
     A leakage-free scheme scores exactly its metric under the final shaping.
     """
-    if target not in ("p_min", "p_avg"):
-        raise ValueError("target must be 'p_min' or 'p_avg'")
+    if target not in TARGETS:
+        raise ValueError(f"target must be one of {TARGETS}")
     s = gated_success(P, tau=tau)
     if target == "p_avg":
         return float(s.mean())
+    if target == "p_sum_all4":
+        # total success, but only schemes identifying ALL FOUR states count:
+        # the log-product term is -inf-like when any S_B is ~0 (log shaping) and
+        # a small tie-breaker under the final shaping.
+        if shaping == "log":
+            return float(np.mean(np.log(s + _LOG_EPS)) + s.sum())
+        return float(s.sum() + 1e-3 * np.mean(np.log(s + _LOG_EPS)))
+    if target == "p_low2":
+        # the sum of the two smallest successes (the strategist's frontier
+        # conjecture p(1) + p(2) <= 1/2): soft-minimum over the six pairs.
+        pairs = np.array([s[a] + s[b] for a in range(4) for b in range(a + 1, 4)])
+        if shaping == "log":
+            return float(np.mean(np.log(s + _LOG_EPS)))
+        return float(-tau * logsumexp(-pairs / tau))
     if shaping == "log":
         return float(np.mean(np.log(s + _LOG_EPS)))
     return float(-tau * logsumexp(-s / tau))
@@ -413,8 +455,8 @@ class OptResult:
 
     def metric(self, target: str) -> float:
         if self.exact is not None:
-            return (self.exact.p_min if target == "p_min" else self.exact.p_avg).to_float()
-        return self.report.p_min if target == "p_min" else self.report.p_avg
+            return exact_metric_of(self.exact, target)
+        return metric_of(self.report, target)
 
 
 def _agreed_report(scheme: BellScheme) -> SchemeReport | None:
@@ -462,8 +504,8 @@ def optimize_scheme(
     """Random-restart L-BFGS-B over the surrogate, annealed in tau; results are
     sorted best-first by the ENGINE-VERIFIED metric (snapped when kept). With a
     ledger, one `runs` row (move OPTIMIZE) records seed/config/wall time."""
-    if target not in ("p_min", "p_avg"):
-        raise ValueError("target must be 'p_min' or 'p_avg'")
+    if target not in TARGETS:
+        raise ValueError(f"target must be one of {TARGETS}")
     if restarts < 1:
         raise ValueError("restarts must be >= 1")
     topo = topology if topology is not None else MeshTopology.universal(m)

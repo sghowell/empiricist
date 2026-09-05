@@ -178,7 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     opt_p.add_argument("--run-dir", required=True, type=Path)
     opt_p.add_argument("--k", required=True, type=int, help="ancilla photons")
     opt_p.add_argument("--m", required=True, type=int, help="modes (>= 4)")
-    opt_p.add_argument("--target", required=True, choices=("p_min", "p_avg"))
+    opt_p.add_argument("--target", required=True, choices=("p_min", "p_avg", "p_low2", "p_sum_all4"))
     opt_p.add_argument("--restarts", type=int, default=20)
     opt_p.add_argument("--seed", type=int, default=0)
     opt_p.add_argument("--max-iter", type=int, default=300)
@@ -619,7 +619,13 @@ def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
     import uuid
 
     from empiricist.domain.p3.exact import ExactUnsupported, exact_report, witness_to_json
-    from empiricist.domain.p3.optimize import lift_reproduces, to_exact_witness
+    from empiricist.domain.p3.optimize import (
+        TARGETS,
+        exact_metric_of,
+        lift_reproduces,
+        metric_of,
+        to_exact_witness,
+    )
     from empiricist.domain.p3.verify import verify_scheme_agreed
     from empiricist.ledger.models import Run
     from empiricist.search.p3_screen import screen_scheme
@@ -631,7 +637,7 @@ def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f"error: cannot read results file {args.results}: {exc}", file=sys.stderr)
         return 1
-    if target not in ("p_min", "p_avg") or not isinstance(rows, list) or not rows:
+    if target not in TARGETS or not isinstance(rows, list) or not rows:
         print("p3-ingest-results: empty or malformed results file", file=sys.stderr)
         return 1
     ledger = Ledger(args.run_dir / "ledger.db")
@@ -653,7 +659,7 @@ def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
             res = verify_scheme_agreed(scheme, claimed_max_leakage=FLOAT_LEAKAGE_BUDGET)
             if res.verdict != "PASS" or res.report is None:
                 continue
-            value = res.report.p_min if target == "p_min" else res.report.p_avg
+            value = metric_of(res.report, target)
             if best_float is None or value > best_float[0]:
                 best_float = (value, row["scheme"], res.report)
             try:
@@ -663,7 +669,7 @@ def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
             if witness is None or not lift_reproduces(witness, res.report):
                 continue
             ex = exact_report(witness)
-            ev = ex.p_min if target == "p_min" else ex.p_avg
+            ev = exact_metric_of(ex, target)
             if best_exact is None or best_exact[0] < ev:
                 best_exact = (ev, witness_to_json(witness), ex, row["scheme"])
         if best_float is None:
@@ -712,9 +718,12 @@ def _ingest_float_result(ledger: Ledger, store: Store, best, target: str) -> Non
     cert = ledger.get_certification(v.name, v.version, v.binary_hash)
     if cert is None or cert.golden_suite_hash != p3_suite_hash():
         certify_p3(ledger, v)
-    achieved = best.report.p_min if target == "p_min" else best.report.p_avg
-    claim = {"claimed_p_min": max(0.0, achieved - 1e-9)} if target == "p_min" else {
-        "claimed_p_avg": max(0.0, achieved - 1e-9)}
+    # The float claim names the metric the verifier checks (p_min / p_avg); the
+    # derived targets claim the scheme's own p_min.
+    if target == "p_avg":
+        claim = {"claimed_p_avg": max(0.0, best.report.p_avg - 1e-9)}
+    else:
+        claim = {"claimed_p_min": max(0.0, best.report.p_min - 1e-9)}
     # A FIXED leakage budget (not the measured value, which would be unfalsifiable):
     # an optimum that leaks more than this is not ingested as unambiguous.
     art = ingest_scheme_artifact(
