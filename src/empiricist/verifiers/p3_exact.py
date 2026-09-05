@@ -64,23 +64,36 @@ class P3ExactVerifier:
         claimed_success: dict[str, Alg],
         require_all_identified: bool = False,
     ) -> VerifierResult:
+        # Stage 1 -- parse the claim and the witness: any defect is the caller's
+        # (FAIL, details["invalid"]), never a crash.
         try:
             if set(claimed_success) != set(BELL_LABELS):
                 raise ValueError(
                     f"claimed_success must name exactly {list(BELL_LABELS)}, "
                     f"got {sorted(claimed_success)}"
                 )
+            if not all(isinstance(v, Alg) for v in claimed_success.values()):
+                raise ValueError("claimed_success values must be Alg elements")
             witness = witness_from_json(witness_json)
+        except Exception as exc:  # noqa: BLE001 - total function, like check_certificate
+            return VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"invalid": True, "detail": f"{type(exc).__name__}: {exc}"},
+            )
+        # Stage 2 -- evaluate a VALID witness. Outside the field is a FAIL the
+        # caller can act on; anything else raised here is checker machinery
+        # breaking on validated input: an ERROR (stop the world), never a miss.
+        try:
             rep = exact_report(witness)
         except ExactUnsupported as exc:
             return VerifierResult(
                 verdict=Verdict.FAIL,
                 details={"invalid": True, "unsupported": True, "detail": str(exc)},
             )
-        except Exception as exc:  # noqa: BLE001 - total function, like check_certificate
+        except Exception as exc:  # noqa: BLE001
             return VerifierResult(
-                verdict=Verdict.FAIL,
-                details={"invalid": True, "detail": f"{type(exc).__name__}: {exc}"},
+                verdict=Verdict.ERROR,
+                details={"error": f"{type(exc).__name__}: {exc}"},
             )
         details: dict[str, Any] = {
             "n_modes": witness.n_modes,

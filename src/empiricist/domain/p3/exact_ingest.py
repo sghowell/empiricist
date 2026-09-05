@@ -69,10 +69,12 @@ def _statement(
     tail = " Every Bell state is identified with positive probability." if all_identified else ""
     return (
         "There is an unambiguous passive linear-optical Bell-measurement scheme with "
-        f"k={k} ancilla photon(s), {m} output modes and {n_in} photon-carrying input "
-        f"modes, whose exact per-Bell-state success vector is (phi+, phi-, psi+, psi-) = "
-        f"({vec}); hence p*_min({k}) >= {alg_str(p_min)} and p*_avg({k}) >= "
-        f"{alg_str(p_avg)} (exact evaluation in Q(i)(sqrt d)).{tail}"
+        f"k={k} ancilla photon(s) on {m} modes (an isometry over the 4 dual-rail input "
+        f"modes and {n_in - 4} ancilla input mode(s)) whose exact per-Bell-state success "
+        f"vector is (phi+, phi-, psi+, psi-) = ({vec}); hence the problem's p*({k}) = "
+        f"sup min_B p_B is at least {alg_str(p_min)}, and the literature's average-success "
+        f"analogue sup mean_B p_B is at least {alg_str(p_avg)} (exact evaluation in "
+        f"Q(i)(sqrt d)).{tail}"
     )
 
 

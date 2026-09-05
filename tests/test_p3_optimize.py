@@ -132,6 +132,33 @@ def test_exact_lift_of_lattice_meshes_and_absorbed_ancilla():
         assert abs(ex.success[b].to_float() - fl.success_by_state[b]) < 1e-12
 
 
+def test_absorbed_ancilla_column_follows_the_lexicographic_basis():
+    """ancilla_basis(1, m) is lexicographic, so index 0 is the photon in the LAST
+    ancilla mode; an asymmetric ancilla must land on the right column."""
+    rng = np.random.default_rng(9)
+    for m in (6, 7):
+        topo = MeshTopology.universal(m)
+        x = rng.uniform(0, 2 * pi, n_params(1, m, topo))
+        u = unitary_from_params(topo, x)
+        basis = ancilla_basis(1, m)
+        for t, pat in enumerate(basis):
+            anc = np.zeros(len(basis), dtype=complex)
+            anc[t] = 1.0
+            v, _ = absorb_single_photon_ancilla(u, anc, 1)
+            assert np.allclose(v[:, 4], u[:, 4 + pat.index(1)])
+            assert np.allclose(v.conj().T @ v, np.eye(5), atol=1e-12)
+        # an asymmetric superposition reproduces the full scheme's probabilities
+        anc = np.array([0.6, 0.8j] + [0.0] * (len(basis) - 2))
+        ev = FastEvaluator(1, m)
+        full = ev.probabilities(u, anc)
+        v, _ = absorb_single_photon_ancilla(u, anc, 1)
+        padded = np.zeros((m, m), dtype=complex)
+        padded[:, :5] = v
+        one_hot = np.zeros(len(basis), dtype=complex)
+        one_hot[basis.index(tuple([1] + [0] * (m - 5)))] = 1.0  # photon in mode 4
+        assert np.allclose(ev.probabilities(padded, one_hot), full, atol=1e-12)
+
+
 def test_k0_optimiser_recovers_the_standard_bsm_exactly(tmp_path):
     lg = Ledger(tmp_path / "ledger.db")
     try:
@@ -140,8 +167,10 @@ def test_k0_optimiser_recovers_the_standard_bsm_exactly(tmp_path):
         best = res[0]
         assert best.exact is not None and best.exact.p_avg == Alg.rational(Fraction(1, 2))
         assert best.metric("p_avg") == pytest.approx(0.5)
-        runs = lg.conn.execute("select move, seed from runs").fetchall()
-        assert [tuple(r) for r in runs] == [("OPTIMIZE", 0)]
+        runs = lg.conn.execute("select move, seed, exit_code from runs").fetchall()
+        assert [tuple(r) for r in runs] == [("OPTIMIZE", 0, 0)]
+        assert best.run_id == runs[0][0] if False else best.run_id is not None
+        assert all(r.run_id == best.run_id for r in res)
         w = witness_from_json(best.witness_json)
         assert w.n_in == 4 and w.n_ancilla_photons == 0
     finally:
@@ -162,6 +191,36 @@ def test_k1_m5_p_min_finds_an_exact_witness_above_one_sixteenth():
     assert best.metric("p_min") >= 1 / 16 - 1e-9
     assert best.exact is not None and best.exact.all_identified
     assert best.exact.p_min >= Alg.rational(Fraction(1, 16))
+
+
+def test_lift_acceptance_compares_full_distributions():
+    from empiricist.domain.p3.optimize import lift_reproduces
+
+    scheme = grice_boosted_bsm()
+    w = to_exact_witness(scheme)
+    rep = evaluate_scheme(scheme, PermanentEngine())
+    assert lift_reproduces(w, rep)
+    other = evaluate_scheme(standard_bsm(), PermanentEngine())
+    # same 4-mode output patterns are a subset; the distributions differ
+    assert not lift_reproduces(to_exact_witness(standard_bsm()), rep)
+    assert lift_reproduces(to_exact_witness(standard_bsm()), other)
+
+
+def test_optimize_records_a_failed_run_on_an_f3_alarm(tmp_path, monkeypatch):
+    import empiricist.domain.p3.optimize as mod
+
+    def alarm(scheme):
+        raise RuntimeError("F3 alarm during optimisation: engines disagree")
+
+    monkeypatch.setattr(mod, "_agreed_report", alarm)
+    lg = Ledger(tmp_path / "ledger.db")
+    try:
+        with pytest.raises(RuntimeError, match="F3"):
+            optimize_scheme(0, 4, target="p_avg", restarts=1, max_iter=5, ledger=lg)
+        row = lg.conn.execute("select exit_code from runs").fetchone()
+        assert row[0] == 1
+    finally:
+        lg.close()
 
 
 def test_optimize_rejects_bad_arguments():

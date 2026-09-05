@@ -72,7 +72,8 @@ def test_grice_witness_ingests_at_certified_with_claim_and_clean_audit(env):
     )
     assert art.status is Status.CERTIFIED and art.kind == "certificate" and art.problem == "P3"
     claim = lg.claims_for(art.id)[0]
-    assert "p*_min(2) >= 1/2" in claim.statement and "p*_avg(2) >= 3/4" in claim.statement
+    assert "p*(2) = sup min_B p_B is at least 1/2" in claim.statement
+    assert "sup mean_B p_B is at least 3/4" in claim.statement
     assert "Every Bell state is identified" in claim.statement
     assert claim.family == "k2_m8_exact_witness" and claim.scope["all_identified"] is True
     assert claim.scope["success"]["phi+"] == [[1, "1/2", "0"]] and claim.scope["n_in"] == 8

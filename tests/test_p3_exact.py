@@ -228,3 +228,42 @@ def test_unsupported_inputs_refuse_instead_of_approximating():
                      ancilla={(3,): ONE})
     with pytest.raises(ExactUnsupported):
         exact_report(w)
+
+
+def test_witness_caps_and_radicand_cap_refuse_fast():
+    import time
+
+    from empiricist.domain.p3.exact import MAX_EXACT_MODES, MAX_EXACT_PHOTONS, MAX_RADICAND
+    from empiricist.search.p3_screen import MAX_MODES, MAX_PHOTONS
+
+    assert MAX_EXACT_MODES == MAX_MODES and MAX_EXACT_PHOTONS == MAX_PHOTONS
+    big = {"n_modes": 400, "n_ancilla_photons": 0,
+           "isometry": [[alg_to_json(ONE if r == c else ZERO) for c in range(4)]
+                        for r in range(400)],
+           "ancilla": []}
+    t = time.perf_counter()
+    with pytest.raises(ValueError, match="cap"):
+        witness_from_json(big)
+    assert time.perf_counter() - t < 1.0
+    with pytest.raises(ValueError, match="radicand"):
+        alg_from_json([[MAX_RADICAND * 10 + 7, "1", "0"]])
+    w = witness_to_json(ExactWitness.from_mesh(grice_boosted_bsm()))
+    w["n_ancilla_photons"] = 9
+    with pytest.raises(ValueError):
+        witness_from_json(w)
+
+
+def test_bell_labels_match_the_scheme_module():
+    from empiricist.domain.p3 import exact, scheme
+
+    assert exact.BELL_LABELS == scheme.BELL_LABELS
+
+
+def test_exact_module_does_not_import_numpy():
+    import subprocess
+    import sys
+
+    code = ("import sys; import empiricist.domain.p3.exact; "
+            "print('numpy' in sys.modules)")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "False"

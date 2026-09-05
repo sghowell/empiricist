@@ -55,6 +55,7 @@ from .exact import (
     ExactReport,
     ExactUnsupported,
     ExactWitness,
+    exact_distributions,
     exact_report,
     snap_isometry,
     witness_to_json,
@@ -303,7 +304,14 @@ def absorb_single_photon_ancilla(
     [U[:, :4], w] with ancilla |1> in its fifth input mode. Other k: unchanged."""
     if k != 1:
         return unitary, ancilla
-    w = unitary[:, 4:] @ ancilla
+    # `ancilla[t]` is the amplitude of `ancilla_basis(1, m)[t]`, a LEXICOGRAPHIC
+    # single-photon pattern over the m-4 ancilla modes -- index 0 is the photon in
+    # the LAST ancilla mode, so map each pattern to its mode explicitly.
+    m = unitary.shape[0]
+    basis = ancilla_basis(1, m)
+    w = np.zeros(m, dtype=np.complex128)
+    for t, pat in enumerate(basis):
+        w += ancilla[t] * unitary[:, 4 + pat.index(1)]
     return np.concatenate([unitary[:, :4], w[:, None]], axis=1), np.array([1.0 + 0j])
 
 
@@ -400,7 +408,8 @@ class OptResult:
     scheme_json: dict
     report: SchemeReport               # two-engine consensus report (float)
     witness_json: dict | None          # exact witness lifted from the optimum, if any
-    exact: ExactReport | None          # its exact report (agrees with `report` to 1e-9)
+    exact: ExactReport | None          # its exact report (reproduces `report` to 1e-6)
+    run_id: str | None = None          # the OPTIMIZE `runs` row this result came from
 
     def metric(self, target: str) -> float:
         if self.exact is not None:
@@ -417,6 +426,21 @@ def _agreed_report(scheme: BellScheme) -> SchemeReport | None:
     if res.report is None:
         return None
     return res.report
+
+
+def lift_reproduces(witness: ExactWitness, report: SchemeReport, tol: float = 1e-6) -> bool:
+    """The exact witness must reproduce the engines' FULL per-pattern
+    distributions (not just the four success values): a lift that lands on a
+    different scheme with a coincidentally equal vector is rejected."""
+    exact = exact_distributions(witness)
+    for b in BELL_LABELS:
+        float_dist = report.distributions[b]
+        for key in set(float_dist) | set(exact[b]):
+            ex = exact[b].get(key)
+            ev = 0.0 if ex is None else ex.to_float()
+            if abs(ev - float_dist.get(key, 0.0)) > tol:
+                return False
+    return True
 
 
 def _config_hash(cfg: dict) -> str:
@@ -456,6 +480,7 @@ def optimize_scheme(
         ledger.start_run(Run(run_id=run_id, move="OPTIMIZE", seed=seed,
                              config_hash=_config_hash(cfg)))
     results: list[OptResult] = []
+    exit_code = 1  # anything but a normal completion below is recorded as a failure
     try:
         for restart in range(restarts):
             x = np.concatenate([
@@ -483,23 +508,18 @@ def optimize_scheme(
                 continue
             witness_json = exact = None
             witness = to_exact_witness(scheme, seed=seed + restart)
-            if witness is not None:
-                ex = exact_report(witness)
-                # The exact vector must reproduce the engines' float vector: a
-                # lift that lands on a DIFFERENT scheme is discarded.
-                if all(
-                    abs(ex.success[b].to_float() - report.success_by_state[b]) < 1e-6
-                    for b in BELL_LABELS
-                ):
-                    witness_json, exact = witness_to_json(witness), ex
+            if witness is not None and lift_reproduces(witness, report):
+                witness_json, exact = witness_to_json(witness), exact_report(witness)
             results.append(OptResult(
                 restart=restart, objective=float(objective),
                 scheme_json=scheme_to_json(scheme), report=report,
                 witness_json=witness_json, exact=exact,
+                run_id=run_id if ledger is not None else None,
             ))
+        exit_code = 0
     finally:
         if ledger is not None:
-            ledger.finish_run(run_id, exit_code=0, wall_s=time.monotonic() - started)
+            ledger.finish_run(run_id, exit_code=exit_code, wall_s=time.monotonic() - started)
     # Best metric first; among equals, prefer a result that lifted to an exact
     # witness (the certifiable object) and then the lower restart index.
     results.sort(key=lambda r: (-r.metric(target), r.exact is None, r.restart))

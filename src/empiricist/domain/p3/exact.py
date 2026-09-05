@@ -35,16 +35,31 @@ import math
 from dataclasses import dataclass, field
 from fractions import Fraction
 from math import pi
+from typing import TYPE_CHECKING
 
 from .fock import factorial_prod, patterns
-from .interferometer import Mesh
-from .scheme import BELL_LABELS
+
+if TYPE_CHECKING:  # the Mesh type only; interferometer.py pulls numpy in at runtime
+    from .interferometer import Mesh
+
+# Kept equal to scheme.BELL_LABELS by a test; scheme.py imports numpy transitively
+# and this module must stay stdlib-only.
+BELL_LABELS = ("phi+", "phi-", "psi+", "psi-")
 
 Gauss = tuple[Fraction, Fraction]  # re + i*im
 
 
 class ExactUnsupported(ValueError):
     """A parameter lies outside the supported field (or an unsupported occupation)."""
+
+
+# Compute caps for witness JSON (the exact analogue of search/p3_screen.py's caps,
+# kept equal by a test): the number of output patterns is C(m+k+1, k+2) and every
+# one costs exact permanents, so an unbounded witness is a DoS on a checker whose
+# contract is "never a crash".
+MAX_EXACT_MODES = 12
+MAX_EXACT_PHOTONS = 4       # ancilla photons k
+MAX_RADICAND = 10**6        # `_sqfree` trial-divides; keep it bounded
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +277,9 @@ def alg_from_json(v) -> Alg:
         out = ZERO
         for d, a, b in v:
             d = int(d)
-            if d < 1 or _sqfree(d) != (1, d):
+            if d < 1 or d > MAX_RADICAND:
+                raise ValueError(f"radicand {d} outside [1, {MAX_RADICAND}]")
+            if _sqfree(d) != (1, d):
                 raise ValueError(f"radicand {d} is not square-free")
             coeff = (Fraction(a), Fraction(b))
             if coeff != (0, 0):
@@ -295,12 +312,16 @@ def snap_rational(x: float, *, max_denom: int = 64, tol: float = 1e-9) -> Fracti
 
 
 def snap_complex(z: complex, *, max_denom: int = 64, tol: float = 1e-7) -> Alg:
-    """z -> sqrt(|z|^2) exp(i k pi/12) with |z|^2 a small rational."""
+    """z -> sqrt(|z|^2) exp(i k pi/12) with |z|^2 a small rational. An entry with
+    |z|^2 <= tol is an exact zero (the same tolerance `snap_rational` uses, so the
+    zero threshold is not silently looser than the documented one)."""
     z = complex(z)
     r2 = abs(z) ** 2
-    if r2 < tol * tol:
+    if r2 <= tol:
         return ZERO
     modulus2 = snap_rational(r2, max_denom=max_denom, tol=tol)
+    if modulus2 == 0:
+        return ZERO
     return Alg.polar(modulus2, snap_lattice_phase(z, tol=tol))
 
 
@@ -423,6 +444,14 @@ class ExactWitness:
     def validate(self) -> None:
         if self.n_modes < 4 or self.n_in < 4:
             raise ValueError("a Bell scheme needs at least the 4 dual-rail modes")
+        if self.n_modes > MAX_EXACT_MODES:
+            raise ValueError(
+                f"n_modes {self.n_modes} exceeds the exact-checker cap {MAX_EXACT_MODES}"
+            )
+        if not (0 <= self.n_ancilla_photons <= MAX_EXACT_PHOTONS):
+            raise ValueError(
+                f"n_ancilla_photons {self.n_ancilla_photons} outside [0, {MAX_EXACT_PHOTONS}]"
+            )
         if len(self.isometry) != self.n_modes or any(len(r) != self.n_in for r in self.isometry):
             raise ValueError("isometry shape must be n_modes x n_in")
         if self.n_in > self.n_modes:

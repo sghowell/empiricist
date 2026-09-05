@@ -72,10 +72,54 @@ def test_verifier_accepts_irrational_exact_claims():
     assert r.verdict is Verdict.PASS
 
 
-def test_golden_suite_has_teeth_and_stable_hash():
+def test_golden_suite_shape_and_stable_hash():
     verdicts = [e for _, _, e in P3_EXACT_GOLDEN_SUITE]
-    assert verdicts.count(Verdict.PASS) == 3 and verdicts.count(Verdict.FAIL) == 5
+    assert verdicts.count(Verdict.PASS) == 4 and verdicts.count(Verdict.FAIL) == 6
     assert len(p3_exact_suite_hash()) == 64 and p3_exact_suite_hash() == p3_exact_suite_hash()
+
+
+def test_golden_suite_catches_a_checker_without_witness_validation(tmp_path, monkeypatch):
+    """Mutation: drop the isometry / normalisation checks. The doubled-Grice and
+    un-normalised-ancilla cases claim exactly what such a checker computes, so it
+    PASSes them and loses its stamp."""
+    import empiricist.domain.p3.exact as exact_mod
+
+    lg = Ledger(tmp_path / "ledger.db")
+    try:
+        assert certify_p3_exact(lg, P3ExactVerifier()).verdict is Verdict.PASS
+        monkeypatch.setattr(exact_mod.ExactWitness, "validate", lambda self: None)
+        assert certify_p3_exact(lg, P3ExactVerifier()).verdict is Verdict.FAIL
+    finally:
+        lg.close()
+
+
+def test_golden_suite_catches_a_checker_without_input_factorials(tmp_path, monkeypatch):
+    """Mutation: 1/sqrt(t!) -> 1. The |2,0> ancilla case claims the true vector
+    (0, 0, 1, 1); the mutant computes (0, 0, 2, 2) and fails certification."""
+    import empiricist.domain.p3.exact as exact_mod
+
+    lg = Ledger(tmp_path / "ledger.db")
+    try:
+        monkeypatch.setattr(exact_mod, "_inverse_sqrt_factorials", lambda pattern: exact_mod.ONE)
+        assert certify_p3_exact(lg, P3ExactVerifier()).verdict is Verdict.FAIL
+    finally:
+        lg.close()
+
+
+def test_verify_is_total_over_claims_and_reports_machinery_errors(monkeypatch):
+    v = P3ExactVerifier()
+    r = v.verify(GRICE, claimed_success={"phi+": "1/2", "phi-": "1/2", "psi+": "1", "psi-": "1"})
+    assert r.verdict is Verdict.FAIL and r.details["invalid"] is True
+    r = v.verify(GRICE, claimed_success=dict.fromkeys(("phi+", "phi-", "psi+", "psi-"), 1))
+    assert r.verdict is Verdict.FAIL and r.details["invalid"] is True
+    import empiricist.verifiers.p3_exact as mod
+
+    def boom(witness):
+        raise RuntimeError("machinery")
+
+    monkeypatch.setattr(mod, "exact_report", boom)
+    r = v.verify(GRICE, claimed_success=_vec("1/2", "1/2", 1, 1))
+    assert r.verdict is Verdict.ERROR and "machinery" in r.details["error"]
 
 
 def test_certify_p3_exact_stamps_pass_and_rejects_a_verifier_without_teeth(tmp_path):

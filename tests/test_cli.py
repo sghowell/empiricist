@@ -642,6 +642,15 @@ def test_p3_optimize_writes_results_and_ingests(tmp_path, capsys):
     rc = main(["status", "--run-dir", str(run_dir)])
     assert rc == 0
     assert "CERTIFIED: 1" in capsys.readouterr().out
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        arts = state.ledger.find_artifacts()
+        assert all(a.run_id is not None and a.run_id.startswith("p3opt-") for a in arts)
+    finally:
+        state.close()
+    assert main(["p3-optimize", "--run-dir", str(run_dir), "--k", "0", "--m", "20",
+                 "--target", "p_avg", "--out", str(out)]) == 2
+    assert "need 4 <= m" in capsys.readouterr().err
 
 
 def test_p3_ingest_results_re_verifies_from_a_saved_file(tmp_path, capsys):
@@ -660,3 +669,11 @@ def test_p3_ingest_results_re_verifies_from_a_saved_file(tmp_path, capsys):
     main(["status", "--run-dir", str(run_dir)])
     status = capsys.readouterr().out
     assert "CERTIFIED: 1" in status and "HEURISTIC: 1" in status
+    state = CampaignState.open_readonly(run_dir)
+    try:
+        assert all(a.run_id.startswith("p3ingest-") for a in state.ledger.find_artifacts())
+    finally:
+        state.close()
+    assert main(["p3-ingest-results", "--run-dir", str(run_dir),
+                 "--results", str(tmp_path / "missing.json")]) == 1
+    assert "cannot read results file" in capsys.readouterr().err

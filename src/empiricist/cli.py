@@ -549,7 +549,11 @@ def _cmd_p3_optimize(args: argparse.Namespace) -> int:
 
     from empiricist.domain.p3.exact import alg_str, alg_to_json
     from empiricist.domain.p3.optimize import optimize_scheme
+    from empiricist.search.p3_screen import MAX_MODES, MAX_PHOTONS
 
+    if not (4 <= args.m <= MAX_MODES) or not (0 <= args.k <= MAX_PHOTONS):
+        print(f"error: need 4 <= m <= {MAX_MODES} and 0 <= k <= {MAX_PHOTONS}", file=sys.stderr)
+        return 2
     args.run_dir.mkdir(parents=True, exist_ok=True)
     ledger = Ledger(args.run_dir / "ledger.db")
     store = Store(args.run_dir / "store")
@@ -604,60 +608,79 @@ def _cmd_p3_optimize(args: argparse.Namespace) -> int:
 
 def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
     """Re-verify and ingest from a saved results file (the batch may have run
-    without --ingest). Only the raw scheme / witness JSON is trusted from the
-    file: every number is re-derived by the certified verifiers at ingest."""
+    without --ingest). Only the raw scheme JSON is trusted from the file: every
+    number is re-derived by the certified verifiers at ingest, and the exact
+    lift is recomputed from the scheme (so a fixed lift benefits old files)."""
     import json
+    import uuid
 
-    from empiricist.domain.p3.exact import exact_report, witness_from_json
+    from empiricist.domain.p3.exact import ExactUnsupported, exact_report, witness_to_json
+    from empiricist.domain.p3.optimize import lift_reproduces, to_exact_witness
     from empiricist.domain.p3.verify import verify_scheme_agreed
+    from empiricist.ledger.models import Run
     from empiricist.search.p3_screen import screen_scheme
+    from empiricist.search.schemas import ScreenReject
 
-    data = json.loads(args.results.read_text())
-    target, rows = data["target"], data["results"]
-    if not rows:
-        print("p3-ingest-results: empty results file")
+    try:
+        data = json.loads(args.results.read_text())
+        target, rows = data["target"], data["results"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f"error: cannot read results file {args.results}: {exc}", file=sys.stderr)
+        return 1
+    if target not in ("p_min", "p_avg") or not isinstance(rows, list) or not rows:
+        print("p3-ingest-results: empty or malformed results file", file=sys.stderr)
         return 1
     ledger = Ledger(args.run_dir / "ledger.db")
     store = Store(args.run_dir / "store")
+    run_id = f"p3ingest-{uuid.uuid4().hex[:8]}"
+    ledger.start_run(Run(run_id=run_id, move="INGEST", argv=str(args.results)))
+    exit_code = 1
     try:
-        # Best float scheme: re-evaluate with both engines; never trust the file's numbers.
         best_float = None
+        best_exact = None
         for row in rows:
-            res = verify_scheme_agreed(screen_scheme(row["scheme"]))
+            try:
+                scheme = screen_scheme(row["scheme"])
+            except (ScreenReject, KeyError, TypeError) as exc:
+                print(f"  skipped a row: {exc}")
+                continue
+            res = verify_scheme_agreed(scheme)
             if res.verdict != "PASS" or res.report is None:
                 continue
             value = res.report.p_min if target == "p_min" else res.report.p_avg
             if best_float is None or value > best_float[0]:
                 best_float = (value, row["scheme"], res.report)
+            try:
+                witness = to_exact_witness(scheme)
+            except (ExactUnsupported, ValueError):
+                witness = None
+            if witness is None or not lift_reproduces(witness, res.report):
+                continue
+            ex = exact_report(witness)
+            ev = ex.p_min if target == "p_min" else ex.p_avg
+            if best_exact is None or best_exact[0] < ev:
+                best_exact = (ev, witness_to_json(witness), ex, row["scheme"])
         if best_float is None:
             print("p3-ingest-results: no scheme re-verified PASS")
             return 1
-        _, scheme_json, report = best_float
 
         class _Best:
             pass
 
         b = _Best()
-        b.scheme_json, b.report = scheme_json, report
+        b.run_id, b.scheme_json, b.report = run_id, best_float[1], best_float[2]
         _ingest_float_result(ledger, store, b, target)
-        # Best exact witness: re-derive its exact report from the witness JSON.
-        best_exact = None
-        for row in rows:
-            if not row.get("witness"):
-                continue
-            ex = exact_report(witness_from_json(row["witness"]))
-            value = ex.p_min if target == "p_min" else ex.p_avg
-            if best_exact is None or best_exact[0] < value:
-                best_exact = (value, row["witness"], ex, row["scheme"])
         if best_exact is None:
-            print("  no exact witness in the results file")
-            return 0
-        _, witness_json, ex, scheme_json = best_exact
-        e = _Best()
-        e.scheme_json, e.witness_json, e.exact = scheme_json, witness_json, ex
-        _ingest_exact_result(ledger, store, e, target)
+            print("  no result lifts to an exact witness")
+        else:
+            e = _Best()
+            e.run_id = run_id
+            e.scheme_json, e.witness_json, e.exact = best_exact[3], best_exact[1], best_exact[2]
+            _ingest_exact_result(ledger, store, e, target)
+        exit_code = 0
         return 0
     finally:
+        ledger.finish_run(run_id, exit_code=exit_code, wall_s=0.0)
         ledger.close()
 
 
@@ -686,12 +709,12 @@ def _ingest_float_result(ledger: Ledger, store: Store, best, target: str) -> Non
     achieved = best.report.p_min if target == "p_min" else best.report.p_avg
     claim = {"claimed_p_min": max(0.0, achieved - 1e-9)} if target == "p_min" else {
         "claimed_p_avg": max(0.0, achieved - 1e-9)}
-    # Declare the leakage the engines actually reported (float noise, <= 1e-12 for
-    # an unambiguous scheme): an honest budget, recorded in the claim's scope.
+    # A FIXED leakage budget (not the measured value, which would be unfalsifiable):
+    # an optimum that leaks more than this is not ingested as unambiguous.
     art = ingest_scheme_artifact(
         ledger, store, scheme_json=best.scheme_json,
         title=f"P3 optimizer k={k} m={m} {target} (float, two-engine)",
-        claimed_max_leakage=float(best.report.leakage), **claim,
+        claimed_max_leakage=1e-9, run_id=getattr(best, "run_id", None), **claim,
     )
     print(f"  ingested float scheme {art.id[:12]} at {art.status.value}")
 
@@ -713,6 +736,7 @@ def _ingest_exact_result(ledger: Ledger, store: Store, best, target: str) -> Non
         claimed_success={b: alg_to_json(val) for b, val in ex.success.items()},
         require_all_identified=ex.all_identified,
         title=f"P3 exact witness k={k} m={m}: {target} optimum",
+        run_id=getattr(best, "run_id", None),
     )
     print(f"  ingested exact witness {wart.id[:12]} at {wart.status.value}")
 
