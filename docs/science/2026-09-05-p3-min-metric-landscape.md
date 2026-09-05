@@ -104,5 +104,6 @@ and what the harness could check today:
   HEURISTIC and stay so until a certificate or a Lean proof lands.
 - The lost wave-1 design with vector (1/16, 3/16, 9/16, 1) (min 1/16) was never
   re-found; both certified families dominate it on the min metric.
-- k = 2 sanity runs (m = 8, 12 restarts per metric) are recorded in
-  `runs/p3-campaign/opt/`; see the addendum below once complete.
+- k = 2 sanity runs (m = 8, 12 restarts per metric; Grice's (1/2, 1/2, 1, 1) is the
+  reference) and the frontier batch (`p_low2`, `p_sum_all4` at m = 5, 6) are recorded in
+  `runs/p3-campaign/opt/` and summarised in a follow-up once complete.
