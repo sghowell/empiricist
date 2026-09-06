@@ -102,3 +102,23 @@ On the trial worktree (branch `empiricist-claims-import`, commit c17c356 and lat
 - `formulate --verifier/--evidence-glob` (declaring a certificate interface up front).
 - Batch-mode `review` (the ledger's gate queue) and multi-sample aggregation policies beyond "any blocking sample blocks".
 - The cosmology pack (2026-10-02 row).
+
+
+---
+
+## Outcome (2026-09-06)
+
+- Tasks 1–3 merged as PR #72; Task 4 (skill pack + installer) and the trial note in PR #73,
+  together with two changes the trial forced: `closes` is a list (two-sample reviews block
+  in pairs), and a fresh sample without a blocking finding closes the blocks it was asked
+  to close; the bundle gives each evidence file a fair share.
+- Task 5, on the trial branch (`empiricist-claims-import`, pushed): the skill is
+  installed; P8-A.7 was reviewed twice. Round 1 blocked on a real record defect (no
+  dependency edges); the record was corrected; round 2 raised no blocking finding but
+  would not sign CERTIFIED over HEURISTIC dependencies. The promotion with a receipt is
+  therefore still open: it needs either a human receipt closing the blocks and a decision
+  on dependency levels, or the P8(a) chain re-earned bottom-up. Details in
+  `docs/science/2026-09-06-claims-trial-death-and-gravity.md`.
+- Deferred (unchanged) plus: derive `depends_on` from certificate pins at import; a
+  pytest-suite verifier shape (a FAIL fixture that is a failing test module); the
+  dependency-level rule.

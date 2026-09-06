@@ -46,7 +46,59 @@ the claim STALE (verifier drift) until `certify-verifier` and `reverify` re-earn
 
 ## Review and the first genuine promotion (M22c)
 
-<!-- REVIEW-RESULTS -->
+`claims review --id P8-A.7 --target-level CERTIFIED` ran two independent reviewer
+samples (the `reviewer` role: paid only for concrete defects along six dimensions, fresh
+context each, MAX effort; $2.93 and $1.90, about five minutes each).
+
+**Round 1: both samples BLOCKED**, independently, on the same defect. The ledger record
+said `depends_on: []` while the certificate pins the A.6 certificate
+(`prior_A6_sha256 = 1101c2c2…`), `verify.py` re-replays A.6 before anything else, the
+statement is scoped to "the unchanged A.5/A.6 … preparation", and the proof imports
+reference scales from A.3. A CERTIFIED node with no dependency edges would not go STALE
+when A.6 changes. Real, and mine to fix: the importer had no way to derive dependencies
+from the evidence. Both samples also warned that `formulation_version: legacy-table`
+did not name the FORMULATION.md the certificate pins, and that two PASS entries carried
+the same verifier version with different binary hashes.
+
+Record corrected on the trial branch (a540755): `depends_on` = P8-A.3, P8-A.5, P8-A.6
+and the pinned A.6 certificate file (now locked, so an A.6 change propagates as STALE);
+`formulation_version = FORMULATION.md@bb415f07`; `p8a_remainder` bumped to version 2;
+the verifier history written into the claim notes.
+
+**Round 2: both samples REVISE, no blocking finding** ($2.71, $2.13). Sample 4 notes
+"the prior blocking condition (empty dependency list) is addressed". What remains is
+mostly for the author, not the harness:
+
+- *Level inversion.* CERTIFIED would sit on three dependencies that stand at HEURISTIC
+  (legacy CERTIFIED, not re-earned), and the proof imports substantive lemmas from A.6.
+  The ledger has no rule capping a level by its dependencies' levels. Either the chain is
+  re-earned bottom-up (one declaration per checker; the adapter makes it mechanical), or
+  the charter states that levels are per-claim and dependency levels are advisory. A
+  decision for the charter, proposed in Mindpalace.
+- *Statement scope.* The clause "explicit quadratic finite-amplitude error constants"
+  carries no `2<=y<=3` envelope qualifier although the constants are derived only there;
+  `t_star` is undefined in the bound text; `P1` is defined twice in the written proof.
+  Wording changes to the claim are the author's.
+- *Evidence breadth.* The pinned `tests/*.py` suite is never executed as evidence; the
+  Wick-C2 constants are computed once rather than cross-checked; the analytic steps
+  (IR Volterra, UV Gronwall, coincidence limit) are prose, as the certificate's own
+  verification boundary discloses.
+- *Harness.* The bundle truncated FORMULATION.md because one large certificate consumed
+  the byte cap (fixed: fair per-file shares); the round-2 samples carry `closes: []`
+  because only PASS samples closed blocks under the rule in force (fixed: any fresh
+  sample without a blocking finding closes).
+
+**Outcome.** P8-A.7 is CONJECTURED with a certified-verifier PASS, four receipts, and
+standing CHALLENGED until a later receipt closes the two round-1 blocks (a human
+`review --human --closes …`, or another model round under the corrected rule). The
+promotion to CERTIFIED has not happened: the reviewer would not sign it while the
+dependencies are un-earned, and neither should the harness. Cost of the trial's reviews:
+$9.67; total model spend of the day $11.44.
+
+For the charter's kill gate this is the first of its two events: a receipt has blocked a
+promotion on a genuine defect. The other (a genuine stale claim caught) has a rehearsal:
+changing the verifier declaration made P8-A.7 STALE until re-certification and
+re-verification.
 
 ## What the next problem needs
 
