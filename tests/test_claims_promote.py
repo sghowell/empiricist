@@ -182,3 +182,25 @@ def test_cli_promotion_commands(tmp_path, capsys):
     assert "refused" in capsys.readouterr().err
     assert main(["claims", "reverify", "--repo", str(repo)]) == 0
     assert main(["claims", "check", "--repo", str(repo)]) == 0
+
+
+def test_promote_re_earns_a_legacy_level(tmp_path):
+    from empiricist.claims.importer import import_table
+
+    repo = _repo(tmp_path)
+    certify_command_verifier(repo, "toy")
+    (repo / "legacy.md").write_text(
+        "| id | problem | statement | level | evidence | updated |\n|---|---|---|---|---|---|\n"
+        "| P.leg | P | legacy row | CERTIFIED (replayed) | certs/mine.json | 2026-08-01 |\n"
+    )
+    assert import_table(repo / "legacy.md", repo).written == ["P.leg"]
+    c = load_all(repo)["P.leg"]
+    assert c.level == "HEURISTIC" and c.legacy_level == "CERTIFIED" and c.legacy_pending
+    rep = check(repo)
+    assert rep.ok and [i.code for i in rep.issues] == ["imported_unverified"]
+    _receipt(repo, "r-leg", "P.leg", "legacy row")
+    c = promote(repo, claim_id="P.leg", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/mine.json", receipt_id="r-leg")
+    assert c.level == "CERTIFIED" and c.legacy_level is None
+    assert [e.verdict for e in c.evidence] == ["IMPORTED", "PASS"]
+    assert check(repo).ok and check(repo).issues == []

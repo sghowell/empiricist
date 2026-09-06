@@ -14,7 +14,7 @@ from empiricist.claims.registry import (
 
 def _entry(verifier="lean", version="3.3", binary_hash="ab" * 32):
     return EvidenceEntry(path="ev/x.json", verifier=verifier, version=version, verdict="PASS",
-                         stamped="t", binary_hash=binary_hash)
+                         stamped="2026-09-06T00:00:00Z", binary_hash=binary_hash)
 
 
 def test_stamp_round_trip_and_current(tmp_path):

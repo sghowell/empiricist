@@ -9,7 +9,6 @@ verdict: the verifier runs inside `promote`.
 """
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -26,11 +25,12 @@ from empiricist.claims.model import (
     is_path_dependency,
     load_all,
     load_claim,
+    revalidate,
     save_claim,
     validate_repo_relative,
 )
 from empiricist.claims.registry import current_stamp, registry_newer
-from empiricist.claims.standing import load_receipts
+from empiricist.claims.standing import load_receipts, statement_sha256
 from empiricist.ledger.models import Verdict
 
 ELEVATED = frozenset({"CERTIFIED", "FORMALIZED"})
@@ -46,10 +46,6 @@ def _today(now: str | None) -> str:
 
 def _stamp_iso(now: str | None) -> str:
     return now or datetime.now(UTC).isoformat(timespec="seconds")
-
-
-def statement_sha256(statement: str) -> str:
-    return hashlib.sha256(statement.encode("utf-8")).hexdigest()
 
 
 def formulate(
@@ -188,9 +184,13 @@ def promote(
     }
     if receipt is not None and receipt_id not in claim.receipts:
         update["receipts"] = [*claim.receipts, receipt_id]
+    if claim.legacy_level is not None and (
+        level == claim.legacy_level
+        or (claim.legacy_level != "REFUTED" and LEVEL_RANK[level] >= LEVEL_RANK[claim.legacy_level])
+    ):
+        update["legacy_level"] = None  # the legacy table's level has been re-earned
     try:
-        claim = claim.model_copy(update=update)
-        ClaimFile.model_validate(claim.model_dump())
+        claim = revalidate(claim.model_copy(update=update))
     except (ValueError, ClaimSchemaError) as exc:
         raise PromotionRefused(f"resulting claim is invalid: {exc}") from exc
     save_claim(repo, claim)
