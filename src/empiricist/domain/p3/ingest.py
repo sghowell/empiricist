@@ -10,9 +10,11 @@ HEURISTIC rather than crossing an exact-certification boundary.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from blake3 import blake3
 
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p3.verify import AgreedResult, verify_scheme_agreed
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
@@ -51,6 +53,7 @@ def ingest_scheme_artifact(
     claimed_p_min: float | None = None,
     claimed_p_avg: float | None = None,
     claimed_max_leakage: float = 0.0,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """Verify raw model output and atomically ingest its exact checked claim.
 
@@ -68,6 +71,7 @@ def ingest_scheme_artifact(
         claimed_p_min=claimed_p_min,
         claimed_p_avg=claimed_p_avg,
         claimed_max_leakage=claimed_max_leakage,
+        claims_repo=claims_repo,
     )
     if result.verdict != "PASS" or artifact is None:
         raise ValueError(
@@ -87,6 +91,7 @@ def verify_and_ingest_scheme(
     claimed_p_min: float | None = None,
     claimed_p_avg: float | None = None,
     claimed_max_leakage: float = 0.0,
+    claims_repo: Path | None = None,
 ) -> tuple[AgreedResult, Artifact | None]:
     """Return the verifier result and ingest only when it is a certified PASS."""
 
@@ -184,4 +189,5 @@ def verify_and_ingest_scheme(
         evidence,
         expected_golden_suite_hash=suite_hash,
     )
+    materialize_after_ingest(ledger, store, stored.id, claims_repo=claims_repo)
     return result, stored

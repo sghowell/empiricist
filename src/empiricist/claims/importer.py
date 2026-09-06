@@ -34,7 +34,7 @@ from empiricist.claims.model import (
 )
 from empiricist.claims.render import claims_md_path, is_rendered
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Status
+from empiricist.ledger.models import Status, Verdict
 from empiricist.store import Store
 
 EVIDENCE_DIRNAME = "evidence"
@@ -54,6 +54,7 @@ class ImportReport:
     skipped: list[str] = field(default_factory=list)   # "<artifact/row>: reason"
     missing_paths: dict[str, list[str]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    stamped: list[str] = field(default_factory=list)   # "<verifier> <version>" newly stamped
 
 
 def _slug(text: str, limit: int = 60) -> str:
@@ -81,6 +82,126 @@ def _ledger_ref(claim: ClaimFile) -> str | None:
     return m.group(1) if m else None
 
 
+def _stamp_registry_from_ledger(
+    ledger: Ledger, repo: Path, entries: list[EvidenceEntry], report: ImportReport
+) -> None:
+    """Carry the ledger's current PASS certifications for the verifiers named in
+    `entries` into `claims/verifiers.json`, never downgrading a stamp the registry
+    already holds (newest version wins; same version keeps the registry's hash)."""
+    from empiricist.claims.registry import _version_key, read_registry, stamp
+
+    best: dict[str, tuple[tuple, str, str, str]] = {}
+    for e in entries:
+        if e.binary_hash is None or e.golden_suite_hash is None:
+            continue
+        cert = ledger.get_certification(e.verifier, e.version, e.binary_hash)
+        if cert is None or cert.verdict is not Verdict.PASS:
+            continue
+        key = _version_key(e.version)
+        if e.verifier not in best or key > best[e.verifier][0]:
+            best[e.verifier] = (key, e.version, e.binary_hash, cert.golden_suite_hash)
+    if not best:
+        return
+    reg = read_registry(repo)
+    for name, (key, version, binary_hash, suite) in best.items():
+        cur = reg.stamps.get(name)
+        if cur is not None and _version_key(cur.version) >= key:
+            continue
+        stamp(repo, name=name, version=version, binary_hash=binary_hash,
+              golden_suite_hash=suite, declaration="ledger certification")
+        report.stamped.append(f"{name} {version}")
+
+
+def materialize_artifacts(
+    ledger: Ledger,
+    store: Store,
+    repo: Path | str,
+    *,
+    artifact_ids: list[str] | None = None,
+    min_status: Status = Status.CONJECTURED,
+    id_prefix: str | None = None,
+) -> ImportReport:
+    """Materialise claim files for the given artifacts (default: every artifact) of an
+    open v0 ledger. Idempotent; the batch loop calls this after each ingest transaction
+    and `import_ledger` calls it for a whole run directory."""
+    repo = Path(repo)
+    report = ImportReport()
+    existing = load_all(repo)
+    by_artifact = {_ledger_ref(c): cid for cid, c in existing.items() if _ledger_ref(c)}
+    taken = set(existing)
+    lock = read_lock(repo)
+    if artifact_ids is None:
+        artifacts = ledger.find_artifacts()
+    else:
+        artifacts = [ledger.get_artifact(a) for a in artifact_ids]
+    stamped_entries: list[EvidenceEntry] = []
+    for art in artifacts:
+        if art.status is not Status.REFUTED and art.status.rank < min_status.rank:
+            report.skipped.append(f"{art.id[:12]}: {art.status.value} is below {min_status.value}")
+            continue
+        claims = ledger.claims_for(art.id)
+        canonical = claims[-1] if claims else None
+        kind = _KIND_BY_ARTIFACT_KIND.get(art.kind)
+        if kind is None:
+            report.skipped.append(f"{art.id[:12]}: artifact kind {art.kind!r} not importable")
+            continue
+        ext = _EXT_BY_ARTIFACT_KIND.get(art.kind, "json")
+        ev_rel = f"{claims_dir(repo).name}/{EVIDENCE_DIRNAME}/{art.id[:16]}.{ext}"
+        ev_path = repo / ev_rel
+        ev_path.parent.mkdir(parents=True, exist_ok=True)
+        ev_path.write_bytes(store.get(art.content_path))
+        entries = []
+        for row in ledger.evidence_for(art.id):
+            if row.verdict.value not in ("PASS", "FAIL", "ERROR"):
+                continue
+            entries.append(EvidenceEntry(
+                path=ev_rel, verifier=row.verifier, version=row.verifier_version,
+                verdict=row.verdict.value, stamped=row.created_at,
+                binary_hash=row.binary_hash, golden_suite_hash=row.golden_suite_hash,
+                note=f"claim {row.claim_id[:12]}" if row.claim_id else "",
+            ))
+        stamped_entries.extend(entries)
+        if canonical is not None:
+            statement = canonical.statement
+            notes = f"artifact {art.id}; title: {art.title}"
+        else:
+            # Pre-hardening artifact (no canonical claim row): the title is the
+            # only statement on record; say so.
+            statement = art.title
+            notes = (f"artifact {art.id}; title: {art.title}; no canonical claim row "
+                     "(pre-hardening record; statement is the artifact title)")
+        derived = dict(
+            problem=art.problem, formulation_version=art.problem_version, kind=kind,
+            statement=statement, level=art.status.value,
+            substatus=art.substatus if art.substatus == "PROVED_DRAFT" else None,
+            n=art.status_n if art.status is Status.VERIFIED_N else None,
+            coverage=art.coverage if art.status is Status.VERIFIED_N else None,
+            evidence=entries, updated=art.created_at[:10],
+            source=Source(kind="ledger", ref=art.id),
+        )
+        if art.id in by_artifact:
+            prev = existing[by_artifact[art.id]]
+            if art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]:
+                # a level recorded in the repo (a receipted demote, a later promotion)
+                # is never lowered by a re-import; REFUTED always wins
+                for k in ("level", "substatus", "n", "coverage"):
+                    derived[k] = getattr(prev, k)
+            claim = revalidate(prev.model_copy(update=derived))
+        else:
+            prefix = id_prefix or art.problem
+            family = canonical.family if canonical and canonical.family else art.title
+            cid = _unique_id(f"{prefix}.{_slug(family)}", taken)
+            claim = ClaimFile(id=cid, notes=notes, **derived)
+        save_claim(repo, claim)
+        existing[claim.id] = claim
+        by_artifact[art.id] = claim.id
+        lock = refresh_lock_entries(repo, claim, lock)
+        report.written.append(claim.id)
+    write_lock(repo, lock)
+    _stamp_registry_from_ledger(ledger, repo, stamped_entries, report)
+    return report
+
+
 def import_ledger(
     run_dir: Path | str,
     repo: Path | str,
@@ -88,81 +209,18 @@ def import_ledger(
     min_status: Status = Status.CONJECTURED,
     id_prefix: str | None = None,
 ) -> ImportReport:
-    """Materialise claim files from a v0 ledger. The CAS blob of each artifact becomes the
-    committed evidence file; the artifact id (blake3 of that content) is the `source`."""
-    run_dir, repo = Path(run_dir), Path(repo)
+    """Materialise claim files from a v0 run directory. The CAS blob of each artifact
+    becomes the committed evidence file; the artifact id (blake3 of that content) is
+    the `source`; the ledger's PASS certifications stamp `claims/verifiers.json`."""
+    run_dir = Path(run_dir)
     ledger = Ledger(run_dir / "ledger.db")
     store = Store(run_dir / "store")
-    report = ImportReport()
     try:
-        existing = load_all(repo)
-        by_artifact = {
-            _ledger_ref(c): cid for cid, c in existing.items() if _ledger_ref(c)
-        }
-        taken = set(existing)
-        lock = read_lock(repo)
-        for art in ledger.find_artifacts():
-            if art.status is not Status.REFUTED and art.status.rank < min_status.rank:
-                continue
-            claims = ledger.claims_for(art.id)
-            canonical = claims[-1] if claims else None
-            kind = _KIND_BY_ARTIFACT_KIND.get(art.kind)
-            if kind is None:
-                report.skipped.append(f"{art.id[:12]}: artifact kind {art.kind!r} not importable")
-                continue
-            ext = _EXT_BY_ARTIFACT_KIND.get(art.kind, "json")
-            ev_rel = f"{claims_dir(repo).name}/{EVIDENCE_DIRNAME}/{art.id[:16]}.{ext}"
-            ev_path = repo / ev_rel
-            ev_path.parent.mkdir(parents=True, exist_ok=True)
-            ev_path.write_bytes(store.get(art.content_path))
-            entries = []
-            for row in ledger.evidence_for(art.id):
-                if row.verdict.value not in ("PASS", "FAIL", "ERROR"):
-                    continue
-                entries.append(EvidenceEntry(
-                    path=ev_rel, verifier=row.verifier, version=row.verifier_version,
-                    verdict=row.verdict.value, stamped=row.created_at,
-                    binary_hash=row.binary_hash, golden_suite_hash=row.golden_suite_hash,
-                    note=f"claim {row.claim_id[:12]}" if row.claim_id else "",
-                ))
-            if canonical is not None:
-                statement = canonical.statement
-                notes = f"artifact {art.id}; title: {art.title}"
-            else:
-                # Pre-hardening artifact (no canonical claim row): the title is the
-                # only statement on record; say so.
-                statement = art.title
-                notes = (f"artifact {art.id}; title: {art.title}; no canonical claim row "
-                         "(pre-hardening record; statement is the artifact title)")
-            derived = dict(
-                problem=art.problem, formulation_version=art.problem_version, kind=kind,
-                statement=statement, level=art.status.value,
-                substatus=art.substatus if art.substatus == "PROVED_DRAFT" else None,
-                n=art.status_n if art.status is Status.VERIFIED_N else None,
-                coverage=art.coverage if art.status is Status.VERIFIED_N else None,
-                evidence=entries, updated=art.created_at[:10],
-                source=Source(kind="ledger", ref=art.id),
-            )
-            if art.id in by_artifact:
-                prev = existing[by_artifact[art.id]]
-                if art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]:
-                    # a level recorded in the repo (e.g. a receipted demote... or a later
-                    # promotion) is never lowered by a re-import; REFUTED always wins
-                    for k in ("level", "substatus", "n", "coverage"):
-                        derived[k] = getattr(prev, k)
-                claim = revalidate(prev.model_copy(update=derived))
-            else:
-                prefix = id_prefix or art.problem
-                family = canonical.family if canonical and canonical.family else art.title
-                cid = _unique_id(f"{prefix}.{_slug(family)}", taken)
-                claim = ClaimFile(id=cid, notes=notes, **derived)
-            save_claim(repo, claim)
-            lock = refresh_lock_entries(repo, claim, lock)
-            report.written.append(claim.id)
-        write_lock(repo, lock)
+        return materialize_artifacts(
+            ledger, store, repo, min_status=min_status, id_prefix=id_prefix
+        )
     finally:
         ledger.close()
-    return report
 
 
 _ROW_RE = re.compile(r"^\|(.*)\|\s*$")
@@ -421,6 +479,6 @@ def import_table(
 
 
 __all__ = [
-    "ImportReport", "Lock", "import_ledger", "import_table", "parse_claims_table",
-    "resolve_evidence_cell",
+    "ImportReport", "Lock", "import_ledger", "import_table", "materialize_artifacts",
+    "parse_claims_table", "resolve_evidence_cell",
 ]

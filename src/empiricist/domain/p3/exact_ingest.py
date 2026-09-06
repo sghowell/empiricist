@@ -14,10 +14,12 @@ the Lean and SOS paths use.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from blake3 import blake3
 
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p3.exact import (
     Alg,
     ExactWitness,
@@ -87,6 +89,7 @@ def verify_and_ingest_exact_witness(
     require_all_identified: bool = False,
     title: str,
     run_id: str | None = None,
+    claims_repo: Path | None = None,
 ) -> tuple[VerifierResult, Artifact | None]:
     """Check the exact claim against the witness JSON; ingest at CERTIFIED on PASS.
 
@@ -166,6 +169,7 @@ def verify_and_ingest_exact_witness(
     stored = ledger.record_claimed_artifact(
         art, claim, evidence, expected_golden_suite_hash=suite_hash
     )
+    materialize_after_ingest(ledger, store, stored.id, claims_repo=claims_repo)
     return result, stored
 
 
@@ -178,6 +182,7 @@ def ingest_exact_witness(
     require_all_identified: bool = False,
     title: str,
     run_id: str | None = None,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """`verify_and_ingest_exact_witness` that refuses (ValueError) on non-PASS."""
     result, art = verify_and_ingest_exact_witness(
@@ -188,6 +193,7 @@ def ingest_exact_witness(
         require_all_identified=require_all_identified,
         title=title,
         run_id=run_id,
+        claims_repo=claims_repo,
     )
     if art is None:
         raise ValueError(
