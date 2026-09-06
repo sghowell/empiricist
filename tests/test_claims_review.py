@@ -11,9 +11,17 @@ from empiricist.claims.check import check
 from empiricist.claims.command_verifier import certify_command_verifier
 from empiricist.claims.model import load_all, save_claim
 from empiricist.claims.promote import PromotionRefused, formulate, promote
-from empiricist.claims.review import ReviewRefused, parse_finding, record_human_review
+from empiricist.claims.review import (
+    ReviewRefused,
+    build_review_bundle,
+    parse_finding,
+    record_human_review,
+    review_with_model,
+)
 from empiricist.claims.standing import Finding, Receipt, load_receipts, new_receipt_id
 from empiricist.cli import main
+from empiricist.llm.client import FakeLLMClient
+from empiricist.llm.models import LLMResult
 
 _CHECKER = '''import json, os, sys
 data = json.load(open(os.environ["EMPIRICIST_EVIDENCE"]))
@@ -112,4 +120,79 @@ def test_cli_review_human(tmp_path, capsys):
                  "--reviewer", "Sean", "--verdict", "PASS",
                  "--finding", "evidence_support:blocking:x"]) == 1
     assert "refused" in capsys.readouterr().err
-    assert main(["claims", "review", "--repo", str(repo), "--id", "P.s"]) == 2
+
+
+def test_cli_review_model_uses_the_harness_client(tmp_path, capsys, monkeypatch):
+    import empiricist.llm.client as client_mod
+
+    repo = _repo(tmp_path)
+    ok = {"findings": [], "checked": _ALL, "verdict": "PASS"}
+    fake = FakeLLMClient([_result(ok), _result(ok)])
+    monkeypatch.setattr(client_mod, "ClaudeCodeClient", lambda **kw: fake)
+    rc = main(["claims", "review", "--repo", str(repo), "--id", "P.s",
+               "--target-level", "CERTIFIED"])
+    out = capsys.readouterr().out
+    assert rc == 0 and out.count("wrote receipts/") == 2 and "$0.5000" in out
+    assert len(fake.calls) == 2 and (repo / ".empiricist" / "ledger.db").is_file()
+    rids = sorted(load_receipts(repo))
+    assert main(["claims", "promote", "--repo", str(repo), "--id", "P.s", "--level", "CERTIFIED",
+                 "--verifier", "toy", "--evidence", "certs/good.json", "--receipt", rids[0]]) == 0
+
+
+def _result(parsed, *, stop="end_turn"):
+    return LLMResult(text="", parsed=parsed, stop_reason=stop, is_error=False, input_tokens=1,
+                     output_tokens=1, cache_read_tokens=0, cache_creation_tokens=0,
+                     cost_usd=0.5, duration_ms=1, session_id="s", uuid="u", model="fake")
+
+
+_ALL = ["evidence_support", "assumption_explicitness", "internal_consistency",
+        "ledger_consistency", "confidence_calibration", "decision_soundness"]
+
+
+def test_model_review_bundle_and_two_samples(tmp_path):
+    repo = _repo(tmp_path)
+    claim = load_all(repo)["P.s"]
+    bundle = build_review_bundle(repo, claim, target_level="CERTIFIED")
+    assert "s holds" in bundle and "promotion requested: CERTIFIED" in bundle
+    assert "certs/good.json" in bundle and '"ok": true' in bundle and "toy v1 -> PASS" in bundle
+    block = {"findings": [{"dimension": "evidence_support", "severity": "blocking",
+                           "text": "the certificate checks ok=true, not s", "where": "statement"}],
+             "checked": _ALL, "verdict": "PASS"}   # verdict contradicts the finding -> BLOCK
+    ok = {"findings": [], "checked": _ALL, "verdict": "PASS"}
+    client = FakeLLMClient([_result(block), _result(ok)])
+    receipts = review_with_model(repo, claim_id="P.s", client=client, target_level="CERTIFIED",
+                                 now="2026-09-06T12:00:00+00:00")
+    assert [r.verdict for r in receipts] == ["BLOCK", "PASS"]
+    assert [c[0] for c in client.calls] == ["reviewer", "reviewer"]   # two fresh calls
+    assert receipts[0].provenance["run_id"].startswith("review-P.s-")
+    assert receipts[0].provenance["cost_usd"] == "0.5000"
+    assert "[statement]" in receipts[0].findings[0].text
+    assert check(repo).standings == {"P.s": "CHALLENGED"}   # any blocking sample blocks
+    with pytest.raises(PromotionRefused, match="blocking"):
+        promote(repo, claim_id="P.s", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/good.json", receipt_id=receipts[1].id)
+    # a human closes the model's block; the PASS sample then carries the promotion
+    closing = record_human_review(repo, claim_id="P.s", reviewer="Sean", verdict="PASS",
+                                  closes=receipts[0].id, now="2026-09-06T13:00:00+00:00")
+    assert check(repo).standings == {"P.s": "CURRENT"} and closing.closes == receipts[0].id
+    c = promote(repo, claim_id="P.s", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/good.json", receipt_id=receipts[1].id)
+    assert c.level == "CERTIFIED"
+
+
+def test_model_review_unusable_samples_are_revise_receipts(tmp_path):
+    repo = _repo(tmp_path)
+    partial = {"findings": [], "checked": ["evidence_support"], "verdict": "PASS"}
+    client = FakeLLMClient([_result(None), _result({"nonsense": 1}), _result(partial)])
+    receipts = review_with_model(repo, claim_id="P.s", client=client, samples=3,
+                                 now="2026-09-06T12:00:00+00:00")
+    assert [r.verdict for r in receipts] == ["REVISE", "REVISE", "REVISE"]
+    assert "no parseable review" in receipts[0].findings[0].text
+    assert "examined only" in receipts[2].findings[0].text
+    assert check(repo).standings == {"P.s": "CURRENT"}   # REVISE never blocks by itself
+    # a client that returns nothing at all still leaves a receipt per sample
+    receipts = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([]), samples=1,
+                                 now="2026-09-06T12:30:00+00:00")
+    assert receipts[0].verdict == "REVISE" and len(load_receipts(repo)) == 4
+    with pytest.raises(ReviewRefused, match="samples"):
+        review_with_model(repo, claim_id="P.s", client=FakeLLMClient([]), samples=0)

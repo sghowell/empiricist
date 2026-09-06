@@ -37,6 +37,28 @@ class CritiqueOut(_Closed):
     edges_checked: list[str]
 
 
+ReviewDimension = Literal[
+    "evidence_support", "assumption_explicitness", "internal_consistency",
+    "ledger_consistency", "confidence_calibration", "decision_soundness",
+]
+
+
+class ReviewFinding(_Closed):
+    dimension: ReviewDimension
+    severity: Literal["note", "warning", "blocking"]
+    text: str
+    where: str  # the phrase, file, or field the finding points at
+
+
+class ReviewOut(_Closed):
+    """The Reviewer's structured output (claims `review`): findings per dimension, the
+    dimensions actually examined, and a verdict consistent with the findings."""
+
+    findings: list[ReviewFinding]
+    checked: list[ReviewDimension]
+    verdict: Literal["PASS", "REVISE", "BLOCK"]
+
+
 # -- P3 (Bell-measurement schemes): the Constructor's structured output --------
 # `BellSchemeOut` is the model-facing shape for a linear-optical Bell scheme:
 # the interferometer mesh, an optional ancilla input state, and the claims the

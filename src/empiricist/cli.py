@@ -271,6 +271,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     c_rw.add_argument("--closes", default=None, help="id of the receipt this one resolves")
     c_rw.add_argument("--target-level", default=None)
+    c_rw.add_argument(
+        "--samples", type=int, default=None,
+        help="model reviewer samples (default 2 for CERTIFIED/FORMALIZED targets, else 1)",
+    )
+    c_rw.add_argument(
+        "--run-dir", type=Path, default=None,
+        help="ledger + CAS for the model runs (default <repo>/.empiricist)",
+    )
     c_dm = claims_sub.add_parser("demote", help="lower a claim's level with a receipt")
     c_dm.add_argument("--repo", required=True, type=Path)
     c_dm.add_argument("--id", required=True, dest="claim_id")
@@ -723,8 +731,7 @@ def _cmd_claims_review(args: argparse.Namespace) -> int:
     from empiricist.claims.review import ReviewRefused, parse_finding, record_human_review
 
     if not args.human:
-        print("review: the model reviewer is not available yet; use --human", file=sys.stderr)
-        return 2
+        return _cmd_claims_review_model(args)
     if not args.reviewer or not args.verdict:
         print("review --human needs --reviewer and --verdict", file=sys.stderr)
         return 2
@@ -739,6 +746,37 @@ def _cmd_claims_review(args: argparse.Namespace) -> int:
         return 1
     print(f"review: wrote receipts/{r.id}.json ({r.verdict}, blocking={r.blocking})")
     return 0
+
+
+def _cmd_claims_review_model(args: argparse.Namespace) -> int:
+    from empiricist.claims.model import ClaimSchemaError
+    from empiricist.claims.review import ReviewRefused, review_with_model
+    from empiricist.ledger.db import Ledger
+    from empiricist.llm.client import ClaudeCodeClient
+    from empiricist.store import Store
+
+    run_dir = args.run_dir or (args.repo / ".empiricist")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    ledger = Ledger(run_dir / "ledger.db")
+    try:
+        client = ClaudeCodeClient(store=Store(run_dir / "store"), timeout_s=1800.0)
+        receipts = review_with_model(
+            args.repo, claim_id=args.claim_id, client=client, samples=args.samples,
+            target_level=args.target_level, ledger=ledger,
+            reviewer=args.reviewer or "model",
+        )
+    except (ReviewRefused, ClaimSchemaError) as exc:
+        print(f"review: refused: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        ledger.close()
+    for r in receipts:
+        cost = (r.provenance or {}).get("cost_usd", "?")
+        print(f"review: wrote receipts/{r.id}.json ({r.verdict}, blocking={r.blocking}, "
+              f"${cost})")
+        for f in r.findings:
+            print(f"  [{f.severity}] {f.dimension}: {f.text}")
+    return 0 if all(r.verdict == "PASS" for r in receipts) else 1
 
 
 def _cmd_claims_promotion(args: argparse.Namespace) -> int:

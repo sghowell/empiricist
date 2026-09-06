@@ -200,6 +200,15 @@ def promote(
     report = check(repo)
     if any(i.code in ("schema_error", "graph_error") for i in report.issues):
         raise PromotionRefused("repository does not check: " + report.issues[0].detail)
+    own = report.standings.get(claim_id)
+    if own == "CHALLENGED":
+        open_ids = open_blocking_receipts(claim, load_receipts(repo))
+        raise PromotionRefused(
+            f"{claim_id} is CHALLENGED by blocking receipt(s) {', '.join(open_ids)}; a later "
+            "receipt must close them first"
+        )
+    if own == "SUPERSEDED":
+        raise PromotionRefused(f"{claim_id} is SUPERSEDED; promote the superseding claim")
     for d in claim.depends_on:
         if not is_path_dependency(d) and report.standings.get(d) != "CURRENT":
             raise PromotionRefused(
