@@ -104,6 +104,10 @@ def check(
     mism = mismatches(repo, claims, lock)
     for cid, reasons in sorted(mism.items()):
         issues.append(CheckIssue(code="lock_mismatch", claim_id=cid, detail="; ".join(reasons)))
+    if registry_newer is None:
+        from empiricist.claims.registry import registry_newer as _from_registry
+
+        registry_newer = _from_registry(repo)
     standings = compute_standing(claims, mism, receipts, registry_newer)
 
     for cid in sorted(claims):
