@@ -27,8 +27,10 @@ from empiricist.claims.model import (
     ClaimFile,
     ClaimSchemaError,
     EvidenceEntry,
+    Level,
     Standing,
     is_path_dependency,
+    validate_id,
     validate_stamp,
 )
 
@@ -72,6 +74,13 @@ class Receipt(BaseModel):
     verdict: Literal["PASS", "REVISE", "BLOCK"]
     closes: str | None = None
     created: str
+    target_level: Level | None = None       # the promotion this review was asked to warrant
+    provenance: dict[str, str] | None = None  # model reviews: run_id, model, receipt digests
+
+    @field_validator("id")
+    @classmethod
+    def _id(cls, v: str) -> str:
+        return validate_id(v, "receipt id")
 
     @field_validator("created")
     @classmethod
@@ -79,14 +88,32 @@ class Receipt(BaseModel):
         return validate_stamp(v, "created")
 
     @model_validator(mode="after")
-    def _not_self_closing(self) -> Receipt:
+    def _consistent(self) -> Receipt:
         if self.closes == self.id:
             raise ValueError("a receipt cannot close itself")
+        if self.verdict == "PASS" and self.blocking:
+            raise ValueError("a PASS receipt cannot carry a blocking finding")
+        if self.verdict == "BLOCK" and not self.blocking:
+            raise ValueError("a BLOCK receipt must name at least one blocking finding")
         return self
 
     @property
     def blocking(self) -> bool:
         return any(f.severity == "blocking" for f in self.findings)
+
+
+def new_receipt_id(claim_id: str, reviewer: str, created: str, existing: set[str]) -> str:
+    """`<claim>.<YYYYMMDD>.<reviewer-slug>[.<k>]`, unique among `existing`."""
+    import re
+
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", reviewer.strip()).strip("-").lower()[:24] or "reviewer"
+    base = f"{claim_id}.{created[:10].replace('-', '')}.{slug}"
+    rid, k = base, 2
+    lowered = {e.lower() for e in existing}
+    while rid.lower() in lowered:
+        rid = f"{base}.{k}"
+        k += 1
+    return validate_id(rid, "receipt id")
 
 
 def receipts_dir(repo: Path | str) -> Path:

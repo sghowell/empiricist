@@ -44,6 +44,13 @@ def is_path_dependency(dep: str) -> bool:
     return "/" in dep
 
 
+def validate_id(value: str, what: str = "id") -> str:
+    """Claim and receipt ids are filenames: `[A-Za-z0-9][A-Za-z0-9._:-]{0,120}`."""
+    if not _ID_RE.match(value):
+        raise ValueError(f"{what} {value!r} is not filename-safe ([A-Za-z0-9._:-], <= 121 chars)")
+    return value
+
+
 def validate_repo_relative(path: str) -> str:
     """Return the canonical form of a repo-relative POSIX path, or raise ValueError."""
     if not path or path != path.strip() or "\\" in path:
@@ -126,9 +133,7 @@ class ClaimFile(BaseModel):
     @field_validator("id")
     @classmethod
     def _id(cls, v: str) -> str:
-        if not _ID_RE.match(v):
-            raise ValueError(f"id {v!r} is not filename-safe ([A-Za-z0-9._:-], <= 121 chars)")
-        return v
+        return validate_id(v)
 
     @field_validator("updated")
     @classmethod
