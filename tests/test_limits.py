@@ -18,7 +18,8 @@ def run_py(code: str, limits: ResourceLimits, timeout: float = 30.0):
 
 def test_cpu_limit_kills_busy_loop():
     res = run_py("while True: pass", ResourceLimits(cpu_s=1))
-    assert res.returncode == -signal.SIGXCPU
+    # Linux delivers SIGKILL once the hard CPU limit is hit; macOS reports SIGXCPU.
+    assert res.returncode in (-signal.SIGXCPU, -signal.SIGKILL)
 
 
 def test_fsize_limit_kills_big_write(tmp_path):

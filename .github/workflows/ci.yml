@@ -29,6 +29,9 @@ jobs:
       - name: Sync locked environment
         run: uv sync --frozen
 
+      - name: Install exact graph enumerator (nauty geng; P5 n=8 tablebase tests need it)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq nauty
+
       - name: Lint
         run: uv run ruff check src tests
 
