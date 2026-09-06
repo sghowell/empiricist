@@ -13,8 +13,10 @@ permissions:
 jobs:
   fast:
     name: Lint and fast tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # macOS: the executor's sandbox is `sandbox-exec`, which Linux runners lack, and the
+    # fast suite exercises it (114 errors on ubuntu once geng is present).
+    runs-on: macos-14
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
@@ -30,7 +32,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Install exact graph enumerator (nauty geng; P5 n=8 tablebase tests need it)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq nauty
+        run: brew install nauty
 
       - name: Lint
         run: uv run ruff check src tests
