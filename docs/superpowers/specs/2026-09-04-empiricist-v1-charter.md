@@ -93,6 +93,11 @@ CHALLENGED only through a closing receipt; otherwise the level drops through
 `demote`, which records the reason in a receipt. Levels change only alongside
 an evidence entry or a receipt.
 
+**The review bar (clarified 2026-09-06).** F4's bar is exactly "a receipt with no
+blocking finding": a REVISE receipt (warnings, no blocker) warrants an elevated
+promotion; its warnings stay on record in the receipt and are counted in the claim
+notes for the author. A BLOCK, or any open blocking receipt on the claim, refuses.
+
 **Dependency-level rule (decided 2026-09-06).** A claim's level may not exceed
 the lowest level among the claims it depends on: `promote` refuses to widen the
 gap, and `check` reports `level_inversion` (non-blocking) for records that
