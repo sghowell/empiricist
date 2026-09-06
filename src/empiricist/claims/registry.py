@@ -22,9 +22,15 @@ REGISTRY_FILENAME = "verifiers.json"
 
 
 def _version_key(version: str) -> tuple:
+    """Numeric-aware ordering: `10 > 9`, `v2 == 2`, `1.0 == 1`."""
+    v = version.strip()
+    if v[:1] in ("v", "V") and v[1:2].isdigit():
+        v = v[1:]
     parts = []
-    for piece in version.replace("-", ".").split("."):
+    for piece in v.replace("-", ".").split("."):
         parts.append((0, int(piece)) if piece.isdigit() else (1, piece))
+    while len(parts) > 1 and parts[-1] == (0, 0):
+        parts.pop()
     return tuple(parts)
 
 
@@ -78,9 +84,20 @@ def stamp(
     golden_suite_hash: str,
     declaration: str | None = None,
     now: str | None = None,
+    allow_downgrade: bool = False,
 ) -> VerifierStamp:
-    """Record (replace) the current PASS stamp of a verifier."""
+    """Record (replace) the current PASS stamp of a verifier. A stamp below the current
+    version is refused unless `allow_downgrade` (a rollback is a deliberate act)."""
     reg = read_registry(repo)
+    cur = reg.stamps.get(name)
+    if (
+        cur is not None and not allow_downgrade
+        and _version_key(cur.version) > _version_key(version)
+    ):
+        raise ValueError(
+            f"registry: refusing to stamp {name} v{version} below the current v{cur.version}; "
+            "pass allow_downgrade to roll back deliberately"
+        )
     s = VerifierStamp(
         name=name, version=version, binary_hash=binary_hash,
         golden_suite_hash=golden_suite_hash,
@@ -102,22 +119,20 @@ def is_current(repo: Path | str, *, name: str, version: str, binary_hash: str) -
 
 
 def registry_newer(repo: Path | str) -> Callable[[EvidenceEntry], bool]:
-    """The predicate `compute_standing` needs: True iff the registry's current stamp for
-    the entry's verifier is a NEWER version, or the same version under a different
-    binary hash, than the one that produced the evidence. Unknown verifiers (e.g.
-    `table-import`) are never newer."""
+    """The predicate `compute_standing` needs: True iff the entry's verifier is in the
+    registry and the entry was NOT produced by the currently stamped identity -- an older
+    or a never-certified newer version, a different binary hash, or no hash at all.
+    Unknown verifiers (e.g. `table-import`) are never newer."""
     reg = read_registry(repo)
 
     def newer(entry: EvidenceEntry) -> bool:
         s = reg.stamps.get(entry.verifier)
         if s is None:
             return False
-        if _version_key(s.version) > _version_key(entry.version):
+        if entry.binary_hash is None:
             return True
-        return (
-            s.version == entry.version
-            and entry.binary_hash is not None
-            and s.binary_hash != entry.binary_hash
+        return _version_key(s.version) != _version_key(entry.version) or (
+            s.binary_hash != entry.binary_hash
         )
 
     return newer

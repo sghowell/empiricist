@@ -14,7 +14,8 @@ def _claim(cid, level="CERTIFIED", deps=(), verifier="v", verdict="PASS", **over
         statement=f"statement of {cid} | with a pipe", level=level, updated="2026-09-06",
         depends_on=list(deps),
         evidence=[EvidenceEntry(path=f"ev/{cid}.json", verifier=verifier, version="1",
-                                verdict=verdict, stamped="2026-09-06T00:00:00Z")],
+                                verdict=verdict, stamped="2026-09-06T00:00:00Z",
+                                binary_hash=None if verifier == "table-import" else "ab" * 32)],
     )
     base.update(over)
     return ClaimFile(**base)

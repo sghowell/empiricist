@@ -37,7 +37,8 @@ def _repo(tmp_path):
     (tmp_path / "claims" / "verifiers").mkdir(parents=True)
     (tmp_path / "claims" / "verifiers" / "toy.yaml").write_text(yaml.safe_dump({
         "name": "toy", "version": "1", "argv": [sys.executable, "tools/check.py"],
-        "inputs": ["tools"], "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
+        "inputs": ["tools"], "fail_exit_codes": [3],
+        "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
     }))
     return tmp_path
 
@@ -90,9 +91,12 @@ def test_happy_path_formulate_certify_promote(tmp_path):
     with pytest.raises(PromotionRefused, match="only goes down through demote"):
         promote(repo, claim_id="P.x", level="CONJECTURED", verifier="toy",
                 evidence_path="certs/mine.json")
-    with pytest.raises(PromotionRefused, match="returned PASS, not FAIL"):
+    with pytest.raises(PromotionRefused, match="requires a review receipt"):
         promote(repo, claim_id="P.x", level="REFUTED", verifier="toy",
                 evidence_path="certs/mine.json")
+    with pytest.raises(PromotionRefused, match="returned PASS, not FAIL"):
+        promote(repo, claim_id="P.x", level="REFUTED", verifier="toy",
+                evidence_path="certs/mine.json", receipt_id="r-ok")
 
 
 def test_failed_verifier_records_evidence_but_no_promotion(tmp_path):
@@ -111,14 +115,15 @@ def test_failed_verifier_records_evidence_but_no_promotion(tmp_path):
 def test_dependencies_must_be_current_and_reverify_restores(tmp_path):
     repo = _repo(tmp_path)
     certify_command_verifier(repo, "toy")
+    (repo / "certs" / "base.json").write_text(json.dumps({"ok": True, "base": 1}))
     formulate(repo, claim_id="P.base", problem="P", formulation_version="v1", kind="dataset",
               statement="base")
     promote(repo, claim_id="P.base", level="VERIFIED_N", verifier="toy",
-            evidence_path="certs/good.json", n=1)
+            evidence_path="certs/base.json", n=1)
     formulate(repo, claim_id="P.top", problem="P", formulation_version="v1", kind="dataset",
               statement="top", depends_on=["P.base"])
     # tamper with the base evidence -> base STALE -> top cannot be promoted on it
-    (repo / "certs" / "good.json").write_text(json.dumps({"ok": True, "v": 2}))
+    (repo / "certs" / "base.json").write_text(json.dumps({"ok": True, "v": 2}))
     assert check(repo).standings["P.base"] == "STALE"
     with pytest.raises(PromotionRefused, match="dependency P.base is STALE"):
         promote(repo, claim_id="P.top", level="VERIFIED_N", verifier="toy",
@@ -130,7 +135,7 @@ def test_dependencies_must_be_current_and_reverify_restores(tmp_path):
             evidence_path="certs/mine.json", n=1)
     assert check(repo).ok
     # a re-verification that now FAILS keeps the claim STALE with the FAIL on record
-    (repo / "certs" / "good.json").write_text(json.dumps({"ok": False}))
+    (repo / "certs" / "base.json").write_text(json.dumps({"ok": False}))
     assert reverify(repo, claim_id="P.base") == {"P.base": "still failing"}
     rep = check(repo)
     assert rep.standings["P.base"] == "STALE" and rep.standings["P.top"] == "STALE"

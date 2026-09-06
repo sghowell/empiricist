@@ -105,10 +105,13 @@ def _stamp_registry_from_ledger(
     reg = read_registry(repo)
     for name, (key, version, binary_hash, suite) in best.items():
         cur = reg.stamps.get(name)
-        if cur is not None and _version_key(cur.version) >= key:
-            continue
+        if cur is not None and _version_key(cur.version) > key:
+            continue  # never downgrade
+        if cur is not None and _version_key(cur.version) == key and cur.binary_hash == binary_hash:
+            continue  # already current
+        # a newer version, or the same version re-certified under a new hash
         stamp(repo, name=name, version=version, binary_hash=binary_hash,
-              golden_suite_hash=suite, declaration="ledger certification")
+              golden_suite_hash=suite, declaration=None)
         report.stamped.append(f"{name} {version}")
 
 
@@ -181,11 +184,18 @@ def materialize_artifacts(
         )
         if art.id in by_artifact:
             prev = existing[by_artifact[art.id]]
-            if art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]:
-                # a level recorded in the repo (a receipted demote, a later promotion)
-                # is never lowered by a re-import; REFUTED always wins
+            keep_level = prev.level == "REFUTED" or (
+                art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]
+            )
+            if keep_level:
+                # a level recorded in the repo (a receipted demote, a later promotion, a
+                # refutation) is never lowered or resurrected by a re-import
                 for k in ("level", "substatus", "n", "coverage"):
                     derived[k] = getattr(prev, k)
+            # evidence merges by identity: entries made in the repo (command verifiers,
+            # refutations) survive a re-import
+            derived["evidence"] = entries + [e for e in prev.evidence if e not in entries]
+            derived["updated"] = max(prev.updated, derived["updated"])
             claim = revalidate(prev.model_copy(update=derived))
         else:
             prefix = id_prefix or art.problem
@@ -199,6 +209,10 @@ def materialize_artifacts(
         report.written.append(claim.id)
     write_lock(repo, lock)
     _stamp_registry_from_ledger(ledger, repo, stamped_entries, report)
+    if report.written:
+        from empiricist.claims.check import refresh_repo
+
+        refresh_repo(repo)  # derived standings and the rendered table follow the ingest
     return report
 
 

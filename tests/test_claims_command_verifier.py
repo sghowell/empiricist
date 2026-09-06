@@ -35,7 +35,7 @@ def _repo(tmp_path: Path, *, argv_style="env") -> Path:
         argv.append("{evidence}")
     decl = {
         "name": "toy_check", "version": "1", "argv": argv, "cwd": ".",
-        "env": {"TOY": "1"}, "inputs": ["tools"],
+        "env": {"TOY": "1"}, "inputs": ["tools"], "fail_exit_codes": [3],
         "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
         "timeout_s": 30,
     }

@@ -34,6 +34,7 @@ def test_registry_newer_semantics(tmp_path):
     assert newer(_entry(version="3.2"))                          # older evidence
     assert newer(_entry(binary_hash="ef" * 32))                  # same version, different hash
     assert not newer(_entry(verifier="table-import", version="1"))  # unknown verifier
-    assert not newer(_entry(version="3.10"))                     # evidence is newer than registry
+    assert newer(_entry(version="3.10"))     # a version the registry never certified
+    assert newer(_entry(binary_hash=None))   # an unidentified PASS is never current
     stamp(tmp_path, name="lean", version="3.10", binary_hash="ab" * 32, golden_suite_hash="x")
     assert registry_newer(tmp_path)(_entry(version="3.3"))       # 3.10 > 3.3 numerically
