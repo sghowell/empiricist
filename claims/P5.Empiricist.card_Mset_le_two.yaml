@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22
-standing: CURRENT
+standing: STALE
 statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∀ (i : Fin 4), (Empiricist.Mset U
   i).card ≤ 2'
 substatus: null

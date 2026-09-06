@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436
-standing: CURRENT
+standing: STALE
 statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (i j : Fin 4) (μ : Empiricist.BellLabel),\n\
   \    Empiricist.Identifies U i j μ → Empiricist.RowDecouples U i μ ∧ Empiricist.RowDecouples\
   \ U j μ"

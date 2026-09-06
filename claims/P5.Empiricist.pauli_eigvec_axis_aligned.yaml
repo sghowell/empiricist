@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c
-standing: CURRENT
+standing: STALE
 statement: 'True'
 substatus: null
 supersedes: []

@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: f2322820c8e1668ef2069ff5ce43027775d5871f98f0f0b6a962dcc89c4bf43f
-standing: CURRENT
+standing: STALE
 statement: '∀ (w : Fin 2 → ℂ), w ≠ 0 → ∀ (c : ℂ), Empiricist.sigmaZ.mulVec w = c •
   w → Empiricist.AxisAligned w'
 substatus: null

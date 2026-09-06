@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: a7ee0a4ac6de5e12131d791c3796178b3a8e40f5b2694fb1b0b03c7c91f23945
-standing: CURRENT
+standing: STALE
 statement: "∀ {u v : Fin 2 → ℂ},\n  u ≠ 0 →\n    v ≠ 0 →\n      Empiricist.AxisAligned\
   \ u →\n        Empiricist.AxisAligned v → ¬(Empiricist.plainPair u v = 0 ∧ Empiricist.twistPair\
   \ u v = 0)"

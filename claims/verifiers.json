@@ -1,0 +1,29 @@
+{
+  "stamps": {
+    "lean": {
+      "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+      "declaration": null,
+      "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
+      "name": "lean",
+      "stamped": "2026-09-06T19:59:53+00:00",
+      "version": "3.3"
+    },
+    "p3_exact_witness": {
+      "binary_hash": "13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589",
+      "declaration": null,
+      "golden_suite_hash": "4dbac01ac8e1336bd785cbb0aa60ed3333a67531b3e0d764c10ef4181e231a60",
+      "name": "p3_exact_witness",
+      "stamped": "2026-09-06T19:59:53+00:00",
+      "version": "1.0"
+    },
+    "sos_certificate": {
+      "binary_hash": "78e59a059584e9e26662e695b8a1582af9d7dc6f7249a0fa65050157453da1e0",
+      "declaration": null,
+      "golden_suite_hash": "fa1d8397d27a5a3c46c9d568b23a2ed2fcb4b1a75c4f1b09eec041bd908b32e9",
+      "name": "sos_certificate",
+      "stamped": "2026-09-06T19:59:53+00:00",
+      "version": "1.0"
+    }
+  },
+  "version": 1
+}

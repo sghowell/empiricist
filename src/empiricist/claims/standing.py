@@ -211,9 +211,13 @@ def compute_standing(
         claim = claims[cid]
         is_stale = bool(lock_mismatches.get(cid))
         if registry_newer is not None:
-            is_stale = is_stale or any(
-                e.verdict == "PASS" and registry_newer(e) for e in claim.evidence
-            )
+            # Only the LATEST PASS per (path, verifier) is the claim's live warrant: a
+            # reverify supersedes the entry an older binary produced.
+            latest: dict[tuple[str, str], EvidenceEntry] = {}
+            for e in claim.evidence:
+                if e.verdict == "PASS":
+                    latest[(e.path, e.verifier)] = e
+            is_stale = is_stale or any(registry_newer(e) for e in latest.values())
         for d in graph[cid]:
             if d in noncurrent or claims[d].level == "REFUTED":
                 is_stale = True

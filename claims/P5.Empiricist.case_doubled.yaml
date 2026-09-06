@@ -22,7 +22,7 @@ receipts: []
 source:
   kind: ledger
   ref: 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd
-standing: CURRENT
+standing: STALE
 statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
   \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
   \ μ) →\n      (Empiricist.DoubledEdges fun i => Finset.image (⇑e) (Empiricist.Mset\
