@@ -495,6 +495,61 @@ def import_table(
     return report
 
 
+_PIN_KEY_RE = re.compile(r"^prior_.*_sha256$")
+
+
+def derive_dependencies_from_pins(repo: Path | str) -> dict[str, list[str]]:
+    """Add `depends_on` edges that the evidence itself pins: a JSON evidence file whose
+    top-level `prior_*_sha256` value is the sha256 of another claim's evidence file
+    depends on that claim AND on that file (locked, so a change propagates as STALE).
+    Idempotent; returns claim id -> the dependencies added."""
+    import json
+
+    from empiricist.claims.check import refresh_repo
+    from empiricist.claims.lock import committed_file, sha256_file
+
+    repo = Path(repo)
+    claims = load_all(repo)
+    owner_of: dict[str, tuple[str, str]] = {}  # sha256 -> (claim id, path)
+    for cid, c in claims.items():
+        for path in dict.fromkeys(e.path for e in c.evidence):
+            f = committed_file(repo, path)
+            if f is not None:
+                owner_of.setdefault(sha256_file(f), (cid, path))
+    added: dict[str, list[str]] = {}
+    lock = read_lock(repo)
+    for cid, c in claims.items():
+        new: list[str] = []
+        for path in dict.fromkeys(e.path for e in c.evidence):
+            f = committed_file(repo, path)
+            if f is None or not path.endswith(".json"):
+                continue
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            for key, value in data.items():
+                if not (_PIN_KEY_RE.match(key) and isinstance(value, str)):
+                    continue
+                owner = owner_of.get(value)
+                if owner is None or owner[0] == cid:
+                    continue
+                for dep in (owner[0], owner[1]):
+                    if dep not in c.depends_on and dep not in new:
+                        new.append(dep)
+        if new:
+            c = revalidate(c.model_copy(update={"depends_on": [*c.depends_on, *new]}))
+            save_claim(repo, c)
+            lock = refresh_lock_entries(repo, c, lock)
+            added[cid] = new
+    if added:
+        write_lock(repo, lock)
+        refresh_repo(repo)
+    return added
+
+
 __all__ = [
     "ImportReport", "Lock", "import_ledger", "import_table", "materialize_artifacts",
     "parse_claims_table", "resolve_evidence_cell",

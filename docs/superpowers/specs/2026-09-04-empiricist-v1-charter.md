@@ -93,6 +93,16 @@ CHALLENGED only through a closing receipt; otherwise the level drops through
 `demote`, which records the reason in a receipt. Levels change only alongside
 an evidence entry or a receipt.
 
+**Dependency-level rule (decided 2026-09-06).** A claim's level may not exceed
+the lowest level among the claims it depends on: `promote` refuses to widen the
+gap, and `check` reports `level_inversion` (non-blocking) for records that
+predate the rule or were waived. A human receipt may waive the rule for one
+promotion (`review --human --waive level_inversion`); model reviews never waive.
+Consequence: an imported chain is re-earned bottom-up. Dependencies that the
+evidence itself pins (`prior_*_sha256` fields naming another claim's evidence
+file) are added by `claims deps-from-pins`, as claim edges and as locked path
+dependencies.
+
 ## 4. Two modes, one promotion path
 
 `promote` is the only way a level rises. It checks the verifier's

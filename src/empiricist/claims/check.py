@@ -19,6 +19,7 @@ from empiricist.claims.model import (
     ClaimSchemaError,
     EvidenceEntry,
     Standing,
+    level_cap,
     load_all,
 )
 from empiricist.claims.render import claims_md_path, is_rendered, render_claims_md
@@ -188,6 +189,16 @@ def check(
                     code="receipt_stale", claim_id=cid,
                     detail=f"receipt {rid} reviewed a different statement",
                 ))
+        cap, limiting = level_cap(c, claims)
+        if c.rank > cap and limiting is not None:
+            issues.append(CheckIssue(
+                code="level_inversion", claim_id=cid,
+                detail=(
+                    f"level {c.level} is above dependency {limiting} at "
+                    f"{claims[limiting].level}; promote refuses to widen this (a human "
+                    "receipt may waive level_inversion)"
+                ),
+            ))
         if standings[cid] == "CURRENT":
             for d in c.depends_on:
                 if not is_path_dependency(d) and standings.get(d) != "CURRENT":

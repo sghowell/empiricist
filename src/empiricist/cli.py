@@ -232,6 +232,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     c_it.add_argument("--file", required=True, type=Path)
     c_it.add_argument("--repo", required=True, type=Path)
+    c_dp = claims_sub.add_parser(
+        "deps-from-pins",
+        help="add depends_on edges that JSON evidence pins (prior_*_sha256 of another "
+             "claim's evidence file)",
+    )
+    c_dp.add_argument("--repo", required=True, type=Path)
     c_is = claims_sub.add_parser(
         "install-skill", help="install the claim-ledger skill and checker adapter into a repo"
     )
@@ -281,6 +287,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="id of an earlier receipt this review resolves (repeatable)",
     )
     c_rw.add_argument("--target-level", default=None)
+    c_rw.add_argument(
+        "--waive", action="append", default=[], choices=("level_inversion",),
+        help="(human reviews) a rule this receipt explicitly waives for the promotion",
+    )
     c_rw.add_argument(
         "--samples", type=int, default=None,
         help="model reviewer samples (default 2 for CERTIFIED/FORMALIZED targets, else 1)",
@@ -722,6 +732,14 @@ def _cmd_claims(args: argparse.Namespace) -> int:
         return _cmd_claims_promotion(args)
     if args.claims_command == "review":
         return _cmd_claims_review(args)
+    if args.claims_command == "deps-from-pins":
+        from empiricist.claims.importer import derive_dependencies_from_pins
+
+        added = derive_dependencies_from_pins(args.repo)
+        for cid, deps in sorted(added.items()):
+            print(f"deps-from-pins: {cid} += {', '.join(deps)}")
+        print(f"deps-from-pins: {len(added)} claim(s) updated")
+        return 0
     if args.claims_command == "install-skill":
         from empiricist.claims.install import install_skill
 
@@ -761,6 +779,7 @@ def _cmd_claims_review(args: argparse.Namespace) -> int:
         r = record_human_review(
             args.repo, claim_id=args.claim_id, reviewer=args.reviewer, verdict=args.verdict,
             findings=findings, closes=args.closes, target_level=args.target_level,
+            waivers=args.waive,
         )
     except (ReviewRefused, ClaimSchemaError) as exc:
         print(f"review: refused: {exc}", file=sys.stderr)
