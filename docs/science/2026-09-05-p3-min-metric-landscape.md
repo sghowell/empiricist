@@ -17,9 +17,10 @@ two disagree sharply, and the harness now has machine-checked results for both:
 | 0 | min | exactly 0 | FORMALIZED | `p3_at_most_three` / `p3_min_support` (Lean 4, 2026-08-21): every U ∈ U(4) leaves a Bell state unidentified |
 | 0 | avg | ≤ 1/2 (standard assignment) | CERTIFIED | exact SOS certificate (M20c), ingested 2026-09-05 (`d11c6b25…`) |
 | 1 | min | ≥ 1/4 | CERTIFIED | exact witnesses at m = 5 (`ffbda750…`) and m = 6 (`204b4f97…`): vector (1/4, 1/4, 1/4, 1/4) |
+| 1 | all four identifiable | yes | FORMALIZED | `p3_k1_all_four_exists` (Lean 4, `c6e57d9d…`): ∃ V ∈ U(5) identifying every Bell state, with the balanced witness `Vk1` and its unitarity in the proof — the exact k = 1 counterpart of the k = 0 impossibility theorem (`docs/science/2026-09-05-p3-k1-witness/`) |
 | 1 | min | ≥ 1/6 (second family) | CERTIFIED | exact witnesses with vector (1, 1/6, 1/2, 2/9) up to relabelling (m = 7, `bbd741f5…`; also at m = 5, 6) |
 | 1 | avg | 1/2 best found, never above | HEURISTIC | 130 restarts at m = 5, 6, 7: the optimizer saturates at exactly 1/2 and no design exceeds it |
-| 2 | min | 1/2 (fixed mesh, Grice); 3/4 with one classical bit | VERIFIED (July) | `docs/science/2026-07-20-p3-certificates-and-proofs.md` |
+| 2 | min | ≥ 1/2 (Grice, fixed mesh); 3/4 with one classical bit | CERTIFIED (exact witness `3c672b16…`); randomization gap VERIFIED (July) | `docs/science/2026-07-20-p3-certificates-and-proofs.md` |
 
 So under the problem's literal definition a single ancilla photon is **not** useless: it
 lifts p* from exactly 0 to at least 1/4. Under the literature's average it appears useless
@@ -59,10 +60,33 @@ per-pattern distributions reproduce the engines' float distributions to 1e-6.
   ancilla into three output modes. Its average, 17/36, equals that of the 3-of-4 designs
   (1, 1/6, 13/18, 0): the two families redistribute the same total success 17/9.
 
+**Formalized.** The balanced witness was then handed to the Fable → Lean loop with the k = 0
+definitions extended to three photons (`perm3`, `rawAmp3`, `Identifies3`, mirroring the trusted
+`P3Amplitudes`), and the statement `∀ mu, ∃ i j k : Fin 5, Identifies3 Vk1 i j k mu` was
+kernel-checked in three rounds (axioms {propext, Classical.choice, Quot.sound}); a second loop
+(two rounds) added `Vk1_unitary` and recorded the clean existential
+`p3_k1_all_four_exists : ∃ V ∈ unitaryGroup (Fin 5) ℂ, ∀ mu, ∃ i j k, Identifies3 V i j k mu`
+— the first FORMALIZED k = 1 result, and the exact negation-of-conclusion of the FORMALIZED
+k = 0 theorem `p3_at_most_three`. Two loops, ≈ $13.
+
 The exact witnesses are ledger artifacts of kind `certificate` with claims of the form
 "there is an unambiguous scheme with k = 1 … whose exact success vector is …; hence
 p*(1) = sup min_B p_B ≥ 1/4"; the artifact content is the isometry itself in ℚ(i)(√d)
 notation, re-checkable by `P3ExactVerifier` from the stored bytes.
+
+## Frontier tests (the strategist's predictions P2 and T2)
+
+Two derived targets were added to the optimizer and run at m = 5 (60 restarts) and m = 6
+(40 restarts), seed 2:
+
+| target | m = 5 | m = 6 | prediction |
+|---|---|---|---|
+| `p_low2` = sum of the two smallest successes | 1/2 (balanced 1/4 + 1/4, exact lifts) | 1/2 | P2: plateau at exactly 1/2 — **holds** |
+| `p_sum_all4` = total success over all-four schemes | 17/9 = 1.8889 | 17/9 | T2: exactly 17/9 at m = 5, ≤ 2 − 1/9 for m ≤ 8 — **holds** so far |
+
+Neither exceeded its predicted ceiling by more than solver tolerance (1e-6). Both remain
+conjectures (HEURISTIC evidence); a certificate for p₍₁₎ + p₍₂₎ ≤ 1/2 on the permanental
+variety at m = 5 is the strategist's proposed route to "max-min = 1/4 at k = 1".
 
 ## The strategist round (two free-form calls, $5.90)
 
@@ -104,6 +128,6 @@ and what the harness could check today:
   HEURISTIC and stay so until a certificate or a Lean proof lands.
 - The lost wave-1 design with vector (1/16, 3/16, 9/16, 1) (min 1/16) was never
   re-found; both certified families dominate it on the min metric.
-- k = 2 sanity runs (m = 8, 12 restarts per metric; Grice's (1/2, 1/2, 1, 1) is the
-  reference) and the frontier batch (`p_low2`, `p_sum_all4` at m = 5, 6) are recorded in
-  `runs/p3-campaign/opt/` and summarised in a follow-up once complete.
+- k = 2: Grice's scheme is the certified reference row; the full k = 2 optimizer at m = 8
+  (76 parameters) runs at about an hour per restart with numerical gradients and was stopped
+  after the k = 1 work — a k = 2 landscape needs an analytic gradient first.
