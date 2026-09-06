@@ -1,0 +1,27 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: ef23d7e9038377cb3877382497b936e39efe1c2bd677c5e79e8b8618bee623ff
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 33939bca7330
+  path: claims/evidence/8cf8808cd434ff59.lean
+  stamped: '2026-08-11T23:49:34.249472+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.identifies_rowDecouples
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436;
+  title: Empiricist.identifies_rowDecouples'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (i j : Fin 4) (μ : Empiricist.BellLabel),\n\
+  \    Empiricist.Identifies U i j μ → Empiricist.RowDecouples U i μ ∧ Empiricist.RowDecouples\
+  \ U j μ"
+substatus: null
+supersedes: []
+updated: '2026-08-11'

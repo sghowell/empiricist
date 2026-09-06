@@ -163,8 +163,17 @@ def load_claim(path: Path | str) -> ClaimFile:
 
 
 def save_claim(repo: Path | str, claim: ClaimFile) -> Path:
+    """Write `claims/<id>.yaml`. Refuses when a DIFFERENT id already owns the same
+    filename case-insensitively (a case-insensitive filesystem would silently merge
+    the two claims)."""
     path = claim_path(repo, claim.id)
     path.parent.mkdir(parents=True, exist_ok=True)
+    for other in path.parent.glob("*.yaml"):
+        if other.stem != claim.id and other.stem.lower() == claim.id.lower():
+            raise ClaimSchemaError(
+                f"{path}: id {claim.id!r} collides case-insensitively with existing claim "
+                f"{other.stem!r}"
+            )
     path.write_text(dump_claim(claim), encoding="utf-8")
     return path
 
@@ -175,9 +184,14 @@ def load_all(repo: Path | str) -> dict[str, ClaimFile]:
     d = claims_dir(repo)
     if not d.is_dir():
         return out
+    lowered: dict[str, str] = {}
     for path in sorted(d.glob("*.yaml")):
         claim = load_claim(path)
-        if claim.id in out:  # pragma: no cover - filenames are unique on disk
-            raise ClaimSchemaError(f"{path}: duplicate claim id {claim.id!r}")
+        if claim.id.lower() in lowered:
+            raise ClaimSchemaError(
+                f"{path}: claim id {claim.id!r} collides case-insensitively with "
+                f"{lowered[claim.id.lower()]!r}"
+            )
+        lowered[claim.id.lower()] = claim.id
         out[claim.id] = claim
     return out

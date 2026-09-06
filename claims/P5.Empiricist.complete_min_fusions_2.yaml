@@ -1,0 +1,35 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e848404dbb4f2aee60091a0dcd6b4c9f6d68de5f9496c1f00e8bec6ec1dbe047
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/0843ded7abaaa19d.lean
+  stamped: '2026-07-10T16:14:13.568761+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.2'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim e8fa07579f83
+  path: claims/evidence/0843ded7abaaa19d.lean
+  stamped: '2026-09-05T21:57:42.995203+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.complete_min_fusions_2
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 0843ded7abaaa19dcfe750614bd1b0ad3715fd7a9940cf6a65bdbba394d0403b;
+  title: Empiricist.complete_min_fusions'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ {N : ℕ},\n  3 ≤ N →\n    Empiricist.ProducibleUpToLC (N - 3) (SimpleGraph.completeGraph\
+  \ (Fin N)) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f =\
+  \ 1 → (∀ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-10'

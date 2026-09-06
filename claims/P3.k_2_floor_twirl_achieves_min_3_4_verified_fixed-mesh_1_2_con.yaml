@@ -1,0 +1,26 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: f17dddc2808385e94b28aab0fd59e1daea0a8a2dc331565ae839343b899215b3
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/49ae15070c9c9355.json
+  stamped: '2026-07-21T01:33:26.844683+00:00'
+  verdict: PASS
+  verifier: p3_twirl_check
+  version: '1.0'
+formulation_version: legacy
+id: P3.k_2_floor_twirl_achieves_min_3_4_verified_fixed-mesh_1_2_con
+kind: statement
+level: CONJECTURED
+n: null
+notes: 'artifact 49ae15070c9c9355e20127f221fc0b9887dac4fd75725995c0ceb586c2269173;
+  title: k=2 floor: twirl achieves min 3/4 (verified); fixed-mesh <= 1/2 (conjectured);
+  no canonical claim row (pre-hardening record; statement is the artifact title)'
+problem: P3
+receipts: []
+standing: CURRENT
+statement: 'k=2 floor: twirl achieves min 3/4 (verified); fixed-mesh <= 1/2 (conjectured)'
+substatus: null
+supersedes: []
+updated: '2026-07-21'

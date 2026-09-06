@@ -1,0 +1,36 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: a424b1839e9c5fb2435efff7150382680bc177765c76904feaec342e97354743
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/ff6c58d78cf346fe.lean
+  stamped: '2026-07-15T22:07:27.648322+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim ca14848d9134
+  path: claims/evidence/ff6c58d78cf346fe.lean
+  stamped: '2026-09-05T21:52:22.470618+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.completeBipartite_min_fusions
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact ff6c58d78cf346feb64cf295b55adf4c60e58a7fd8c88662dd5e4b319e2001c2;
+  title: Empiricist.completeBipartite_min_fusions'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ (m n : ℕ),\n  1 ≤ m →\n    1 ≤ n →\n      3 ≤ m + n →\n        Empiricist.ProducibleUpToLC\
+  \ (m + n - 3) (Empiricist.completeBipartite m n) ∧\n          ∀ (g f : ℕ) (c : ℕ\
+  \ → ℕ),\n            m + n + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀ i < f, c i ≤\
+  \ c (i + 1) + 1) → m + n - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-15'

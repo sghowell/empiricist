@@ -1,0 +1,32 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589
+  golden_suite_hash: 4dbac01ac8e1336bd785cbb0aa60ed3333a67531b3e0d764c10ef4181e231a60
+  note: claim e0eba40d7754
+  path: claims/evidence/3c672b16ee532bf2.json
+  stamped: '2026-09-06T00:03:33.221638+00:00'
+  verdict: PASS
+  verifier: p3_exact_witness
+  version: '1.0'
+formulation_version: p3-exact-witness-v1
+id: P3.k2_m8_exact_witness
+kind: statement
+level: CERTIFIED
+n: null
+notes: 'artifact 3c672b16ee532bf202330104cb2702dfb3cfc4b00b44810280787a7853448031;
+  title: P3 exact witness k=2 m=8: Grice''s Bell-pair-ancilla scheme (1/2, 1/2, 1,
+  1)'
+problem: P3
+receipts: []
+standing: CURRENT
+statement: There is an unambiguous passive linear-optical Bell-measurement scheme
+  with k=2 ancilla photon(s) on 8 modes (an isometry over the 4 dual-rail input modes
+  and 4 ancilla input mode(s)) whose exact per-Bell-state success vector is (phi+,
+  phi-, psi+, psi-) = (1/2, 1/2, 1, 1); hence the problem's p*(2) = sup min_B p_B
+  is at least 1/2, and the literature's average-success analogue sup mean_B p_B is
+  at least 3/4 (exact evaluation in Q(i)(sqrt d)). Every Bell state is identified
+  with positive probability.
+substatus: null
+supersedes: []
+updated: '2026-09-06'

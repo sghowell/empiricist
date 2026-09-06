@@ -1,0 +1,12 @@
+{
+  "claim": "For every passive 4-mode ancilla-free dual-rail unambiguous scheme: min_B p_B = 0 (at most 3 of the 4 Bell states have identifying patterns)",
+  "grounding": {
+    "L1_empirical_check": "standard BSM: psi+/psi- identified via coincidence patterns only; all bunched patterns phi-ambiguous (engine-verified)",
+    "histories": [
+      "runs/p3-campaign/k0-minbalanced-v4-history.json"
+    ],
+    "proof_sketch_artifact": "aed4942e5a864976035dd2e2741358faa1791d13d9eec0c06d76410db502bd3a",
+    "wave1_result": "all saturate p_avg=1/2 exactly; every scheme has >=1 state with p_B=0; 3-way redistributions observed, 4-way never",
+    "wave1_schemes": 14
+  }
+}

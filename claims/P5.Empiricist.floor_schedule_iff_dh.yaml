@@ -1,0 +1,35 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: da59a00de8f4ccb2abdb99b4a7b9fd56912f1402b541c7ec71a254bf84b2b7d5
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/c84d528bedee2ae0.lean
+  stamped: '2026-07-17T01:43:54.236462+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 7f40aad9bdae
+  path: claims/evidence/c84d528bedee2ae0.lean
+  stamped: '2026-09-05T21:53:30.788827+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.floor_schedule_iff_dh
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact c84d528bedee2ae037b6ce0bb39a65ab5a3729fa63e6a01b336b8b8547379726;
+  title: Empiricist.floor_schedule_iff_dh'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  3 ≤ Fintype.card\
+  \ V → (Empiricist.BlobSchedule (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable\
+  \ G)"
+substatus: null
+supersedes: []
+updated: '2026-07-17'

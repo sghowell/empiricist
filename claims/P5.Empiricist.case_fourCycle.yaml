@@ -1,0 +1,28 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 0b3a89addd0e965ee08cc07f1ebed880fc3144bbf46216a6b826c9d91cd5142e
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 3e0967829b6c
+  path: claims/evidence/173a14587939c53d.lean
+  stamped: '2026-08-21T22:32:32.399805+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: p5-ghz3-v1
+id: P5.Empiricist.case_fourCycle
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67;
+  title: Empiricist.case_fourCycle'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
+  \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
+  \ μ) →\n      (Empiricist.FourCycle fun i => Finset.image (⇑e) (Empiricist.Mset\
+  \ U i)) → False"
+substatus: null
+supersedes: []
+updated: '2026-08-21'

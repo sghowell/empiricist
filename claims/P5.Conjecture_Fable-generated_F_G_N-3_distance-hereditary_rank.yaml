@@ -1,0 +1,27 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: d0e52267a3940507194cdbc70628e6988108f2267f554be453c23e03e53974cf
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/85e7a63cdadb48c2.json
+  stamped: '2026-07-16T01:38:59.916521+00:00'
+  verdict: PASS
+  verifier: dh_structural_grounding
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_Fable-generated_F_G_N-3_distance-hereditary_rank
+kind: statement
+level: CONJECTURED
+n: null
+notes: 'artifact 85e7a63cdadb48c25fa96b1452fafd7fa28d392d1b11e9dde13ff45b5d3029d3;
+  title: Conjecture (Fable-generated): F(G)=N-3 <=> distance-hereditary (rank-width
+  1); no canonical claim row (pre-hardening record; statement is the artifact title)'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: 'Conjecture (Fable-generated): F(G)=N-3 <=> distance-hereditary (rank-width
+  1)'
+substatus: null
+supersedes: []
+updated: '2026-07-16'

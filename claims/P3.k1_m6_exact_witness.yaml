@@ -1,0 +1,31 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589
+  golden_suite_hash: 4dbac01ac8e1336bd785cbb0aa60ed3333a67531b3e0d764c10ef4181e231a60
+  note: claim 7dfe862f49ec
+  path: claims/evidence/204b4f97247df997.json
+  stamped: '2026-09-05T23:09:49.130929+00:00'
+  verdict: PASS
+  verifier: p3_exact_witness
+  version: '1.0'
+formulation_version: p3-exact-witness-v1
+id: P3.k1_m6_exact_witness
+kind: statement
+level: CERTIFIED
+n: null
+notes: 'artifact 204b4f97247df997456b9647480af64e485b8f36d81c7513e21d01c868680835;
+  title: P3 exact witness k=1 m=6: p_min optimum'
+problem: P3
+receipts: []
+standing: CURRENT
+statement: There is an unambiguous passive linear-optical Bell-measurement scheme
+  with k=1 ancilla photon(s) on 6 modes (an isometry over the 4 dual-rail input modes
+  and 1 ancilla input mode(s)) whose exact per-Bell-state success vector is (phi+,
+  phi-, psi+, psi-) = (1/4, 1/4, 1/4, 1/4); hence the problem's p*(1) = sup min_B
+  p_B is at least 1/4, and the literature's average-success analogue sup mean_B p_B
+  is at least 1/4 (exact evaluation in Q(i)(sqrt d)). Every Bell state is identified
+  with positive probability.
+substatus: null
+supersedes: []
+updated: '2026-09-05'

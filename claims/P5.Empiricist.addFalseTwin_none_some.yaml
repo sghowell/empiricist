@@ -1,0 +1,34 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: a424b1839e9c5fb2435efff7150382680bc177765c76904feaec342e97354743
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/203f55c71a022048.lean
+  stamped: '2026-07-16T06:07:52.692154+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 8687bb2634b5
+  path: claims/evidence/203f55c71a022048.lean
+  stamped: '2026-09-05T21:52:30.123881+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.addFalseTwin_none_some
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 203f55c71a02204834750eaacb39b2368e957e646973f9245778f8ec2888e839;
+  title: Empiricist.addFalseTwin_none_some'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: '∀ {V : Type u_1} (G : SimpleGraph V) (u x : V), (Empiricist.addFalseTwin
+  G u).Adj none (some x) ↔ G.Adj u x'
+substatus: null
+supersedes: []
+updated: '2026-07-16'

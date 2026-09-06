@@ -82,3 +82,12 @@ def test_load_all_checks_filenames(tmp_path):
     assert list(load_all(tmp_path)) == ["P3.k1_all_four"]
     assert load_claim(tmp_path / "claims" / "P3.k1_all_four.yaml").level == "FORMALIZED"
     assert load_all(tmp_path / "nowhere") == {}
+
+
+def test_case_insensitive_id_collisions_are_refused(tmp_path):
+    save_claim(tmp_path, _claim(id="P5.path_N"))
+    with pytest.raises(ClaimSchemaError, match="collides case-insensitively"):
+        save_claim(tmp_path, _claim(id="P5.path_n"))
+    # the same id re-saved is fine
+    save_claim(tmp_path, _claim(id="P5.path_N", notes="again"))
+    assert load_all(tmp_path)["P5.path_N"].notes == "again"

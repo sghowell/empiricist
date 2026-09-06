@@ -1,0 +1,33 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 04feeb53d8c8981ceb79e32a8b6e3e26c9f984ad309fe4d19ab9a1e8a83be39d
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/8f240a8226090599.lean
+  stamped: '2026-07-15T21:23:13.890839+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim e5efa298d12a
+  path: claims/evidence/8f240a8226090599.lean
+  stamped: '2026-09-05T21:52:02.572235+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.doubleStar_isTree
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 8f240a8226090599ed1523aaaf2144a7189c29956821ace279d78fabec7cafda;
+  title: Empiricist.doubleStar_isTree'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: '∀ (m n : ℕ), 1 ≤ m → 1 ≤ n → (Empiricist.doubleStar m n).IsTree'
+substatus: null
+supersedes: []
+updated: '2026-07-15'

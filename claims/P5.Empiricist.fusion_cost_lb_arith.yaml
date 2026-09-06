@@ -1,0 +1,33 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e848404dbb4f2aee60091a0dcd6b4c9f6d68de5f9496c1f00e8bec6ec1dbe047
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/bc4c89a916480401.lean
+  stamped: '2026-07-14T22:46:37.184599+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.2'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim e1333d0944eb
+  path: claims/evidence/bc4c89a916480401.lean
+  stamped: '2026-09-05T21:50:49.343156+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.fusion_cost_lb_arith
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact bc4c89a9164804010abc83f83c18cb73c3ddba534e5dc3f39dea74296a11d92b;
+  title: Empiricist.fusion_cost_lb_arith'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: '∀ (N g f : Nat), 3 ≤ N → N + 2 * f = 3 * g → g ≤ f + 1 → N ≤ f + 3'
+substatus: null
+supersedes: []
+updated: '2026-07-14'

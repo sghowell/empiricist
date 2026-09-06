@@ -1,0 +1,35 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 54cabaca03adbe85261a11ccf17de6834acae524b690486f9ce33e87786db2c4
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/1fef0fed87be0c7d.lean
+  stamped: '2026-07-16T16:44:19.222473+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 52fc337a4443
+  path: claims/evidence/1fef0fed87be0c7d.lean
+  stamped: '2026-09-05T21:52:53.341088+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.addPendant_localComplement_center
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 1fef0fed87be0c7dad385a29ce9292c403dc6beab84da1715a156a6f57e101e8;
+  title: Empiricist.addPendant_localComplement_center'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ {V : Type} [DecidableEq V] (G : SimpleGraph V) (u : V),\n  Empiricist.localComplement\
+  \ (Empiricist.addPendant G u) (some u) =\n    Empiricist.addTrueTwin (Empiricist.localComplement\
+  \ G u) u"
+substatus: null
+supersedes: []
+updated: '2026-07-16'

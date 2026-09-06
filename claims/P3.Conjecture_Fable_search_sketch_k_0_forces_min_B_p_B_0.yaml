@@ -1,0 +1,26 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: c5e10ef5ebdc188af427b756a4cc770154bd2576f3264f2ce1aa3dfd295b68ab
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/0fa89362985466bb.json
+  stamped: '2026-07-21T01:30:20.192626+00:00'
+  verdict: PASS
+  verifier: p3_wave1_grounding
+  version: '1.0'
+formulation_version: legacy
+id: P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0
+kind: statement
+level: CONJECTURED
+n: null
+notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186;
+  title: Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0; no canonical
+  claim row (pre-hardening record; statement is the artifact title)'
+problem: P3
+receipts: []
+standing: CURRENT
+statement: 'Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0'
+substatus: null
+supersedes: []
+updated: '2026-07-21'

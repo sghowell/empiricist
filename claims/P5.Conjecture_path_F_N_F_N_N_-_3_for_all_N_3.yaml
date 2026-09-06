@@ -1,0 +1,26 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e36c85d6ef1d9dbecd3a138a4dcef4f16ee10cca9bac56600cb0349f82a3e10f
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/6631c12f436ff9af.json
+  stamped: '2026-07-09T20:32:13.904549+00:00'
+  verdict: PASS
+  verifier: auto_attack
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3
+kind: statement
+level: CONJECTURED
+n: null
+notes: 'artifact 6631c12f436ff9afaa06cd2584d37c8018f20d93faea952c46f883d4ec68c123;
+  title: Conjecture: path F(N) = F(N) = N - 3 for all N >= 3; no canonical claim row
+  (pre-hardening record; statement is the artifact title)'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: 'Conjecture: path F(N) = F(N) = N - 3 for all N >= 3'
+substatus: null
+supersedes: []
+updated: '2026-07-09'

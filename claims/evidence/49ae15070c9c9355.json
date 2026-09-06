@@ -1,0 +1,9 @@
+{
+  "claim": "k=2, 8 modes: randomized schemes achieve p_min = 3/4 (VERIFIED via Pauli twirl); fixed-mesh schemes satisfy p_min <= 1/2 (CONJECTURED, sketch L1'-L4')",
+  "grounding": {
+    "sketch_artifact": "fd8567f8215b8c4443f81e03449d64488034f06b60f011d44cea9b6321ac1cbb",
+    "twirl_check": "engine-verified: X_A-conjugated Grice yields exactly (1,1,1/2,1/2) with leakage 0.0; 50/50 randomization over {Grice, X_A Grice} achieves p_min = 3/4 per state",
+    "wave2_result": "best fixed-mesh p_min = 1/2 (Grice); rebalancing attempts hit 3/16, ~0.073 (disconnected basins, consistent with the Pauli-orbit landscape picture)",
+    "wave2_schemes": 12
+  }
+}

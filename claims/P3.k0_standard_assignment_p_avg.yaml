@@ -1,0 +1,30 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 78e59a059584e9e26662e695b8a1582af9d7dc6f7249a0fa65050157453da1e0
+  golden_suite_hash: fa1d8397d27a5a3c46c9d568b23a2ed2fcb4b1a75c4f1b09eec041bd908b32e9
+  note: claim 370ca8ee9e44
+  path: claims/evidence/d11c6b254005d555.json
+  stamped: '2026-09-05T22:23:27.238158+00:00'
+  verdict: PASS
+  verifier: sos_certificate
+  version: '1.0'
+formulation_version: p3-sos-certificate-v1
+id: P3.k0_standard_assignment_p_avg
+kind: statement
+level: CERTIFIED
+n: null
+notes: 'artifact d11c6b254005d555bf8c50924e1211ce058945ddc2e7bc1b7aa9147a376aac49;
+  title: P3 k=0: standard-assignment objective <= 1/2 for all U in U(4) (exact SOS
+  certificate)'
+problem: P3
+receipts: []
+standing: CURRENT
+statement: For every passive interferometer U in U(4) acting on the ancilla-free dual-rail
+  Bell pair, the standard-assignment objective -- the total probability that the textbook
+  Bell-analyser detection patterns land on their assigned Bell states, an upper bound
+  on the unambiguous average success p_avg of that assignment -- is at most 1/2 (exact
+  SOS certificate on the unitarity variety; no unambiguity side constraint is used).
+substatus: null
+supersedes: []
+updated: '2026-09-05'

@@ -1,0 +1,30 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 6aacfa893c3635fff395c7fb4fc6f12da264046ce9adfad0886acd886ba71f85
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 61296e31ce2b
+  path: claims/evidence/1fd71604eeb851c1.lean
+  stamped: '2026-08-21T01:46:20.610705+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.pauli_eigvec_sesq_pairing
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 1fd71604eeb851c1efcbcf126b93b0919ed7b1c89d62f6199271e1880454630c;
+  title: pauli_eigvec_sesq_pairing'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ Empiricist.BellLabel.phiP →\n\
+  \    Empiricist.pauliOf mu * Empiricist.pauliOf nu = -(Empiricist.pauliOf nu * Empiricist.pauliOf\
+  \ mu) →\n      ∀ (u v : Fin 2 → ℂ),\n        u ≠ 0 →\n          v ≠ 0 →\n      \
+  \      ∀ (cu cv : ℂ),\n              (Empiricist.pauliOf mu).mulVec u = cu • u →\n\
+  \                (Empiricist.pauliOf mu).mulVec v = cv • v →\n                 \
+  \ ¬(sesq u v = 0 ∧ sesq u ((Empiricist.pauliOf nu).mulVec v) = 0)"
+substatus: null
+supersedes: []
+updated: '2026-08-21'

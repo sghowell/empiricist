@@ -1,0 +1,28 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: fa23b212c7600b9a4ea6ecf820e5816a02c3341fd5f894895f6e6b219d33fa96
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/401d7bd3d4d9342f.json
+  stamped: '2026-07-10T01:20:47.761180+00:00'
+  verdict: PASS
+  verifier: auto_attack
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_complete_F_N_F_N_N_-_3_for_all_N_3_the_complete_g
+kind: statement
+level: CONJECTURED
+n: null
+notes: 'artifact 401d7bd3d4d9342f27f311a352328b842a2b50ea5dc024b77030592cdc426ba0;
+  title: Conjecture: complete F(N) = F(N) = N - 3 for all N >= 3 (the complete graph
+  K_N achieves the universal lower bound F(N) >= N-3 with equality); no canonical
+  claim row (pre-hardening record; statement is the artifact title)'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: 'Conjecture: complete F(N) = F(N) = N - 3 for all N >= 3 (the complete
+  graph K_N achieves the universal lower bound F(N) >= N-3 with equality)'
+substatus: null
+supersedes: []
+updated: '2026-07-10'

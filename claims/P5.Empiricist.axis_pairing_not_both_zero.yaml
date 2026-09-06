@@ -1,0 +1,27 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 973ecbc1e07dc8787d0f07edef1c4e24a4bd0b736c59381a28e4ebf052f513a4
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 602d8fc16c5c
+  path: claims/evidence/a7ee0a4ac6de5e12.lean
+  stamped: '2026-08-20T17:09:50.027926+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.axis_pairing_not_both_zero
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact a7ee0a4ac6de5e12131d791c3796178b3a8e40f5b2694fb1b0b03c7c91f23945;
+  title: Empiricist.axis_pairing_not_both_zero'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ {u v : Fin 2 → ℂ},\n  u ≠ 0 →\n    v ≠ 0 →\n      Empiricist.AxisAligned\
+  \ u →\n        Empiricist.AxisAligned v → ¬(Empiricist.plainPair u v = 0 ∧ Empiricist.twistPair\
+  \ u v = 0)"
+substatus: null
+supersedes: []
+updated: '2026-08-20'

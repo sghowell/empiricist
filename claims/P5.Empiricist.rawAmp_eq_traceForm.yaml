@@ -1,0 +1,38 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: da59a00de8f4ccb2abdb99b4a7b9fd56912f1402b541c7ec71a254bf84b2b7d5
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/645a70370c559933.lean
+  stamped: '2026-07-21T03:24:24.490704+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 1635195bdaa6
+  path: claims/evidence/645a70370c559933.lean
+  stamped: '2026-08-21T23:41:52.042124+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.rawAmp_eq_traceForm
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 645a70370c55993391d5868b2d9aea62568df0ed2e6cb93096ae3afa977f9467;
+  title: Empiricist.rawAmp_eq_traceForm'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ (U : Matrix (Fin 4) (Fin 4) ℂ) (i j : Fin 4),\n  Empiricist.rawAmp U\
+  \ i j Empiricist.BellLabel.phiP = (Empiricist.Q U i j).trace ∧\n    Empiricist.rawAmp\
+  \ U i j Empiricist.BellLabel.psiP = (Empiricist.sigmaX * Empiricist.Q U i j).trace\
+  \ ∧\n      Empiricist.rawAmp U i j Empiricist.BellLabel.psiM = -Complex.I * (Empiricist.sigmaY\
+  \ * Empiricist.Q U i j).trace ∧\n        Empiricist.rawAmp U i j Empiricist.BellLabel.phiM\
+  \ = (Empiricist.sigmaZ * Empiricist.Q U i j).trace"
+substatus: null
+supersedes: []
+updated: '2026-07-21'

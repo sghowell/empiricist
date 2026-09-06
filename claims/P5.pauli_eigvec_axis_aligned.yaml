@@ -1,0 +1,26 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 22eb00709aecc363d548c06089bdbc9721c219a768c74512428d4b3678e469cf
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim b6c6bf586b25
+  path: claims/evidence/f2322820c8e1668e.lean
+  stamped: '2026-08-20T22:01:54.309790+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.pauli_eigvec_axis_aligned
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact f2322820c8e1668ef2069ff5ce43027775d5871f98f0f0b6a962dcc89c4bf43f;
+  title: pauli_eigvec_axis_aligned'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: '∀ (w : Fin 2 → ℂ), w ≠ 0 → ∀ (c : ℂ), Empiricist.sigmaZ.mulVec w = c •
+  w → Empiricist.AxisAligned w'
+substatus: null
+supersedes: []
+updated: '2026-08-20'

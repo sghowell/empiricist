@@ -35,6 +35,9 @@ jobs:
       - name: Run fast offline tests
         run: uv run pytest -m "not slow and not slow_lean"
 
+      - name: Check the claim ledger (hashes, DAG, standing, rendered CLAIMS.md)
+        run: uv run empiricist claims check --repo .
+
   trust-boundaries:
     name: Manual slow exact and Lean checks
     if: github.event_name == 'workflow_dispatch'

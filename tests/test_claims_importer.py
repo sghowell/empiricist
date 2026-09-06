@@ -119,3 +119,86 @@ def test_cli_claims_commands(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "lock_mismatch: P3.Empiricist.foo changed:" in out
     assert "blocking issue(s)" in out and " 0 blocking" not in out
+
+
+def test_import_ledger_keeps_pre_hardening_artifacts(tmp_path):
+    """A v0 artifact without a canonical claim row (pre-hardening) is imported with
+    its title as the statement and a note saying so, not dropped."""
+    from empiricist.ledger.models import Artifact, EvidenceRow, Status
+
+    run_dir = tmp_path / "run"
+    lg = Ledger(run_dir / "ledger.db")
+    st = Store(run_dir / "store")
+    digest = st.put(b'{"conjecture": "F(G)=N-3 iff distance-hereditary"}')
+    lg.add_artifact(Artifact(id=digest, kind="statement", problem="P5", title="DH characterization",
+                             content_path=digest, status=Status.CONJECTURED))
+    lg.record_evidence(EvidenceRow(artifact_id=digest, verifier="attack", verifier_version="1",
+                                   binary_hash="ab" * 32, verdict=Verdict.PASS))
+    lg.close()
+    rep = import_ledger(run_dir, tmp_path / "repo")
+    assert rep.written == ["P5.DH_characterization"] and rep.skipped == []
+    c = load_all(tmp_path / "repo")["P5.DH_characterization"]
+    assert c.statement == "DH characterization" and "no canonical claim row" in c.notes
+    assert check(tmp_path / "repo").ok
+
+
+def test_resolve_evidence_cell_handles_the_legacy_forms(tmp_path):
+    from empiricist.claims.importer import resolve_evidence_cell
+
+    repo = tmp_path
+    for rel in ("problems/P9/results/certificates/feasible_L1_D4.json",
+                "problems/P9/results/certificates/feasible_L2_D4.json",
+                "problems/P9/b/tests/test_s2_rows.py", "problems/P9/b/certificates/P9b-1.K.json",
+                "problems/P9/notes/proof.md"):
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("x")
+    known = {"P9b-0", "P9b-1.K", "P9b-1.rows"}
+    cell = ("results/certificates/feasible_L*_D*.json; b/tests/test_s2_rows.py; "
+            "problems/P9/notes/proof.md §6.2; as P9b-0; CLAIMS P9b-0, P9b-1.K, P9b-1.rows; "
+            "b/certificates/P9b-1.{K,rows}.json; results/summary.md; /etc/passwd; ../x")
+    present, depends, missing = resolve_evidence_cell(repo, cell, "P9(b), ladder", known_ids=known)
+    assert present == [
+        "problems/P9/results/certificates/feasible_L1_D4.json",
+        "problems/P9/results/certificates/feasible_L2_D4.json",
+        "problems/P9/b/tests/test_s2_rows.py",
+        "problems/P9/notes/proof.md",
+        "problems/P9/b/certificates/P9b-1.K.json",
+    ]
+    assert depends == ["P9b-0", "P9b-1.K", "P9b-1.rows"]
+    assert missing == ["results/summary.md", "/etc/passwd", "../x"]
+
+
+def test_unique_ids_are_case_insensitive_and_directories_expand(tmp_path):
+    from empiricist.claims.importer import _unique_id, resolve_evidence_cell
+
+    taken = {"P5.path_N"}
+    assert _unique_id("P5.path_n", taken) == "P5.path_n_2"
+    repo = tmp_path
+    for rel in ("problems/P8/tests/test_a.py", "problems/P8/tests/sub/test_b.py",
+                "problems/P8/tests/__pycache__/x.pyc", "problems/P4/tests/t1.py",
+                "problems/P4/tests/t2.py"):
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("x")
+    present, deps, missing = resolve_evidence_cell(repo, "problems/P8/tests/", "P8(b)")
+    assert present == ["problems/P8/tests/sub/test_b.py", "problems/P8/tests/test_a.py"]
+    present, deps, missing = resolve_evidence_cell(repo, "tests/t1.py, tests/t2.py", "P4")
+    assert present == ["problems/P4/tests/t1.py", "problems/P4/tests/t2.py"] and not missing
+
+
+def test_import_table_inherits_evidence_from_a_referenced_claim(tmp_path):
+    repo = tmp_path
+    (repo / "problems" / "P9").mkdir(parents=True)
+    (repo / "problems" / "P9" / "c.json").write_text("{}")
+    table = (
+        "| id | problem | statement | level | evidence | updated |\n|---|---|---|---|---|---|\n"
+        "| P9b-0 | P9(b) | base | CERTIFIED | problems/P9/c.json | 2026-08-31 |\n"
+        "| P9b-1.K | P9(b) | row K | CERTIFIED (= P9b-0) | as P9b-0 | 2026-08-31 |\n"
+    )
+    (repo / "CLAIMS.md").write_text(table)
+    import_table(repo / "CLAIMS.md", repo)
+    claims = load_all(repo)
+    assert claims["P9b-1.K"].depends_on == ["P9b-0"]
+    assert [e.path for e in claims["P9b-1.K"].evidence] == ["problems/P9/c.json"]
+    assert "inherited from P9b-0" in claims["P9b-1.K"].evidence[0].note
+    rep = refresh_repo(repo)
+    assert rep.ok and rep.standings == {"P9b-0": "CURRENT", "P9b-1.K": "CURRENT"}

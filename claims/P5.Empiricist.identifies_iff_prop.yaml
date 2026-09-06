@@ -1,0 +1,35 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 0b1cb28f0a2e9900e30c5056013d07b89e27bd4c46ba56bc2e1e1b3fb1825784
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/28354a566933a414.lean
+  stamped: '2026-07-21T07:07:18.959686+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 9b1a62bc694f
+  path: claims/evidence/28354a566933a414.lean
+  stamped: '2026-08-21T23:42:08.735089+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.identifies_iff_prop
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d;
+  title: Empiricist.identifies_iff_prop'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ (U : Matrix (Fin 4) (Fin 4) ℂ) (i j : Fin 4) (mu : Empiricist.BellLabel),\n\
+  \  Empiricist.Identifies U i j mu ↔ ∃ t, t ≠ 0 ∧ Empiricist.Q U i j = t • Empiricist.pauliOf\
+  \ mu"
+substatus: null
+supersedes: []
+updated: '2026-07-21'

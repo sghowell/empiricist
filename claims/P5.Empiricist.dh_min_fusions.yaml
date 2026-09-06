@@ -1,0 +1,36 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 6e36bd2337b418472dcaa83147d3d195721c3d25f102774a56bae0fdc864c976
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/ced4c030c0e26602.lean
+  stamped: '2026-07-16T17:57:29.571855+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 81be9b267fdd
+  path: claims/evidence/ced4c030c0e26602.lean
+  stamped: '2026-09-05T21:53:15.691485+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.dh_min_fusions
+kind: statement
+level: FORMALIZED
+n: null
+notes: 'artifact ced4c030c0e266025efdc8ea099dd253b6feeda7ebc41fbfa629593c67e8a7d4;
+  title: Empiricist.dh_min_fusions'
+problem: P5
+receipts: []
+standing: CURRENT
+statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.PendantTwinBuildable\
+  \ G →\n    Empiricist.ProducibleByExt (Fintype.card V - 3) G ∧\n      ∀ (g f : ℕ)\
+  \ (c : ℕ → ℕ),\n        Fintype.card V + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\
+  \ i < f, c i ≤ c (i + 1) + 1) → Fintype.card V - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-16'

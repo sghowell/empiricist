@@ -1,0 +1,1 @@
+{"closed_form":"F(N) = N - 3 for all N >= 3 (the complete graph K_N achieves the universal lower bound F(N) >= N-3 with equality)","confidence":0.97,"family":"complete","predicted_values":{"3":0,"4":1,"5":2,"6":3,"7":4,"8":5,"9":6}}
