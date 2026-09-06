@@ -88,17 +88,67 @@ mostly for the author, not the harness:
   because only PASS samples closed blocks under the rule in force (fixed: any fresh
   sample without a blocking finding closes).
 
-**Outcome.** P8-A.7 is CONJECTURED with a certified-verifier PASS, four receipts, and
-standing CHALLENGED until a later receipt closes the two round-1 blocks (a human
-`review --human --closes …`, or another model round under the corrected rule). The
-promotion to CERTIFIED has not happened: the reviewer would not sign it while the
-dependencies are un-earned, and neither should the harness. Cost of the trial's reviews:
-$9.67; total model spend of the day $11.44.
+**Outcome of the first two rounds.** P8-A.7 was CONJECTURED with a certified-verifier
+PASS, four receipts, and standing CHALLENGED until a later receipt closes the two
+round-1 blocks. The reviewer would not sign CERTIFIED while the dependencies were
+un-earned, and neither should the harness; the next section is what followed.
 
 For the charter's kill gate this is the first of its two events: a receipt has blocked a
 promotion on a genuine defect. The other (a genuine stale claim caught) has a rehearsal:
 changing the verifier declaration made P8-A.7 STALE until re-certification and
 re-verification.
+
+## Re-earning the chain bottom-up (the same evening)
+
+Sean chose the recommendations: the dependency-level rule (a claim's level is capped by
+its dependencies' levels; a human receipt may waive it once; PR #74) and re-earning the
+P8(a) chain rather than promoting P8-A.7 over HEURISTIC dependencies.
+
+- `claims deps-from-pins` derived 18 dependency edges from the certificates' own
+  `prior_*_sha256` fields (the A.1→…→A.7 chain, the S5 D/CD chains, S6), each as a claim
+  edge and a locked path dependency.
+- Six more command verifiers (`p8a` … `p8a_response`) were declared and certified in
+  minutes; A.1–A.6 went through `promote` to CONJECTURED on their certificates.
+- The first P8-A.1 review round returned REVISE twice for record defects of mine
+  (`formulation_version: legacy-table`; the verifier shown as a truncated hash without
+  its declaration) and asked what CERTIFIED means in this ledger. Fixes: formulation pins
+  for every claim, `claims/LEVELS.md` (the repository's own level semantics, now the
+  first thing every reviewer reads), and the bundle listing each verifier's committed
+  declaration with full hashes (PR #75).
+- The second round still returned REVISE, now on a wording defect in LEVELS.md and a
+  checker-quality note, while the stricter sample checked every quantitative clause of
+  the statement against the certificate and found it backed. That exposed a rule of my
+  own that was stricter than the charter: F4's bar is "a receipt with no blocking
+  finding", and a PASS-only rule was turning documentation nits into vetoes. PR #76
+  restores F4's bar; warnings stay in the receipt and are counted in the claim notes.
+- Under that bar a driver climbed the chain: **P8-A.1, A.2, A.3, A.4, A.5 are CERTIFIED**,
+  each on two independent samples with no blocking finding (A.5 got a PASS). The
+  deliverable's stricter wording, a promotion to CERTIFIED through `promote` with a
+  review receipt, is met.
+- The usage limit then cut three samples short (cost 0, six seconds). The harness had
+  recorded them honestly as "no parseable review" REVISE receipts, but the driver
+  promoted A.6 on one of them. PR #77 marks such receipts `usable: false` (they warrant
+  nothing and close nothing); A.6 was withdrawn to CONJECTURED through `demote` with the
+  reason on record and re-reviewed: two real samples, REVISE with warnings, no blocking
+  finding, and **A.6 is CERTIFIED**.
+- P8-A.7's third round, now over the corrected record and CERTIFIED dependencies,
+  returned one PASS and one REVISE; the PASS sample closed the two round-1 blocking
+  receipts and **P8-A.7 is CERTIFIED** on it. The whole P8(a) chain, A.1 through A.7,
+  is CERTIFIED with review receipts; `check` is green with 51 claims and no
+  `level_inversion`.
+
+**Cost.** 24 reviewer calls on the trial, $47.28 (about $2.40 per sample, five to
+eleven minutes each); 17 usable receipts warrant the seven promotions, three unusable
+receipts record the usage-limit cut. Day total including the empiricist-side accidental
+call: $49.05.
+
+**What the reviewer is worth.** Across 14 real samples it found one genuine record
+defect (the missing dependency edges, which the importer now derives from certificate
+pins), three documentation gaps that are now part of the harness (formulation pins,
+level semantics in the bundle, full verifier declarations), and a standing list of
+statement-precision points for the author (missing envelope qualifiers, undefined
+symbols, a double-defined `P1`, single-implementation constants). It never contradicted
+a certified number.
 
 ## What the next problem needs
 

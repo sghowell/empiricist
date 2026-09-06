@@ -122,3 +122,10 @@ On the trial worktree (branch `empiricist-claims-import`, commit c17c356 and lat
 - Deferred (unchanged) plus: derive `depends_on` from certificate pins at import; a
   pytest-suite verifier shape (a FAIL fixture that is a failing test module); the
   dependency-level rule.
+
+- Later the same day (PRs #74–#77): dependency-level rule with human waivers and
+  `deps-from-pins`; bundle states level semantics and full verifier declarations;
+  elevated bar aligned with F4; unusable receipts warrant nothing. The P8(a) chain was
+  re-earned bottom-up: A.1–A.5 CERTIFIED with receipts (the deliverable's stricter
+  wording met); then A.6 and, with its blocks closed by a fresh PASS sample, A.7:
+  the whole P8(a) chain is CERTIFIED with receipts.
