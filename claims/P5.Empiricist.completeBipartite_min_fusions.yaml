@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim ca14848d9134
+  path: claims/evidence/ff6c58d78cf346fe.lean
+  stamped: '2026-09-06T20:05:04.264314+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.completeBipartite_min_fusions
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ff6c58d78cf346feb64cf295b55adf4c60e58a7fd8c88662dd5e4b319e2001c2
-standing: CURRENT
+standing: STALE
 statement: "∀ (m n : ℕ),\n  1 ≤ m →\n    1 ≤ n →\n      3 ≤ m + n →\n        Empiricist.ProducibleUpToLC\
   \ (m + n - 3) (Empiricist.completeBipartite m n) ∧\n          ∀ (g f : ℕ) (c : ℕ\
   \ → ℕ),\n            m + n + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀ i < f, c i ≤\

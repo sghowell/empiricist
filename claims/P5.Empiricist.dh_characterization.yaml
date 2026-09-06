@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 38ce990f6e18
+  path: claims/evidence/454d406098497214.lean
+  stamped: '2026-09-06T20:06:05.961337+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.dh_characterization
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 454d406098497214dcfc43d0176aa9d2e8db1193c79c62d3492ca9aa2110669c
-standing: CURRENT
+standing: STALE
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.ProducibleByExt\
   \ (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable G"
 substatus: null

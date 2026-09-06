@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 326d2af041c6
+  path: claims/evidence/c35a6473cc88e1fc.lean
+  stamped: '2026-09-06T20:07:35.024645+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.tree_min_fusions_2
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: c35a6473cc88e1fcb9680ed3a44982e82f0b9c016e2162dabbf25e94891993d5
-standing: CURRENT
+standing: STALE
 statement: "∀ {V : Type} [inst : Fintype V] (T : SimpleGraph V) [DecidableRel T.Adj],\n\
   \  T.IsTree →\n    3 ≤ Fintype.card V →\n      Empiricist.ProducibleBy (Fintype.card\
   \ V - 3) T ∧\n        ∀ (g f : ℕ) (c : ℕ → ℕ),\n          Fintype.card V + 2 * f\

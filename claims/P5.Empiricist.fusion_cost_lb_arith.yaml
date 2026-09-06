@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim e1333d0944eb
+  path: claims/evidence/bc4c89a916480401.lean
+  stamped: '2026-09-06T20:03:30.951978+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.fusion_cost_lb_arith
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: bc4c89a9164804010abc83f83c18cb73c3ddba534e5dc3f39dea74296a11d92b
-standing: CURRENT
+standing: STALE
 statement: '∀ (N g f : Nat), 3 ≤ N → N + 2 * f = 3 * g → g ≤ f + 1 → N ≤ f + 3'
 substatus: null
 supersedes: []

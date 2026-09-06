@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 81be9b267fdd
+  path: claims/evidence/ced4c030c0e26602.lean
+  stamped: '2026-09-06T20:05:58.250451+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.dh_min_fusions
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ced4c030c0e266025efdc8ea099dd253b6feeda7ebc41fbfa629593c67e8a7d4
-standing: CURRENT
+standing: STALE
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.PendantTwinBuildable\
   \ G →\n    Empiricist.ProducibleByExt (Fintype.card V - 3) G ∧\n      ∀ (g f : ℕ)\
   \ (c : ℕ → ℕ),\n        Fintype.card V + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\

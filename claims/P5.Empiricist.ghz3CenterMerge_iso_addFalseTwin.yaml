@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim fa8aa9e315e1
+  path: claims/evidence/cf676c0ec297b9ea.lean
+  stamped: '2026-09-06T20:05:27.875177+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.ghz3CenterMerge_iso_addFalseTwin
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: cf676c0ec297b9ea3a3c503e5a7daed3cb14b3ec412de9e87393c95a2924814b
-standing: CURRENT
+standing: STALE
 statement: "{V : Type} →\n  [DecidableEq V] → (G : SimpleGraph V) → (a : V) → Empiricist.ghz3CenterMerge\
   \ G a ≃g Empiricist.addFalseTwin G a"
 substatus: null

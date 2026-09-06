@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 7f40aad9bdae
+  path: claims/evidence/c84d528bedee2ae0.lean
+  stamped: '2026-09-06T20:06:13.563170+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.floor_schedule_iff_dh
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: c84d528bedee2ae037b6ce0bb39a65ab5a3729fa63e6a01b336b8b8547379726
-standing: CURRENT
+standing: STALE
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  3 ≤ Fintype.card\
   \ V → (Empiricist.BlobSchedule (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable\
   \ G)"

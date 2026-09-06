@@ -90,7 +90,9 @@ def _stamp_registry_from_ledger(
     already holds (newest version wins; same version keeps the registry's hash)."""
     from empiricist.claims.registry import _version_key, read_registry, stamp
 
-    best: dict[str, tuple[tuple, str, str, str]] = {}
+    # newest version wins; among equal versions the most recently stamped PASS
+    # certification (a re-certification under a new binary) wins
+    best: dict[str, tuple[tuple, str, str, str, str]] = {}
     for e in entries:
         if e.binary_hash is None or e.golden_suite_hash is None:
             continue
@@ -98,12 +100,13 @@ def _stamp_registry_from_ledger(
         if cert is None or cert.verdict is not Verdict.PASS:
             continue
         key = _version_key(e.version)
-        if e.verifier not in best or key > best[e.verifier][0]:
-            best[e.verifier] = (key, e.version, e.binary_hash, cert.golden_suite_hash)
+        cand = (key, cert.stamped_at, e.version, e.binary_hash, cert.golden_suite_hash)
+        if e.verifier not in best or cand[:2] > best[e.verifier][:2]:
+            best[e.verifier] = cand
     if not best:
         return
     reg = read_registry(repo)
-    for name, (key, version, binary_hash, suite) in best.items():
+    for name, (key, _stamped_at, version, binary_hash, suite) in best.items():
         cur = reg.stamps.get(name)
         if cur is not None and _version_key(cur.version) > key:
             continue  # never downgrade

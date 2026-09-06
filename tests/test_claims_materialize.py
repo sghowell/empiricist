@@ -88,3 +88,26 @@ def test_certificate_ingest_materializes_and_registry_never_downgrades(tmp_path)
     assert materialize_after_ingest(lg, st, next(iter(claims.values())).source.ref,
                                     claims_repo=bad) is None
     lg.close()
+
+
+def test_registry_follows_the_latest_certification_of_a_version(tmp_path):
+    """Two PASS certifications for lean 9.9 (an old binary, then a re-certified new one):
+    the registry stamps the newer, so evidence from the old binary is STALE and evidence
+    from the new one is CURRENT."""
+    lg, st = _ledger(tmp_path)  # certifies lean 9.9 under "ab"*32
+    repo = tmp_path / "repo"
+    ingest_lean_artifact(lg, st, "theorem a : 1 = 1 := rfl", "Empiricist.a", verifier=_StubLean(),
+                         problem="P3", problem_version="p3-v1", claims_repo=repo)
+
+    class _NewLean(_StubLean):
+        binary_hash = "cd" * 32
+
+    lg.add_certification(Certification(verifier="lean", verifier_version="9.9",
+                                       binary_hash="cd" * 32, golden_suite_hash=lean_suite_hash(),
+                                       verdict=Verdict.PASS))
+    ingest_lean_artifact(lg, st, "theorem b : 2 = 2 := rfl", "Empiricist.b", verifier=_NewLean(),
+                         problem="P3", problem_version="p3-v1", claims_repo=repo)
+    assert read_registry(repo).stamps["lean"].binary_hash == "cd" * 32
+    rep = check(repo)
+    assert rep.standings == {"P3.Empiricist.a": "STALE", "P3.Empiricist.b": "CURRENT"}
+    lg.close()

@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 8687bb2634b5
+  path: claims/evidence/203f55c71a022048.lean
+  stamped: '2026-09-06T20:05:11.798361+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.addFalseTwin_none_some
 kind: statement
@@ -30,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 203f55c71a02204834750eaacb39b2368e957e646973f9245778f8ec2888e839
-standing: CURRENT
+standing: STALE
 statement: '∀ {V : Type u_1} (G : SimpleGraph V) (u x : V), (Empiricist.addFalseTwin
   G u).Adj none (some x) ↔ G.Adj u x'
 substatus: null
