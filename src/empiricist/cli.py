@@ -205,6 +205,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--results", required=True, type=Path, help="JSON written by p3-optimize --out"
     )
 
+    claims_p = sub.add_parser(
+        "claims", help="the v1 claim ledger (claim files, lock, check, report)"
+    )
+    claims_sub = claims_p.add_subparsers(dest="claims_command", required=True)
+    c_check = claims_sub.add_parser(
+        "check", help="validate claim files, lock, DAG; derive standing"
+    )
+    c_check.add_argument("--repo", required=True, type=Path)
+    c_report = claims_sub.add_parser("report", help="write derived standings and render CLAIMS.md")
+    c_report.add_argument("--repo", required=True, type=Path)
+    c_il = claims_sub.add_parser("import-ledger", help="materialise claim files from a v0 ledger")
+    c_il.add_argument("--run-dir", required=True, type=Path)
+    c_il.add_argument("--repo", required=True, type=Path)
+    c_il.add_argument("--id-prefix", default=None)
+    c_it = claims_sub.add_parser(
+        "import-table", help="materialise claim files from a legacy CLAIMS.md"
+    )
+    c_it.add_argument("--file", required=True, type=Path)
+    c_it.add_argument("--repo", required=True, type=Path)
+
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
 
@@ -612,6 +632,30 @@ def _cmd_p3_optimize(args: argparse.Namespace) -> int:
         ledger.close()
 
 
+def _cmd_claims(args: argparse.Namespace) -> int:
+    from empiricist.claims.check import check, refresh_repo
+    from empiricist.claims.importer import import_ledger, import_table
+
+    if args.claims_command in ("check", "report"):
+        report = check(args.repo) if args.claims_command == "check" else refresh_repo(args.repo)
+        print(f"claims {args.claims_command}: {report.claims} claim(s), "
+              f"{len(report.blocking)} blocking issue(s), {len(report.issues)} total")
+        for issue in report.issues:
+            who = f" {issue.claim_id}" if issue.claim_id else ""
+            print(f"{issue.code}:{who} {issue.detail}")
+        return 0 if report.ok else 1
+    if args.claims_command == "import-ledger":
+        rep = import_ledger(args.run_dir, args.repo, id_prefix=args.id_prefix)
+    else:
+        rep = import_table(args.file, args.repo)
+        for cid, paths in rep.missing_paths.items():
+            print(f"missing evidence: {cid}: {'; '.join(paths)}")
+    print(f"claims {args.claims_command}: wrote {len(rep.written)}, skipped {len(rep.skipped)}")
+    for skip in rep.skipped:
+        print(f"skipped: {skip}")
+    return 0
+
+
 def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:
     """Re-verify and ingest from a saved results file (the batch may have run
     without --ingest). Only the raw scheme JSON is trusted from the file: every
@@ -860,6 +904,8 @@ def main(
         return _cmd_p3_optimize(args)
     if args.command == "p3-ingest-results":
         return _cmd_p3_ingest_results(args)
+    if args.command == "claims":
+        return _cmd_claims(args)
     if args.command == "certify":
         return _cmd_certify(args)
     if args.command == "gates":
