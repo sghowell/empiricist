@@ -286,9 +286,10 @@ def _receipt_from_sample(
         except ValueError:
             parsed = None
     if parsed is None:
-        # Spend is never silent: an unusable sample is a REVISE receipt saying so.
+        # Spend is never silent: an unusable sample is a REVISE receipt saying so; it
+        # warrants no promotion and closes nothing (`usable: false`).
         return Receipt(
-            **common, verdict="REVISE",
+            **common, verdict="REVISE", usable=False,
             findings=[Finding(
                 dimension="ledger_consistency", severity="warning",
                 text="reviewer returned no parseable review; sample discarded, re-run review",

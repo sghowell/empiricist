@@ -78,6 +78,9 @@ class Receipt(BaseModel):
     provenance: dict[str, str] | None = None  # model reviews: run_id, model, receipt digests
     # rules a HUMAN reviewer explicitly waives for the promotion this receipt warrants
     waivers: list[Literal["level_inversion"]] = Field(default_factory=list)
+    # False when the sample produced no review (transport failure, unparseable output):
+    # the receipt records the spend and the failure and warrants nothing
+    usable: bool = True
 
     @field_validator("id")
     @classmethod
