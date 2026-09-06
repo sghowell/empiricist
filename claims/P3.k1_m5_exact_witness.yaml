@@ -12,12 +12,16 @@ evidence:
 formulation_version: p3-exact-witness-v1
 id: P3.k1_m5_exact_witness
 kind: statement
+legacy_level: null
 level: CERTIFIED
 n: null
 notes: 'artifact f425783898851a0f68eb21588328d65a455fc9ac3b5700719eecd3fbf1d9d181;
   title: P3 exact witness k=1 m=5: p_avg optimum'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: f425783898851a0f68eb21588328d65a455fc9ac3b5700719eecd3fbf1d9d181
 standing: CURRENT
 statement: There is an unambiguous passive linear-optical Bell-measurement scheme
   with k=1 ancilla photon(s) on 5 modes (an isometry over the 4 dual-rail input modes

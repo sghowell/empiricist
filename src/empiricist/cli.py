@@ -213,8 +213,16 @@ def build_parser() -> argparse.ArgumentParser:
         "check", help="validate claim files, lock, DAG; derive standing"
     )
     c_check.add_argument("--repo", required=True, type=Path)
+    c_check.add_argument(
+        "--min-claims", type=int, default=0,
+        help="fail when fewer claims are present (guards a vacuous CI gate)",
+    )
     c_report = claims_sub.add_parser("report", help="write derived standings and render CLAIMS.md")
     c_report.add_argument("--repo", required=True, type=Path)
+    c_report.add_argument(
+        "--force", action="store_true",
+        help="replace a CLAIMS.md that is not rendered output (one-time migration)",
+    )
     c_il = claims_sub.add_parser("import-ledger", help="materialise claim files from a v0 ledger")
     c_il.add_argument("--run-dir", required=True, type=Path)
     c_il.add_argument("--repo", required=True, type=Path)
@@ -637,7 +645,10 @@ def _cmd_claims(args: argparse.Namespace) -> int:
     from empiricist.claims.importer import import_ledger, import_table
 
     if args.claims_command in ("check", "report"):
-        report = check(args.repo) if args.claims_command == "check" else refresh_repo(args.repo)
+        if args.claims_command == "check":
+            report = check(args.repo, min_claims=args.min_claims)
+        else:
+            report = refresh_repo(args.repo, force=args.force)
         print(f"claims {args.claims_command}: {report.claims} claim(s), "
               f"{len(report.blocking)} blocking issue(s), {len(report.issues)} total")
         for issue in report.issues:
@@ -650,10 +661,12 @@ def _cmd_claims(args: argparse.Namespace) -> int:
         rep = import_table(args.file, args.repo)
         for cid, paths in rep.missing_paths.items():
             print(f"missing evidence: {cid}: {'; '.join(paths)}")
+    for warning in rep.warnings:
+        print(f"warning: {warning}")
     print(f"claims {args.claims_command}: wrote {len(rep.written)}, skipped {len(rep.skipped)}")
     for skip in rep.skipped:
         print(f"skipped: {skip}")
-    return 0
+    return 0 if not rep.skipped else 1
 
 
 def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:

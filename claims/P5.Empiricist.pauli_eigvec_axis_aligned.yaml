@@ -12,12 +12,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.pauli_eigvec_axis_aligned
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c;
   title: Empiricist.pauli_eigvec_axis_aligned'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c
 standing: CURRENT
 statement: 'True'
 substatus: null

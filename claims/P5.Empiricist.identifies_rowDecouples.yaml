@@ -12,12 +12,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.identifies_rowDecouples
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436;
   title: Empiricist.identifies_rowDecouples'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436
 standing: CURRENT
 statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (i j : Fin 4) (μ : Empiricist.BellLabel),\n\
   \    Empiricist.Identifies U i j μ → Empiricist.RowDecouples U i μ ∧ Empiricist.RowDecouples\

@@ -68,6 +68,38 @@ def test_paths_must_be_repo_relative():
     assert c.depends_on == ["data/manifest.json", "P3.k0"]
 
 
+def test_paths_are_canonical_and_backslashes_rejected():
+    e = EvidenceEntry(path="./ev/./x.json", verifier="v", version="1", verdict="PASS",
+                      stamped="2026-09-06")
+    assert e.path == "ev/x.json"
+    with pytest.raises(ValueError, match="forward-slash"):
+        EvidenceEntry(path="ev\\x.json", verifier="v", version="1", verdict="PASS",
+                      stamped="2026-09-06")
+    with pytest.raises(ValueError, match="duplicate"):
+        _claim(depends_on=["P3.k0", "P3.k0"])
+    with pytest.raises(ValueError, match="duplicate"):
+        _claim(depends_on=["./data/m.json", "data/m.json"])
+    with pytest.raises(ValueError, match="names no file"):
+        EvidenceEntry(path="./", verifier="v", version="1", verdict="PASS", stamped="2026-09-06")
+
+
+def test_dates_are_iso_and_duplicate_keys_rejected():
+    with pytest.raises(ValueError, match="ISO date"):
+        _claim(updated="yesterday")
+    with pytest.raises(ValueError, match="ISO date"):
+        EvidenceEntry(path="x.json", verifier="v", version="1", verdict="PASS", stamped="t")
+    text = dump_claim(_claim()) + "level: HEURISTIC\n"
+    with pytest.raises(ClaimSchemaError, match="duplicate key 'level'"):
+        parse_claim(text)
+
+
+def test_legacy_pending():
+    c = _claim(level="HEURISTIC", legacy_level="CERTIFIED", evidence=[])
+    assert c.legacy_pending
+    assert not _claim(legacy_level="CERTIFIED").legacy_pending  # FORMALIZED >= CERTIFIED
+    assert _claim(level="HEURISTIC", legacy_level="REFUTED", evidence=[]).legacy_pending
+
+
 def test_verified_n_carries_n_and_coverage():
     c = _claim(level="VERIFIED_N", n=9, coverage="exhaustive")
     assert parse_claim(dump_claim(c)).n == 9 and c.rank == 2

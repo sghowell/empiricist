@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.star_min_fusions
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35;
   title: Empiricist.star_min_fusions'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35
 standing: CURRENT
 statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (Empiricist.starGraph\
   \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\

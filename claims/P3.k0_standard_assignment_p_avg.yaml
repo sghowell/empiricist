@@ -12,6 +12,7 @@ evidence:
 formulation_version: p3-sos-certificate-v1
 id: P3.k0_standard_assignment_p_avg
 kind: statement
+legacy_level: null
 level: CERTIFIED
 n: null
 notes: 'artifact d11c6b254005d555bf8c50924e1211ce058945ddc2e7bc1b7aa9147a376aac49;
@@ -19,6 +20,9 @@ notes: 'artifact d11c6b254005d555bf8c50924e1211ce058945ddc2e7bc1b7aa9147a376aac4
   certificate)'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: d11c6b254005d555bf8c50924e1211ce058945ddc2e7bc1b7aa9147a376aac49
 standing: CURRENT
 statement: For every passive interferometer U in U(4) acting on the ancilla-free dual-rail
   Bell pair, the standard-assignment objective -- the total probability that the textbook

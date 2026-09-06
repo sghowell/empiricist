@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.GHZ3_min-fusion_tablebase_F_G_for_connected_orbits_n_3..9
 kind: dataset
+legacy_level: null
 level: VERIFIED_N
 n: 9
 notes: 'artifact dc8649519e5f86948a4283118b979fd958511687731bdb5ddc78c11956571f25;
@@ -19,6 +20,9 @@ notes: 'artifact dc8649519e5f86948a4283118b979fd958511687731bdb5ddc78c11956571f2
   claim row (pre-hardening record; statement is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: dc8649519e5f86948a4283118b979fd958511687731bdb5ddc78c11956571f25
 standing: CURRENT
 statement: 'GHZ3 min-fusion tablebase: F(G) for connected orbits, n=3..9'
 substatus: null

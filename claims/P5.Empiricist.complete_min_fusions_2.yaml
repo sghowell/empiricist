@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.complete_min_fusions_2
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 0843ded7abaaa19dcfe750614bd1b0ad3715fd7a9940cf6a65bdbba394d0403b;
   title: Empiricist.complete_min_fusions'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 0843ded7abaaa19dcfe750614bd1b0ad3715fd7a9940cf6a65bdbba394d0403b
 standing: CURRENT
 statement: "∀ {N : ℕ},\n  3 ≤ N →\n    Empiricist.ProducibleUpToLC (N - 3) (SimpleGraph.completeGraph\
   \ (Fin N)) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f =\

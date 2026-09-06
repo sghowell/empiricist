@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_complete_F_N_F_N_N_-_3_for_all_N_3_the_complete_g
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 401d7bd3d4d9342f27f311a352328b842a2b50ea5dc024b77030592cdc426ba0;
@@ -20,6 +21,9 @@ notes: 'artifact 401d7bd3d4d9342f27f311a352328b842a2b50ea5dc024b77030592cdc426ba
   claim row (pre-hardening record; statement is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 401d7bd3d4d9342f27f311a352328b842a2b50ea5dc024b77030592cdc426ba0
 standing: CURRENT
 statement: 'Conjecture: complete F(N) = F(N) = N - 3 for all N >= 3 (the complete
   graph K_N achieves the universal lower bound F(N) >= N-3 with equality)'

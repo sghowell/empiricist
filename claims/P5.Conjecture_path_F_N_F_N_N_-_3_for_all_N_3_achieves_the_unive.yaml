@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3_achieves_the_unive
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 75a953ef0513422c41357cfa8ca8ec17dbe0c22e30d99ac8d2605f45197d20a3;
@@ -20,6 +21,9 @@ notes: 'artifact 75a953ef0513422c41357cfa8ca8ec17dbe0c22e30d99ac8d2605f45197d20a
   3); no canonical claim row (pre-hardening record; statement is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 75a953ef0513422c41357cfa8ca8ec17dbe0c22e30d99ac8d2605f45197d20a3
 standing: CURRENT
 statement: 'Conjecture: path F(N) = F(N) = N - 3 for all N >= 3 (achieves the universal
   lower bound F(N) >= N-3 with equality, and trivially satisfies F(N) === N-3 mod

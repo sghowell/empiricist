@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_star_F_N_F_n_n_-_3_for_all_n_3
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 716793e3d9c32def82b0b759d726f6479e1c421a2ad44933d15eb5d1327121b1;
@@ -19,6 +20,9 @@ notes: 'artifact 716793e3d9c32def82b0b759d726f6479e1c421a2ad44933d15eb5d1327121b
   (pre-hardening record; statement is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 716793e3d9c32def82b0b759d726f6479e1c421a2ad44933d15eb5d1327121b1
 standing: CURRENT
 statement: 'Conjecture: star F(N) = F(n) = n - 3 for all n >= 3'
 substatus: null

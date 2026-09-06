@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.dh_min_fusions
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact ced4c030c0e266025efdc8ea099dd253b6feeda7ebc41fbfa629593c67e8a7d4;
   title: Empiricist.dh_min_fusions'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: ced4c030c0e266025efdc8ea099dd253b6feeda7ebc41fbfa629593c67e8a7d4
 standing: CURRENT
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.PendantTwinBuildable\
   \ G →\n    Empiricist.ProducibleByExt (Fintype.card V - 3) G ∧\n      ∀ (g f : ℕ)\

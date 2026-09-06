@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.floor_schedule_iff_dh
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact c84d528bedee2ae037b6ce0bb39a65ab5a3729fa63e6a01b336b8b8547379726;
   title: Empiricist.floor_schedule_iff_dh'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: c84d528bedee2ae037b6ce0bb39a65ab5a3729fa63e6a01b336b8b8547379726
 standing: CURRENT
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  3 ≤ Fintype.card\
   \ V → (Empiricist.BlobSchedule (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable\

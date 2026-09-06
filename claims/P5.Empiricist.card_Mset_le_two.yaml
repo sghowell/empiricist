@@ -12,12 +12,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.card_Mset_le_two
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22;
   title: Empiricist.card_Mset_le_two'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22
 standing: CURRENT
 statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∀ (i : Fin 4), (Empiricist.Mset U
   i).card ≤ 2'

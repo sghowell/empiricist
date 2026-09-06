@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.pathGraph_min_fusions
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact c3926eee6182df38acb6c38490093c5718b548d9cdbaf41998f1aca5feeef07b;
   title: Empiricist.pathGraph_min_fusions'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: c3926eee6182df38acb6c38490093c5718b548d9cdbaf41998f1aca5feeef07b
 standing: CURRENT
 statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (SimpleGraph.pathGraph\
   \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\

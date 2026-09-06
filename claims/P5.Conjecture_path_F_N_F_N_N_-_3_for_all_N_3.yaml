@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 6631c12f436ff9afaa06cd2584d37c8018f20d93faea952c46f883d4ec68c123;
@@ -19,6 +20,9 @@ notes: 'artifact 6631c12f436ff9afaa06cd2584d37c8018f20d93faea952c46f883d4ec68c12
   (pre-hardening record; statement is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 6631c12f436ff9afaa06cd2584d37c8018f20d93faea952c46f883d4ec68c123
 standing: CURRENT
 statement: 'Conjecture: path F(N) = F(N) = N - 3 for all N >= 3'
 substatus: null

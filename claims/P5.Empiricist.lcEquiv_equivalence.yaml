@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.lcEquiv_equivalence
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 6508627b597155e04c349e522caa1e450c9e208c92566495d90d26e26b515087;
   title: Empiricist.lcEquiv_equivalence'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 6508627b597155e04c349e522caa1e450c9e208c92566495d90d26e26b515087
 standing: CURRENT
 statement: '∀ {V : Type u_1}, Equivalence Empiricist.LCEquiv'
 substatus: null

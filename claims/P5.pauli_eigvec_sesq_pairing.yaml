@@ -12,12 +12,16 @@ evidence:
 formulation_version: legacy
 id: P5.pauli_eigvec_sesq_pairing
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 1fd71604eeb851c1efcbcf126b93b0919ed7b1c89d62f6199271e1880454630c;
   title: pauli_eigvec_sesq_pairing'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 1fd71604eeb851c1efcbcf126b93b0919ed7b1c89d62f6199271e1880454630c
 standing: CURRENT
 statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ Empiricist.BellLabel.phiP →\n\
   \    Empiricist.pauliOf mu * Empiricist.pauliOf nu = -(Empiricist.pauliOf nu * Empiricist.pauliOf\

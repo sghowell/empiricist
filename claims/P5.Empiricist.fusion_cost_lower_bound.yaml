@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.fusion_cost_lower_bound
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 66e3e2c36d89b4ff916de965d871c6ff98e8926c8a5ac8cea133e3bf5817aa36;
   title: Empiricist.fusion_cost_lower_bound'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 66e3e2c36d89b4ff916de965d871c6ff98e8926c8a5ac8cea133e3bf5817aa36
 standing: CURRENT
 statement: "∀ (N g f : Nat) (c : Nat → Nat),\n  3 ≤ N → N + 2 * f = 3 * g → c 0 =\
   \ g → c f = 1 → (∀ (i : Nat), i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f"

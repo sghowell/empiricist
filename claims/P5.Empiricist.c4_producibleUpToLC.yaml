@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.c4_producibleUpToLC
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 82fd7e86acb148082814ee864d93008c04bcda733068ab779ff52efc47a0c580;
   title: Empiricist.c4_producibleUpToLC'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 82fd7e86acb148082814ee864d93008c04bcda733068ab779ff52efc47a0c580
 standing: CURRENT
 statement: Empiricist.ProducibleUpToLC 1 (Empiricist.addFalseTwin Empiricist.GHZ3graph
   1)

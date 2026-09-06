@@ -1,15 +1,17 @@
 """One-time importers (charter section 3: "existing tables are imported once").
 
 (a) `import_ledger`: from an Empiricist v0 SQLite ledger + CAS. Every artifact at
-    CONJECTURED or above (or REFUTED) that carries a canonical claim row becomes a claim
-    file; its CAS content is written under `claims/evidence/` (the committed evidence
-    file the lock hashes); PASS/FAIL evidence rows become evidence entries carrying the
-    verifier identity. Idempotent: re-running rewrites the same files.
+    CONJECTURED or above (or REFUTED) becomes a claim file; its CAS content is written
+    under `claims/evidence/` (the committed evidence file the lock hashes); PASS/FAIL/ERROR
+    evidence rows become evidence entries carrying the verifier identity. The artifact id
+    is kept in `source` so a re-import updates the same file (idempotent) and never
+    touches the human-owned fields (`depends_on`, `supersedes`, `receipts`, `notes`) or
+    lowers a level.
 (b) `import_table`: from a legacy `CLAIMS.md` table (`id | problem | statement | level |
-    evidence | updated`). Each row becomes a claim file with `verifier = "table-import"`
-    evidence entries for the evidence paths that exist in the repository; paths that do
-    not exist are kept in `notes` and reported. `check` flags every such claim as
-    `imported_unverified` until a registered verifier re-verifies it (M22b).
+    evidence | updated`). Levels are earned, so each row enters at HEURISTIC with the
+    table's level in `legacy_level`; the evidence paths that exist in the repository
+    become IMPORTED entries (locked, never counted as PASS); paths that do not exist are
+    kept in `notes` and reported. `promote` with a certified verifier re-earns the level.
 """
 from __future__ import annotations
 
@@ -18,20 +20,32 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from empiricist.claims.lock import Lock, read_lock, refresh_lock_entries, write_lock
-from empiricist.claims.model import ClaimFile, EvidenceEntry, claims_dir, load_all, save_claim
+from empiricist.claims.model import (
+    LEVEL_RANK,
+    TABLE_IMPORT_VERIFIER,
+    ClaimFile,
+    ClaimSchemaError,
+    EvidenceEntry,
+    Source,
+    claims_dir,
+    load_all,
+    revalidate,
+    save_claim,
+)
+from empiricist.claims.render import claims_md_path, is_rendered
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Status
 from empiricist.store import Store
 
 EVIDENCE_DIRNAME = "evidence"
-TABLE_IMPORT_VERIFIER = "table-import"
 MAX_DIRECTORY_FILES = 200   # a directory evidence reference expands to at most this many files
-_LEVELS = {"REFUTED", "HEURISTIC", "CONJECTURED", "VERIFIED_N", "CERTIFIED", "FORMALIZED"}
+_LEVEL_ORDER = ("REFUTED", "HEURISTIC", "CONJECTURED", "VERIFIED_N", "CERTIFIED", "FORMALIZED")
 _KIND_BY_ARTIFACT_KIND = {
     "lean": "statement", "certificate": "statement", "statement": "statement",
     "dataset": "dataset", "construction": "construction", "proof_dag": "statement",
 }
 _EXT_BY_ARTIFACT_KIND = {"lean": "lean"}
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @dataclass
@@ -39,6 +53,7 @@ class ImportReport:
     written: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)   # "<artifact/row>: reason"
     missing_paths: dict[str, list[str]] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
 
 
 def _slug(text: str, limit: int = 60) -> str:
@@ -58,6 +73,14 @@ def _unique_id(base: str, taken: set[str]) -> str:
     return cid
 
 
+def _ledger_ref(claim: ClaimFile) -> str | None:
+    """The v0 artifact a claim was imported from: `source`, or (older files) the notes."""
+    if claim.source is not None and claim.source.kind == "ledger":
+        return claim.source.ref
+    m = re.match(r"artifact ([0-9a-f]{64})", claim.notes or "")
+    return m.group(1) if m else None
+
+
 def import_ledger(
     run_dir: Path | str,
     repo: Path | str,
@@ -66,18 +89,15 @@ def import_ledger(
     id_prefix: str | None = None,
 ) -> ImportReport:
     """Materialise claim files from a v0 ledger. The CAS blob of each artifact becomes the
-    committed evidence file; the artifact id (blake3 of that content) stays visible in the
-    claim's notes so the two records can be joined."""
+    committed evidence file; the artifact id (blake3 of that content) is the `source`."""
     run_dir, repo = Path(run_dir), Path(repo)
     ledger = Ledger(run_dir / "ledger.db")
     store = Store(run_dir / "store")
     report = ImportReport()
     try:
         existing = load_all(repo)
-        # a re-import must map each artifact to the id it got last time: notes carry it
         by_artifact = {
-            _artifact_id_from_notes(c.notes): cid for cid, c in existing.items()
-            if _artifact_id_from_notes(c.notes)
+            _ledger_ref(c): cid for cid, c in existing.items() if _ledger_ref(c)
         }
         taken = set(existing)
         lock = read_lock(repo)
@@ -105,12 +125,6 @@ def import_ledger(
                     binary_hash=row.binary_hash, golden_suite_hash=row.golden_suite_hash,
                     note=f"claim {row.claim_id[:12]}" if row.claim_id else "",
                 ))
-            if art.id in by_artifact:
-                cid = by_artifact[art.id]
-            else:
-                prefix = id_prefix or art.problem
-                family = canonical.family if canonical and canonical.family else art.title
-                cid = _unique_id(f"{prefix}.{_slug(family)}", taken)
             if canonical is not None:
                 statement = canonical.statement
                 notes = f"artifact {art.id}; title: {art.title}"
@@ -120,28 +134,35 @@ def import_ledger(
                 statement = art.title
                 notes = (f"artifact {art.id}; title: {art.title}; no canonical claim row "
                          "(pre-hardening record; statement is the artifact title)")
-            claim = ClaimFile(
-                id=cid, problem=art.problem, formulation_version=art.problem_version,
-                kind=kind, statement=statement, level=art.status.value,
+            derived = dict(
+                problem=art.problem, formulation_version=art.problem_version, kind=kind,
+                statement=statement, level=art.status.value,
                 substatus=art.substatus if art.substatus == "PROVED_DRAFT" else None,
                 n=art.status_n if art.status is Status.VERIFIED_N else None,
                 coverage=art.coverage if art.status is Status.VERIFIED_N else None,
-                evidence=entries,
-                notes=notes,
-                updated=art.created_at[:10],
+                evidence=entries, updated=art.created_at[:10],
+                source=Source(kind="ledger", ref=art.id),
             )
+            if art.id in by_artifact:
+                prev = existing[by_artifact[art.id]]
+                if art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]:
+                    # a level recorded in the repo (e.g. a receipted demote... or a later
+                    # promotion) is never lowered by a re-import; REFUTED always wins
+                    for k in ("level", "substatus", "n", "coverage"):
+                        derived[k] = getattr(prev, k)
+                claim = revalidate(prev.model_copy(update=derived))
+            else:
+                prefix = id_prefix or art.problem
+                family = canonical.family if canonical and canonical.family else art.title
+                cid = _unique_id(f"{prefix}.{_slug(family)}", taken)
+                claim = ClaimFile(id=cid, notes=notes, **derived)
             save_claim(repo, claim)
             lock = refresh_lock_entries(repo, claim, lock)
-            report.written.append(cid)
+            report.written.append(claim.id)
         write_lock(repo, lock)
     finally:
         ledger.close()
     return report
-
-
-def _artifact_id_from_notes(notes: str) -> str | None:
-    m = re.match(r"artifact ([0-9a-f]{64})", notes or "")
-    return m.group(1) if m else None
 
 
 _ROW_RE = re.compile(r"^\|(.*)\|\s*$")
@@ -243,31 +264,52 @@ def _expand_braces(frag: str) -> list[str]:
     return out
 
 
-def parse_claims_table(text: str) -> list[dict[str, str]]:
-    """Rows of a `| id | problem | statement | level | evidence | updated |` table."""
+def parse_claims_table(text: str, *, dropped: list[str] | None = None) -> list[dict[str, str]]:
+    """Rows of a `| id | problem | statement | level | evidence | updated |` table.
+
+    A row with MORE cells than the header has unescaped `|` characters in its prose;
+    the surplus is re-joined into the `statement` column (`|x| < 0.1` survives). A row
+    with fewer cells is dropped and, when `dropped` is given, reported there."""
     rows: list[dict[str, str]] = []
     header: list[str] | None = None
-    for line in text.splitlines():
+    for lineno, line in enumerate(text.splitlines(), 1):
         m = _ROW_RE.match(line.strip())
         if not m:
             continue
-        cells = [c.strip() for c in m.group(1).split("|")]
+        raw = m.group(1).split("|")
         if header is None:
-            header = [c.lower() for c in cells]
+            header = [c.strip().lower() for c in raw]
             continue
-        if all(set(c) <= set("-: ") for c in cells):
+        if all(set(c.strip()) <= set("-: ") for c in raw):
             continue  # the separator row
+        if len(raw) > len(header):
+            extra = len(raw) - len(header)
+            si = header.index("statement") if "statement" in header else 0
+            raw = raw[:si] + ["|".join(raw[si:si + extra + 1])] + raw[si + extra + 1:]
+        cells = [c.strip() for c in raw]
         if len(cells) != len(header):
+            if dropped is not None:
+                dropped.append(f"line {lineno}: {len(cells)} cells, expected {len(header)}")
             continue
         rows.append(dict(zip(header, cells, strict=True)))
     return rows
 
 
 def _split_level(cell: str) -> tuple[str, str]:
-    """`CERTIFIED (why ...)` -> ("CERTIFIED", "why ..."); `CONJEC...` prefixes tolerated."""
-    token = cell.strip().split()[0].strip("*`") if cell.strip() else ""
-    level = next((lv for lv in _LEVELS if token.upper().startswith(lv)), "")
-    rest = cell.strip()[len(token):].strip(" ()") if level else cell.strip()
+    """`CERTIFIED (why ...)` -> ("CERTIFIED", "why ..."); `**FORMALIZED**` -> ("FORMALIZED",
+    ""); `VERIFIED_N (n=2000)` -> ("VERIFIED_N", "n=2000"). A truncated level of at least
+    five letters (`CONJEC...`) is tolerated."""
+    stripped = cell.strip().replace("*", "").replace("`", "").strip()
+    if not stripped:
+        return "", ""
+    token = re.split(r"[\s(]", stripped, maxsplit=1)[0].strip(".")
+    up = token.upper()
+    level = next(
+        (lv for lv in _LEVEL_ORDER
+         if up == lv or up.startswith(lv) or (len(up) >= 5 and lv.startswith(up))),
+        "",
+    )
+    rest = stripped[len(token):].strip(" ().") if level else stripped
     return level, rest
 
 
@@ -278,13 +320,23 @@ def import_table(
     problem_default: str = "unknown",
     formulation_version: str = "legacy-table",
 ) -> ImportReport:
-    repo = Path(repo)
-    text = Path(table_path).read_text(encoding="utf-8")
+    repo, table_path = Path(repo), Path(table_path)
+    text = table_path.read_text(encoding="utf-8")
     report = ImportReport()
+    if is_rendered(text):
+        report.warnings.append(f"{table_path} is already rendered output; nothing to import")
+        return report
+    if table_path.resolve() == claims_md_path(repo).resolve():
+        report.warnings.append(
+            "the legacy table is the repository's CLAIMS.md; run `claims report --force` "
+            "once to replace it with the rendered ledger"
+        )
     existing = load_all(repo)
     taken = set(existing)
     lock = read_lock(repo)
-    rows = parse_claims_table(text)
+    dropped: list[str] = []
+    rows = parse_claims_table(text, dropped=dropped)
+    report.skipped.extend(f"row dropped: {d}" for d in dropped)
     known_ids = {r.get("id", "").strip("`* ") for r in rows} | set(existing)
     for row in rows:
         rid = row.get("id", "").strip("`* ")
@@ -302,30 +354,52 @@ def import_table(
         )
         if missing:
             report.missing_paths[cid] = missing
-        updated = row.get("updated", "").strip() or "1970-01-01"
-        verdict = "FAIL" if level == "REFUTED" else "PASS"
+        updated_raw = row.get("updated", "").strip()
+        updated = updated_raw if _DATE_RE.match(updated_raw) else "1970-01-01"
         entries = [
             EvidenceEntry(path=p, verifier=TABLE_IMPORT_VERIFIER, version="1",
-                          verdict=verdict, stamped=updated, note="imported from CLAIMS.md")
+                          verdict="IMPORTED", stamped=updated, note="imported from CLAIMS.md")
             for p in present
         ]
         notes = "imported from CLAIMS.md"
         if level_note:
             notes += f"; level note: {level_note}"
+        if updated_raw and updated != updated_raw:
+            notes += f"; updated: {updated_raw}"
         if missing:
             notes += "; evidence not resolved in repo: " + "; ".join(missing)
-        claim = ClaimFile(
-            id=cid, problem=problem_cell,
-            formulation_version=formulation_version, kind="statement",
-            statement=row.get("statement", "").strip() or "(no statement)", level=level,
-            depends_on=[d for d in depends if d != cid],
-            evidence=entries, notes=notes, updated=updated,
-        )
-        save_claim(repo, claim)
+        legacy = None if level == "HEURISTIC" else level
+        source = Source(kind="table", ref=rid)
+        try:
+            if cid in existing:
+                prev = existing[cid]
+                if legacy is not None and legacy != "REFUTED" and prev.rank >= LEVEL_RANK[legacy]:
+                    legacy = None
+                if legacy == "REFUTED" and prev.level == "REFUTED":
+                    legacy = None
+                kept = [e for e in prev.evidence if e.verdict != "IMPORTED"]
+                deps = list(dict.fromkeys(prev.depends_on + [d for d in depends if d != cid]))
+                claim = revalidate(prev.model_copy(update={
+                    "evidence": kept + entries, "legacy_level": legacy, "source": source,
+                    "depends_on": deps,
+                }))
+            else:
+                claim = ClaimFile(
+                    id=cid, problem=problem_cell,
+                    formulation_version=formulation_version, kind="statement",
+                    statement=row.get("statement", "").strip() or "(no statement)",
+                    level="HEURISTIC", legacy_level=legacy,
+                    depends_on=[d for d in depends if d != cid],
+                    evidence=entries, notes=notes, updated=updated, source=source,
+                )
+            save_claim(repo, claim)
+        except (ValueError, ClaimSchemaError) as exc:
+            report.skipped.append(f"{rid}: {exc}")
+            continue
         lock = refresh_lock_entries(repo, claim, lock)
         report.written.append(cid)
     # A row whose evidence is literally another claim's ("as P9b-0", "= P9b-0") inherits
-    # that claim's evidence paths: the same files, recorded as such.
+    # that claim's IMPORTED evidence paths: the same files, recorded as such.
     written = load_all(repo)
     for cid in list(report.written):
         claim = written[cid]
@@ -334,9 +408,10 @@ def import_table(
         inherited: list[EvidenceEntry] = []
         for dep in claim.depends_on:
             for e in written.get(dep, ClaimFile.model_construct(evidence=[])).evidence:
-                inherited.append(
-                    e.model_copy(update={"note": f"inherited from {dep} (as recorded)"})
-                )
+                if e.verdict == "IMPORTED":
+                    inherited.append(
+                        e.model_copy(update={"note": f"inherited from {dep} (as recorded)"})
+                    )
         if inherited:
             claim = claim.model_copy(update={"evidence": inherited})
             save_claim(repo, claim)

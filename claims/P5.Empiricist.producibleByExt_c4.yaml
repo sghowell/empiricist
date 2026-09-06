@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.producibleByExt_c4
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact b505c602f68a91cc66fd969a7fe565c8311ad08524f61457d1e36aafa43c1e90;
   title: Empiricist.producibleByExt_c4'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: b505c602f68a91cc66fd969a7fe565c8311ad08524f61457d1e36aafa43c1e90
 standing: CURRENT
 statement: Empiricist.ProducibleByExt 1 (Empiricist.addFalseTwin Empiricist.GHZ3graph
   1)

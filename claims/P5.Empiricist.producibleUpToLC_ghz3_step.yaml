@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.producibleUpToLC_ghz3_step
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact ab3221475f3454ec23ce651308621d6db8e0af1daaf305d6d7d2c5c828b4e10a;
   title: Empiricist.producibleUpToLC_ghz3_step'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: ab3221475f3454ec23ce651308621d6db8e0af1daaf305d6d7d2c5c828b4e10a
 standing: CURRENT
 statement: '∀ (a : Fin 3), Empiricist.ProducibleUpToLC 1 (Empiricist.ghz3LeafMerge
   Empiricist.GHZ3graph a)'

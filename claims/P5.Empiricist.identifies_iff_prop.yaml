@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.identifies_iff_prop
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d;
   title: Empiricist.identifies_iff_prop'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d
 standing: CURRENT
 statement: "∀ (U : Matrix (Fin 4) (Fin 4) ℂ) (i j : Fin 4) (mu : Empiricist.BellLabel),\n\
   \  Empiricist.Identifies U i j mu ↔ ∃ t, t ≠ 0 ∧ Empiricist.Q U i j = t • Empiricist.pauliOf\

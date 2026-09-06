@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.bipartite_lcEquiv_doubleStar
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 400b8c9d3825669730f8954debb1b6258940e6ab93c0cd85686eaf6cc3cd61d5;
   title: Empiricist.bipartite_lcEquiv_doubleStar'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 400b8c9d3825669730f8954debb1b6258940e6ab93c0cd85686eaf6cc3cd61d5
 standing: CURRENT
 statement: '∀ (m n : ℕ), 1 ≤ m → 1 ≤ n → Empiricist.LCEquiv (Empiricist.completeBipartite
   m n) (Empiricist.doubleStar m n)'

@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_the_path_orbit_att_2
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 2a84ece822a783843f5e694add920d1b04a05555122e1860ff64127379656263;
@@ -21,6 +22,9 @@ notes: 'artifact 2a84ece822a783843f5e694add920d1b04a05555122e1860ff6412737965626
   title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 2a84ece822a783843f5e694add920d1b04a05555122e1860ff64127379656263
 standing: CURRENT
 statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (the path orbit attains
   the universal lower bound F(N) >= N-3 with equality, consistent with F(N) ≡ N-3

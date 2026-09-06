@@ -59,11 +59,20 @@ def test_import_ledger_writes_claims_and_check_passes(tmp_path):
     assert (repo / lean.evidence[0].path).read_text() == "theorem foo : 1 = 1 := rfl"
     cert = claims["P3.k0_standard_assignment_p_avg"]
     assert cert.level == "CERTIFIED" and cert.evidence[0].path.endswith(".json")
-    assert "artifact " in lean.notes
+    assert "artifact " in lean.notes and lean.source.kind == "ledger"
     assert check(repo).ok
-    # idempotent: same ids, same files, still green
+    # idempotent: same ids, same files, still green; hand-added links and notes survive,
+    # and a level recorded in the repo is never lowered by a re-import
+    from empiricist.claims.model import save_claim
+
+    save_claim(repo, cert.model_copy(update={"depends_on": ["P3.Empiricist.foo"],
+                                             "notes": "REVIEWED. " + cert.notes,
+                                             "level": "FORMALIZED"}))
     rep2 = import_ledger(run_dir, repo)
     assert sorted(rep2.written) == sorted(rep.written) and len(load_all(repo)) == 2
+    cert2 = load_all(repo)["P3.k0_standard_assignment_p_avg"]
+    assert cert2.depends_on == ["P3.Empiricist.foo"] and cert2.notes.startswith("REVIEWED.")
+    assert cert2.level == "FORMALIZED" and cert2.evidence == cert.evidence
     assert refresh_repo(repo).ok and (repo / "CLAIMS.md").is_file()
 
 
@@ -90,19 +99,77 @@ def test_import_table_from_legacy_claims_md(tmp_path):
     assert rep.written == ["P4-6", "P4-7", "P9b-1.K"]
     assert rep.skipped == ["bad: unrecognised level 'MAYBE'"]
     assert rep.missing_paths["P4-6"] == ["problems/P4/notes/proof.md"]
+    assert rep.warnings and "report --force" in rep.warnings[0]
     claims = load_all(repo)
-    assert claims["P4-6"].level == "CERTIFIED" and "rigorous winding" in claims["P4-6"].notes
+    # levels are earned: every row enters at HEURISTIC with the table's level kept aside
+    assert claims["P4-6"].level == "HEURISTIC" and claims["P4-6"].legacy_level == "CERTIFIED"
+    assert "rigorous winding" in claims["P4-6"].notes
     assert claims["P4-6"].evidence[0].path == "problems/P4/cert.json"
     assert claims["P4-6"].evidence[0].verifier == "table-import"
+    assert claims["P4-6"].evidence[0].verdict == "IMPORTED"
+    assert claims["P4-6"].source.kind == "table" and claims["P4-6"].source.ref == "P4-6"
+    assert claims["P4-7"].legacy_level == "CONJECTURED"
     assert claims["P9b-1.K"].evidence == [] and "as P9b-0" in claims["P9b-1.K"].notes
-    report = refresh_repo(repo)
-    codes = {i.code for i in report.issues}
-    # P4-7 (its only evidence path is missing) and P9b-1.K ("as P9b-0") have no evidence
-    # entry at all, so their elevated levels are blocking until re-verified (M22b);
-    # P4-6 is an imported-unverified note only.
-    assert "elevated_without_pass" in codes and "imported_unverified" in codes
-    assert [i.claim_id for i in report.blocking] == ["P4-7", "P9b-1.K"]
-    assert "| P4-6 | P4 |" in (repo / "CLAIMS.md").read_text()
+    report = refresh_repo(repo)   # the legacy table is left alone without --force
+    assert [i.code for i in report.blocking] == ["claims_md_legacy"]
+    assert (repo / "CLAIMS.md").read_text() == table
+    report = refresh_repo(repo, force=True)
+    assert report.ok and {i.code for i in report.issues} == {"imported_unverified"}
+    md = (repo / "CLAIMS.md").read_text()
+    assert "| P4-6 | P4 | Theorem B (mode count) | HEURISTIC (legacy CERTIFIED, unverified) |" in md
+    # re-importing the same (now rendered) file is a no-op; re-importing the legacy text
+    # keeps hand-added links and never duplicates claims
+    assert import_table(repo / "CLAIMS.md", repo).written == []
+    (repo / "legacy.md").write_text(table)
+    from empiricist.claims.model import save_claim
+
+    save_claim(repo, claims["P4-7"].model_copy(update={"depends_on": ["P4-6"], "receipts": []}))
+    rep2 = import_table(repo / "legacy.md", repo)
+    assert rep2.written == ["P4-6", "P4-7", "P9b-1.K"] and len(load_all(repo)) == 3
+    assert load_all(repo)["P4-7"].depends_on == ["P4-6"]
+
+
+def test_parse_claims_table_recovers_pipes_and_reports_drops():
+    table = (
+        "| id | problem | statement | level | evidence | updated |\n|---|---|---|---|---|---|\n"
+        "| A | P | convergent on |x| < 0.1 and |κ| > 2 | CERTIFIED | e.json | 2026-01-01 |\n"
+        "| B | P | too few cells | CERTIFIED |\n"
+    )
+    dropped: list[str] = []
+    rows = parse_claims_table(table, dropped=dropped)
+    assert [r["id"] for r in rows] == ["A"]
+    assert rows[0]["statement"] == "convergent on |x| < 0.1 and |κ| > 2"
+    assert rows[0]["level"] == "CERTIFIED" and rows[0]["updated"] == "2026-01-01"
+    assert dropped == ["line 4: 4 cells, expected 6"]
+
+
+def test_split_level_forms():
+    from empiricist.claims.importer import _split_level
+
+    assert _split_level("**CERTIFIED** (why)") == ("CERTIFIED", "why")
+    assert _split_level("`FORMALIZED`") == ("FORMALIZED", "")
+    assert _split_level("CONJEC...") == ("CONJECTURED", "")
+    assert _split_level("VERIFIED_N (n=2000)") == ("VERIFIED_N", "n=2000")
+    assert _split_level("CERTIFIED(rigorous)") == ("CERTIFIED", "rigorous")
+    assert _split_level("MAYBE") == ("", "MAYBE")
+
+
+def test_import_table_skips_bad_rows_instead_of_crashing(tmp_path):
+    repo = tmp_path
+    (repo / "e.json").write_text("{}")
+    table = (
+        "| id | problem | statement | level | evidence | updated |\n|---|---|---|---|---|---|\n"
+        "| G1 | P | good | VERIFIED_N (n=2000) | e.json | 2026-01-01 |\n"
+        "| bad/id | P | bad id | CERTIFIED | e.json | 2026-01-01 |\n"
+        "| G2 | P | odd date | CERTIFIED | e.json | Aug 2026 |\n"
+    )
+    (repo / "legacy.md").write_text(table)
+    rep = import_table(repo / "legacy.md", repo)
+    assert rep.written == ["G1", "bad_id", "G2"] and rep.skipped == []
+    claims = load_all(repo)
+    assert claims["G1"].legacy_level == "VERIFIED_N" and "n=2000" in claims["G1"].notes
+    assert claims["G2"].updated == "1970-01-01" and "updated: Aug 2026" in claims["G2"].notes
+    assert (repo / "claims.lock.json").is_file() and check(repo).ok
 
 
 def test_cli_claims_commands(tmp_path, capsys):
@@ -110,7 +177,8 @@ def test_cli_claims_commands(tmp_path, capsys):
     repo = tmp_path / "repo"
     assert main(["claims", "import-ledger", "--run-dir", str(run_dir), "--repo", str(repo)]) == 0
     assert "wrote 2" in capsys.readouterr().out
-    assert main(["claims", "check", "--repo", str(repo)]) == 0
+    assert main(["claims", "check", "--repo", str(repo), "--min-claims", "2"]) == 0
+    assert main(["claims", "check", "--repo", str(repo), "--min-claims", "3"]) == 1
     assert main(["claims", "report", "--repo", str(repo)]) == 0
     capsys.readouterr()
     ev = next((repo / "claims" / "evidence").glob("*.lean"))
@@ -200,5 +268,7 @@ def test_import_table_inherits_evidence_from_a_referenced_claim(tmp_path):
     assert claims["P9b-1.K"].depends_on == ["P9b-0"]
     assert [e.path for e in claims["P9b-1.K"].evidence] == ["problems/P9/c.json"]
     assert "inherited from P9b-0" in claims["P9b-1.K"].evidence[0].note
-    rep = refresh_repo(repo)
+    assert claims["P9b-1.K"].evidence[0].verdict == "IMPORTED"
+    rep = refresh_repo(repo, force=True)
     assert rep.ok and rep.standings == {"P9b-0": "CURRENT", "P9b-1.K": "CURRENT"}
+    assert all(c.level == "HEURISTIC" and c.legacy_level == "CERTIFIED" for c in claims.values())

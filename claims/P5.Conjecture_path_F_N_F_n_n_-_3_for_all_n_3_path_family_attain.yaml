@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_path_family_attain
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact d97a28d0955ed9ad7bac18629366824d174f3b2646e32be9accd0bc97083519a;
@@ -21,6 +22,9 @@ notes: 'artifact d97a28d0955ed9ad7bac18629366824d174f3b2646e32be9accd0bc97083519
   the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: d97a28d0955ed9ad7bac18629366824d174f3b2646e32be9accd0bc97083519a
 standing: CURRENT
 statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (path family attains
   the universal lower bound F(N) >= N-3 with equality; congruence F(N) === N-3 (mod

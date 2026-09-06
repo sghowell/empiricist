@@ -3,21 +3,25 @@ CHALLENGED, SUPERSEDED, derived -- never stored as truth -- from the lock, the
 dependency DAG, review receipts and `supersedes`.
 
 - SUPERSEDED: a newer claim names this one in `supersedes` (the row is kept).
-- CHALLENGED: a receipt with a blocking finding exists that no later receipt closes.
+- CHALLENGED: a receipt on this claim carries a blocking finding that no later receipt on
+  the same claim closes (a receipt cannot close itself, cannot close a receipt of another
+  claim, and cannot predate the receipt it closes).
 - STALE: an evidence or dependency file's hash differs from the lock, the registry holds
   a newer certified version of a verifier named in the evidence, or a dependency is
-  STALE, SUPERSEDED, or REFUTED; STALE propagates forward along `depends_on`.
+  anything but CURRENT (STALE, CHALLENGED, SUPERSEDED, or REFUTED). CURRENT means "every
+  dependency is CURRENT" (charter), so non-CURRENT propagates forward as STALE.
 - Otherwise CURRENT. Reported precedence when several apply: SUPERSEDED, CHALLENGED, STALE.
-`registry_newer` is injected (M22b wires the SQLite registry); `check` passes None.
+`registry_newer` is injected; `check` defaults it to the committed registry.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from empiricist.claims.model import (
     ClaimFile,
@@ -25,6 +29,7 @@ from empiricist.claims.model import (
     EvidenceEntry,
     Standing,
     is_path_dependency,
+    validate_stamp,
 )
 
 RECEIPTS_DIRNAME = "receipts"
@@ -38,6 +43,11 @@ class ClaimGraphError(ValueError):
     """The dependency graph is not a DAG over known claim ids."""
 
 
+def statement_sha256(statement: str) -> str:
+    """What a receipt binds to: the exact statement text reviewed."""
+    return hashlib.sha256(statement.encode("utf-8")).hexdigest()
+
+
 class Finding(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -49,7 +59,7 @@ class Finding(BaseModel):
 class Receipt(BaseModel):
     """One reviewer sample (charter section 3): what was reviewed (statement and evidence
     hashes), the findings per dimension, and the verdict. `closes` names an earlier
-    receipt whose blocking issue this one resolves."""
+    receipt on the same claim whose blocking issue this one resolves."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -62,6 +72,17 @@ class Receipt(BaseModel):
     verdict: Literal["PASS", "REVISE", "BLOCK"]
     closes: str | None = None
     created: str
+
+    @field_validator("created")
+    @classmethod
+    def _created(cls, v: str) -> str:
+        return validate_stamp(v, "created")
+
+    @model_validator(mode="after")
+    def _not_self_closing(self) -> Receipt:
+        if self.closes == self.id:
+            raise ValueError("a receipt cannot close itself")
+        return self
 
     @property
     def blocking(self) -> bool:
@@ -164,10 +185,14 @@ def topological_order(graph: dict[str, list[str]]) -> list[str]:
 
 
 def open_blocking_receipts(claim: ClaimFile, receipts: dict[str, Receipt]) -> list[str]:
-    """Ids of blocking receipts on `claim` that no receipt closes."""
-    mine = [r for r in receipts.values() if r.claim_id == claim.id or r.id in claim.receipts]
-    closed = {r.closes for r in mine if r.closes}
-    return sorted(r.id for r in mine if r.blocking and r.id not in closed)
+    """Ids of blocking receipts on `claim` that no later receipt on the same claim closes."""
+    mine = {r.id: r for r in receipts.values() if r.claim_id == claim.id}
+    closed: set[str] = set()
+    for r in mine.values():
+        target = mine.get(r.closes) if r.closes else None
+        if target is not None and target.id != r.id and r.created >= target.created:
+            closed.add(target.id)
+    return sorted(rid for rid, r in mine.items() if r.blocking and rid not in closed)
 
 
 def compute_standing(
@@ -180,7 +205,7 @@ def compute_standing(
     graph = dependency_graph(claims)
     order = topological_order(graph)
     superseded = {s for c in claims.values() for s in c.supersedes}
-    stale: set[str] = set()
+    noncurrent: set[str] = set()
     out: dict[str, Standing] = {}
     for cid in order:
         claim = claims[cid]
@@ -190,10 +215,8 @@ def compute_standing(
                 e.verdict == "PASS" and registry_newer(e) for e in claim.evidence
             )
         for d in graph[cid]:
-            if d in stale or d in superseded or claims[d].level == "REFUTED":
+            if d in noncurrent or claims[d].level == "REFUTED":
                 is_stale = True
-        if is_stale:
-            stale.add(cid)
         if cid in superseded:
             out[cid] = "SUPERSEDED"
         elif open_blocking_receipts(claim, receipts):
@@ -202,4 +225,6 @@ def compute_standing(
             out[cid] = "STALE"
         else:
             out[cid] = "CURRENT"
+        if out[cid] != "CURRENT":
+            noncurrent.add(cid)
     return out

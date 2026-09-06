@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P5.Conjecture_cycle_F_N_F_n_n_-_3_for_n_4_F_n_n_for_n_5_equival
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 90c1fdcadf65a3807281270599d93dbcd029a9fc15da5ed626b2d35574749a7d;
@@ -20,6 +21,9 @@ notes: 'artifact 90c1fdcadf65a3807281270599d93dbcd029a9fc15da5ed626b2d35574749a7
   is the artifact title)'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 90c1fdcadf65a3807281270599d93dbcd029a9fc15da5ed626b2d35574749a7d
 standing: CURRENT
 statement: 'Conjecture: cycle F(N) = F(n) = n - 3 for n <= 4; F(n) = n for n >= 5
   (equivalently F(n) = (n-3) + 3*[n>=5])'

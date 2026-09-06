@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.pauli_no_common_eigenvector
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 506c6dbc955a9bed1a3624ab4dc15950f81d01e8be716964c6167442b8c07f48;
   title: Empiricist.pauli_no_common_eigenvector'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 506c6dbc955a9bed1a3624ab4dc15950f81d01e8be716964c6167442b8c07f48
 standing: CURRENT
 statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ nu →\n    mu ≠ Empiricist.BellLabel.phiP\
   \ →\n      nu ≠ Empiricist.BellLabel.phiP →\n        ∀ (v : Fin 2 → ℂ) (a b : ℂ),\n\

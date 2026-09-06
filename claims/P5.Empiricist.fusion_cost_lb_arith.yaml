@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.fusion_cost_lb_arith
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact bc4c89a9164804010abc83f83c18cb73c3ddba534e5dc3f39dea74296a11d92b;
   title: Empiricist.fusion_cost_lb_arith'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: bc4c89a9164804010abc83f83c18cb73c3ddba534e5dc3f39dea74296a11d92b
 standing: CURRENT
 statement: '∀ (N g f : Nat), 3 ≤ N → N + 2 * f = 3 * g → g ≤ f + 1 → N ≤ f + 3'
 substatus: null

@@ -12,12 +12,16 @@ evidence:
 formulation_version: p5-ghz3-v1
 id: P5.Empiricist.pauli_eigvec_sesq_sum_ne
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact d0a3ac4745d1e9bf8d001f6eeb7974362f46f0647f1ffd0e2bfbb4dcc3a7d337;
   title: Empiricist.pauli_eigvec_sesq_sum_ne'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: d0a3ac4745d1e9bf8d001f6eeb7974362f46f0647f1ffd0e2bfbb4dcc3a7d337
 standing: CURRENT
 statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ Empiricist.BellLabel.phiP →\n\
   \    Empiricist.pauliOf mu * Empiricist.pauliOf nu = -(Empiricist.pauliOf nu * Empiricist.pauliOf\

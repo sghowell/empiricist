@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P3.k_2_floor_twirl_achieves_min_3_4_verified_fixed-mesh_1_2_con
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 49ae15070c9c9355e20127f221fc0b9887dac4fd75725995c0ceb586c2269173;
@@ -19,6 +20,9 @@ notes: 'artifact 49ae15070c9c9355e20127f221fc0b9887dac4fd75725995c0ceb586c226917
   no canonical claim row (pre-hardening record; statement is the artifact title)'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: 49ae15070c9c9355e20127f221fc0b9887dac4fd75725995c0ceb586c2269173
 standing: CURRENT
 statement: 'k=2 floor: twirl achieves min 3/4 (verified); fixed-mesh <= 1/2 (conjectured)'
 substatus: null

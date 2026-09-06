@@ -12,12 +12,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.cover_structure
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4;
   title: Empiricist.cover_structure'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4
 standing: CURRENT
 statement: "∀ (M : Fin 4 → Finset (Fin 4)),\n  (∀ (i : Fin 4), (M i).card ≤ 2) →\n\
   \    (∀ (μ : Fin 4), 2 ≤ {i | μ ∈ M i}.card) → Empiricist.DoubledEdges M ∨ Empiricist.FourCycle\

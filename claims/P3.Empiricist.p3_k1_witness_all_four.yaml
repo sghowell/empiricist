@@ -12,12 +12,16 @@ evidence:
 formulation_version: p3-linear-optical-scheme-v1
 id: P3.Empiricist.p3_k1_witness_all_four
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 57d67ad5b8d1a742441dfa49b2f2524894778d9b3cc62582fb5fc167bff061fe;
   title: Empiricist.p3_k1_witness_all_four'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: 57d67ad5b8d1a742441dfa49b2f2524894778d9b3cc62582fb5fc167bff061fe
 standing: CURRENT
 statement: '∀ (mu : Empiricist.BellLabel), ∃ i j k, Empiricist.Identifies3 Empiricist.Vk1
   i j k mu'

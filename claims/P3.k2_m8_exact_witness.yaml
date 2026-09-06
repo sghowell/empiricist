@@ -12,6 +12,7 @@ evidence:
 formulation_version: p3-exact-witness-v1
 id: P3.k2_m8_exact_witness
 kind: statement
+legacy_level: null
 level: CERTIFIED
 n: null
 notes: 'artifact 3c672b16ee532bf202330104cb2702dfb3cfc4b00b44810280787a7853448031;
@@ -19,6 +20,9 @@ notes: 'artifact 3c672b16ee532bf202330104cb2702dfb3cfc4b00b44810280787a785344803
   1)'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: 3c672b16ee532bf202330104cb2702dfb3cfc4b00b44810280787a7853448031
 standing: CURRENT
 statement: There is an unambiguous passive linear-optical Bell-measurement scheme
   with k=2 ancilla photon(s) on 8 modes (an isometry over the 4 dual-rail input modes

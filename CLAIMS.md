@@ -1,6 +1,6 @@
 # Claims ledger
 
-Rendered by `empiricist claims report` from `claims/*.yaml`; do not hand-edit. One row per claim; a claim's level changes only together with an evidence entry or a receipt; REFUTED is terminal. Levels: HEURISTIC, CONJECTURED, VERIFIED_N, CERTIFIED, FORMALIZED, REFUTED. Standing: CURRENT, STALE, CHALLENGED, SUPERSEDED (derived by `empiricist claims check`).
+Rendered by `empiricist claims report` from `claims/*.yaml`; do not hand-edit. One row per claim; a claim's level changes only together with an evidence entry or a receipt; REFUTED is terminal. Levels: HEURISTIC, CONJECTURED, VERIFIED_N, CERTIFIED, FORMALIZED, REFUTED; "legacy X, unverified" marks a level imported from an earlier table that `promote` has not yet re-earned. Standing: CURRENT, STALE, CHALLENGED, SUPERSEDED (derived by `empiricist claims check`).
 
 | id | problem | statement | level | standing | evidence | updated |
 |---|---|---|---|---|---|---|

@@ -36,7 +36,7 @@ jobs:
         run: uv run pytest -m "not slow and not slow_lean"
 
       - name: Check the claim ledger (hashes, DAG, standing, rendered CLAIMS.md)
-        run: uv run empiricist claims check --repo .
+        run: uv run empiricist claims check --repo . --min-claims 1
 
   trust-boundaries:
     name: Manual slow exact and Lean checks

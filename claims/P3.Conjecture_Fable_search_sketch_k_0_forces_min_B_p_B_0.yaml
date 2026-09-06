@@ -12,6 +12,7 @@ evidence:
 formulation_version: legacy
 id: P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0
 kind: statement
+legacy_level: null
 level: CONJECTURED
 n: null
 notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186;
@@ -19,6 +20,9 @@ notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b18
   claim row (pre-hardening record; statement is the artifact title)'
 problem: P3
 receipts: []
+source:
+  kind: ledger
+  ref: 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186
 standing: CURRENT
 statement: 'Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0'
 substatus: null

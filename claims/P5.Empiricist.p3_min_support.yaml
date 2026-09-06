@@ -20,12 +20,16 @@ evidence:
 formulation_version: p5-ghz3-v1
 id: P5.Empiricist.p3_min_support
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7;
   title: Empiricist.p3_at_most_three'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7
 standing: CURRENT
 statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∃ μ, ∀ (i j : Fin 4), ¬Empiricist.Identifies
   U i j μ'

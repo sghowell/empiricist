@@ -20,12 +20,16 @@ evidence:
 formulation_version: legacy
 id: P5.Empiricist.dh_characterization
 kind: statement
+legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 454d406098497214dcfc43d0176aa9d2e8db1193c79c62d3492ca9aa2110669c;
   title: Empiricist.dh_characterization'
 problem: P5
 receipts: []
+source:
+  kind: ledger
+  ref: 454d406098497214dcfc43d0176aa9d2e8db1193c79c62d3492ca9aa2110669c
 standing: CURRENT
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.ProducibleByExt\
   \ (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable G"
