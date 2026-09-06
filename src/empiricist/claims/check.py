@@ -36,7 +36,7 @@ BLOCKING_CODES = frozenset({
     "schema_error", "graph_error", "lock_mismatch", "elevated_without_pass",
     "refuted_without_fail", "current_on_noncurrent", "claims_md_stale", "claims_md_legacy",
     "stored_standing_differs", "receipt_missing", "receipt_stale", "receipt_orphan",
-    "too_few_claims",
+    "too_few_claims", "evidence_unidentified",
 })
 
 
@@ -104,6 +104,10 @@ def check(
     mism = mismatches(repo, claims, lock)
     for cid, reasons in sorted(mism.items()):
         issues.append(CheckIssue(code="lock_mismatch", claim_id=cid, detail="; ".join(reasons)))
+    if registry_newer is None:
+        from empiricist.claims.registry import registry_newer as _from_registry
+
+        registry_newer = _from_registry(repo)
     standings = compute_standing(claims, mism, receipts, registry_newer)
 
     for cid in sorted(claims):
@@ -113,6 +117,13 @@ def check(
                 code="elevated_without_pass", claim_id=cid,
                 detail=f"level {c.level} has no PASS evidence entry from a verifier",
             ))
+        for e in c.evidence:
+            if e.verdict == "PASS" and e.verifier != TABLE_IMPORT_VERIFIER and not e.binary_hash:
+                issues.append(CheckIssue(
+                    code="evidence_unidentified", claim_id=cid,
+                    detail=f"PASS from {e.verifier} on {e.path} names no binary_hash",
+                ))
+                break
         if c.level == "REFUTED" and not any(e.verdict == "FAIL" for e in c.evidence):
             issues.append(CheckIssue(
                 code="refuted_without_fail", claim_id=cid,

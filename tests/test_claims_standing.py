@@ -113,3 +113,15 @@ def test_challenged_until_closed(tmp_path):
     (tmp_path / "receipts" / "r3.json").write_text("{}")
     with pytest.raises(ClaimSchemaError, match="malformed receipt"):
         load_receipts(tmp_path)
+
+
+def test_only_the_latest_pass_per_path_and_verifier_counts():
+    old = EvidenceEntry(path="ev/a.json", verifier="lean", version="3.3", verdict="PASS",
+                        stamped="2026-01-01", binary_hash="old" * 21 + "o")
+    new = EvidenceEntry(path="ev/a.json", verifier="lean", version="3.3", verdict="PASS",
+                        stamped="2026-09-06", binary_hash="new" * 21 + "n")
+    claims = {"a": _claim("a").model_copy(update={"evidence": [old, new]})}
+    newer = lambda e: e.binary_hash != new.binary_hash  # noqa: E731 - the registry stamps `new`
+    assert compute_standing(claims, {}, registry_newer=newer) == {"a": "CURRENT"}
+    claims = {"a": _claim("a").model_copy(update={"evidence": [new, old]})}
+    assert compute_standing(claims, {}, registry_newer=newer) == {"a": "STALE"}

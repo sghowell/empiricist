@@ -116,7 +116,8 @@ def test_import_table_from_legacy_claims_md(tmp_path):
     report = refresh_repo(repo, force=True)
     assert report.ok and {i.code for i in report.issues} == {"imported_unverified"}
     md = (repo / "CLAIMS.md").read_text()
-    assert "| P4-6 | P4 | Theorem B (mode count) | HEURISTIC (legacy CERTIFIED, unverified) |" in md
+    assert ("| P4-6 | P4 | Theorem B (mode count) | HEURISTIC (legacy CERTIFIED, not re-earned) |"
+            in md)
     # re-importing the same (now rendered) file is a no-op; re-importing the legacy text
     # keeps hand-added links and never duplicates claims
     assert import_table(repo / "CLAIMS.md", repo).written == []

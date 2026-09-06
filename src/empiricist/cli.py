@@ -232,6 +232,40 @@ def build_parser() -> argparse.ArgumentParser:
     )
     c_it.add_argument("--file", required=True, type=Path)
     c_it.add_argument("--repo", required=True, type=Path)
+    c_cv = claims_sub.add_parser(
+        "certify-verifier", help="run a command verifier's PASS/FAIL fixtures and stamp it"
+    )
+    c_cv.add_argument("--repo", required=True, type=Path)
+    c_cv.add_argument("--name", required=True)
+    c_fo = claims_sub.add_parser("formulate", help="freeze a statement as a HEURISTIC claim")
+    c_fo.add_argument("--repo", required=True, type=Path)
+    c_fo.add_argument("--id", required=True, dest="claim_id")
+    c_fo.add_argument("--problem", required=True)
+    c_fo.add_argument("--formulation-version", required=True)
+    c_fo.add_argument(
+        "--kind", default="statement", choices=("statement", "dataset", "construction")
+    )
+    c_fo.add_argument("--statement", required=True)
+    c_fo.add_argument("--depends-on", action="append", default=[])
+    c_fo.add_argument("--notes", default="")
+    c_pr = claims_sub.add_parser("promote", help="raise a claim's level by running a verifier")
+    c_pr.add_argument("--repo", required=True, type=Path)
+    c_pr.add_argument("--id", required=True, dest="claim_id")
+    c_pr.add_argument("--level", required=True)
+    c_pr.add_argument("--verifier", required=True, help="a command verifier name")
+    c_pr.add_argument("--evidence", required=True, help="repo-relative evidence path")
+    c_pr.add_argument("--receipt", default=None)
+    c_pr.add_argument("--n", type=int, default=None)
+    c_pr.add_argument("--coverage", default=None)
+    c_rv = claims_sub.add_parser("reverify", help="re-run verifiers for STALE (or one) claim")
+    c_rv.add_argument("--repo", required=True, type=Path)
+    c_rv.add_argument("--id", default=None, dest="claim_id")
+    c_dm = claims_sub.add_parser("demote", help="lower a claim's level with a receipt")
+    c_dm.add_argument("--repo", required=True, type=Path)
+    c_dm.add_argument("--id", required=True, dest="claim_id")
+    c_dm.add_argument("--level", required=True)
+    c_dm.add_argument("--receipt", required=True)
+    c_dm.add_argument("--reason", required=True)
 
     certify_p = sub.add_parser("certify", help="stamp both P5 fusion verifiers")
     certify_p.add_argument("--run-dir", required=True, type=Path)
@@ -655,6 +689,8 @@ def _cmd_claims(args: argparse.Namespace) -> int:
             who = f" {issue.claim_id}" if issue.claim_id else ""
             print(f"{issue.code}:{who} {issue.detail}")
         return 0 if report.ok else 1
+    if args.claims_command in ("certify-verifier", "formulate", "promote", "reverify", "demote"):
+        return _cmd_claims_promotion(args)
     if args.claims_command == "import-ledger":
         rep = import_ledger(args.run_dir, args.repo, id_prefix=args.id_prefix)
     else:
@@ -667,6 +703,50 @@ def _cmd_claims(args: argparse.Namespace) -> int:
     for skip in rep.skipped:
         print(f"skipped: {skip}")
     return 0 if not rep.skipped else 1
+
+
+def _cmd_claims_promotion(args: argparse.Namespace) -> int:
+    from empiricist.claims.command_verifier import certify_command_verifier
+    from empiricist.claims.model import ClaimSchemaError
+    from empiricist.claims.promote import PromotionRefused, demote, formulate, promote, reverify
+
+    try:
+        if args.claims_command == "certify-verifier":
+            stamp, problems = certify_command_verifier(args.repo, args.name)
+            if stamp is None:
+                print("certify-verifier: FAILED")
+                for p in problems:
+                    print(f"  {p}")
+                return 1
+            print(
+                f"certify-verifier: {stamp.name} v{stamp.version} "
+                f"[{stamp.binary_hash[:12]}] stamped"
+            )
+            return 0
+        if args.claims_command == "formulate":
+            c = formulate(args.repo, claim_id=args.claim_id, problem=args.problem,
+                          formulation_version=args.formulation_version, kind=args.kind,
+                          statement=args.statement, depends_on=args.depends_on, notes=args.notes)
+            print(f"formulate: {c.id} {c.level} {c.standing}")
+            return 0
+        if args.claims_command == "promote":
+            c = promote(args.repo, claim_id=args.claim_id, level=args.level,
+                        verifier=args.verifier, evidence_path=args.evidence,
+                        receipt_id=args.receipt, n=args.n, coverage=args.coverage)
+            print(f"promote: {c.id} -> {c.level} ({c.standing})")
+            return 0
+        if args.claims_command == "reverify":
+            outcomes = reverify(args.repo, claim_id=args.claim_id)
+            for cid, out in sorted(outcomes.items()):
+                print(f"reverify: {cid}: {out}")
+            return 0 if all(o == "re-verified" for o in outcomes.values()) else 1
+        c = demote(args.repo, claim_id=args.claim_id, level=args.level,
+                   receipt_id=args.receipt, reason=args.reason)
+        print(f"demote: {c.id} -> {c.level}")
+        return 0
+    except (PromotionRefused, ClaimSchemaError) as exc:
+        print(f"{args.claims_command}: refused: {exc}", file=sys.stderr)
+        return 1
 
 
 def _cmd_p3_ingest_results(args: argparse.Namespace) -> int:

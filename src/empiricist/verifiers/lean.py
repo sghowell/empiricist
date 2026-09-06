@@ -141,6 +141,7 @@ from typing import Any
 
 from blake3 import blake3
 
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.executor.runner import ExecSpec, execute
 from empiricist.executor.sandbox import SandboxMode
@@ -1005,6 +1006,7 @@ def ingest_lean_artifact(
     problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
     run_id: str | None = None,
     timeout_s: float = 600.0,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """Verify the exact source and atomically record its FORMALIZED claim.
 
@@ -1033,6 +1035,7 @@ def ingest_lean_artifact(
         problem=problem,
         problem_version=problem_version,
         run_id=run_id,
+        claims_repo=claims_repo,
     )
 
 
@@ -1047,6 +1050,7 @@ async def verify_and_ingest_lean_artifact(
     problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
     run_id: str | None = None,
     timeout_s: float = 600.0,
+    claims_repo: Path | None = None,
 ) -> tuple[VerifierResult, Artifact | None]:
     """Async event-loop-safe version used by ``FormalizeLoop``.
 
@@ -1074,6 +1078,7 @@ async def verify_and_ingest_lean_artifact(
         problem=problem,
         problem_version=problem_version,
         run_id=run_id,
+        claims_repo=claims_repo,
     )
     return result, artifact
 
@@ -1105,6 +1110,7 @@ def _record_verified_lean_artifact(
     problem: str,
     problem_version: str,
     run_id: str | None,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """Record a PASS produced for these exact bytes; never called by users."""
     if result.verdict is not Verdict.PASS:
@@ -1163,9 +1169,11 @@ def _record_verified_lean_artifact(
         verdict=Verdict.PASS,
         details=result.details,
     )
-    return ledger.record_claimed_artifact(
+    stored = ledger.record_claimed_artifact(
         artifact,
         claim,
         evidence,
         expected_golden_suite_hash=suite_hash,
     )
+    materialize_after_ingest(ledger, store, stored.id, claims_repo=claims_repo)
+    return stored

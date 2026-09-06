@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim fcb77b46e744
+  path: claims/evidence/8cf8808cd434ff59.lean
+  stamped: '2026-09-06T20:10:23.394470+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.identifies_rowDecouples
 kind: statement

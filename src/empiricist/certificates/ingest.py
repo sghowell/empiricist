@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from blake3 import blake3
 
@@ -29,6 +30,7 @@ from empiricist.certificates.verifier import (
     certificate_from_json,
     certificate_to_json,
 )
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
 from empiricist.store import Store
@@ -128,6 +130,7 @@ def verify_and_ingest_p3_certificate(
     target: str,
     title: str,
     run_id: str | None = None,
+    claims_repo: Path | None = None,
 ) -> tuple[VerifierResult, Artifact | None]:
     """Return the checker's result and ingest at CERTIFIED only on a certified PASS.
 
@@ -197,6 +200,7 @@ def verify_and_ingest_p3_certificate(
     stored = ledger.record_claimed_artifact(
         art, claim, evidence, expected_golden_suite_hash=suite_hash
     )
+    materialize_after_ingest(ledger, store, stored.id, claims_repo=claims_repo)
     return result, stored
 
 
@@ -208,6 +212,7 @@ def ingest_p3_certificate(
     target: str,
     title: str,
     run_id: str | None = None,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """`verify_and_ingest_p3_certificate` that refuses (ValueError) on non-PASS."""
     result, art = verify_and_ingest_p3_certificate(
@@ -217,6 +222,7 @@ def ingest_p3_certificate(
         target=target,
         title=title,
         run_id=run_id,
+        claims_repo=claims_repo,
     )
     if art is None:
         raise ValueError(
