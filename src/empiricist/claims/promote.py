@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from empiricist.claims.check import check, refresh_repo
+from empiricist.claims.check import check, drifted_verifiers, refresh_repo
 from empiricist.claims.command_verifier import golden_suite_hash, load_command_verifier
 from empiricist.claims.lock import (
     committed_file,
@@ -325,7 +325,8 @@ def reverify(
     `verifiers` supplies objects for other names. Returns id -> outcome; a claim returns
     to CURRENT only when every entry passes again."""
     repo = Path(repo)
-    newer = registry_newer(repo)
+    drifted, _errors = drifted_verifiers(repo)
+    newer = registry_newer(repo, drifted=drifted)
     claims = load_all(repo)
     lock = read_lock(repo)
     if claim_id:

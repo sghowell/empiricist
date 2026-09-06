@@ -36,8 +36,32 @@ BLOCKING_CODES = frozenset({
     "schema_error", "graph_error", "lock_mismatch", "elevated_without_pass",
     "refuted_without_fail", "current_on_noncurrent", "claims_md_stale", "claims_md_legacy",
     "stored_standing_differs", "receipt_missing", "receipt_stale", "receipt_orphan",
-    "too_few_claims", "evidence_unidentified",
+    "too_few_claims", "evidence_unidentified", "verifier_declaration_error",
 })
+
+
+def drifted_verifiers(repo: Path | str) -> tuple[set[str], list[tuple[str, str]]]:
+    """Command verifiers whose declaration or hashed inputs on disk no longer match their
+    registry stamp (their evidence is STALE until `certify-verifier` + `reverify`), plus
+    (name, error) for declarations that do not load. Pure: hashing only."""
+    from empiricist.claims.command_verifier import declared_verifiers
+    from empiricist.claims.registry import read_registry
+
+    reg = read_registry(repo)
+    verifiers, errors = declared_verifiers(repo)
+    drifted: set[str] = set()
+    for name, v in verifiers.items():
+        s = reg.stamps.get(name)
+        if s is None:
+            continue
+        try:
+            current = v.binary_hash
+        except ClaimSchemaError as exc:
+            errors.append((name, str(exc)))
+            continue
+        if s.version != v.version or s.binary_hash != current:
+            drifted.add(name)
+    return drifted, errors
 
 
 class CheckIssue(BaseModel):
@@ -107,7 +131,18 @@ def check(
     if registry_newer is None:
         from empiricist.claims.registry import registry_newer as _from_registry
 
-        registry_newer = _from_registry(repo)
+        drifted, decl_errors = drifted_verifiers(repo)
+        for name, err in decl_errors:
+            issues.append(CheckIssue(code="verifier_declaration_error", detail=f"{name}: {err}"))
+        for name in sorted(drifted):
+            issues.append(CheckIssue(
+                code="verifier_drift",
+                detail=(
+                    f"command verifier {name}: declaration or inputs changed since its stamp; "
+                    "its evidence is STALE until `certify-verifier` and `reverify`"
+                ),
+            ))
+        registry_newer = _from_registry(repo, drifted=drifted)
     standings = compute_standing(claims, mism, receipts, registry_newer)
 
     for cid in sorted(claims):

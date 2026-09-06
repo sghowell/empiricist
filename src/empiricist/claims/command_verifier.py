@@ -271,6 +271,24 @@ def load_command_verifier(repo: Path | str, name: str) -> CommandVerifier:
     return CommandVerifier(repo, spec, raw)
 
 
+def declared_verifiers(
+    repo: Path | str,
+) -> tuple[dict[str, CommandVerifier], list[tuple[str, str]]]:
+    """Every declaration under `claims/verifiers/`, keyed by name, plus (name, error)
+    pairs for declarations that do not load."""
+    d = verifiers_dir(repo)
+    out: dict[str, CommandVerifier] = {}
+    errors: list[tuple[str, str]] = []
+    if not d.is_dir():
+        return out, errors
+    for path in sorted(d.glob("*.yaml")):
+        try:
+            out[path.stem] = load_command_verifier(repo, path.stem)
+        except ClaimSchemaError as exc:
+            errors.append((path.stem, str(exc)))
+    return out, errors
+
+
 def golden_suite_hash(repo: Path | str, spec: CommandVerifierSpec) -> str:
     repo = Path(repo)
     h = hashlib.sha256()
@@ -334,6 +352,7 @@ def certify_command_verifier(
 
 __all__ = [
     "CommandVerifier", "CommandVerifierSpec", "Fixtures", "certify_command_verifier",
-    "declaration_path", "golden_suite_hash", "load_command_verifier", "verifiers_dir",
+    "declaration_path", "declared_verifiers", "golden_suite_hash", "load_command_verifier",
+    "verifiers_dir",
     "EVIDENCE_ENV", "EVIDENCE_PLACEHOLDER",
 ]
