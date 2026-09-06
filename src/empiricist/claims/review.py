@@ -109,7 +109,8 @@ def record_human_review(
 # ---------------------------------------------------------------------------
 
 ELEVATED = frozenset({"CERTIFIED", "FORMALIZED"})
-BUNDLE_BYTE_CAP = 64_000
+BUNDLE_BYTE_CAP = 240_000
+MIN_FILE_SHARE = 24_000
 
 
 def default_samples(target_level: str | None) -> int:
@@ -182,9 +183,12 @@ def build_review_bundle(
     if not claim.evidence:
         lines.append("(none)")
     lines += ["", "## Evidence files"]
+    paths = list(dict.fromkeys(e.path for e in claim.evidence))
+    # fair shares: one large certificate must not starve the formulation or proof notes
+    share = max(MIN_FILE_SHARE, byte_cap // max(len(paths), 1))
     remaining = byte_cap
-    for path in dict.fromkeys(e.path for e in claim.evidence):
-        excerpt, used = _evidence_excerpt(repo, path, max(remaining, 0))
+    for path in paths:
+        excerpt, used = _evidence_excerpt(repo, path, max(min(share, remaining), 0))
         remaining -= used
         lines += [f"### {path}", excerpt, ""]
     lines += [
@@ -199,7 +203,8 @@ def build_review_bundle(
 def _receipt_from_sample(
     *, claim: ClaimFile, repo: Path, rid: str, created: str, reviewer: str,
     out: dict[str, Any] | None, target_level: str | None, provenance: dict[str, str],
-) -> Receipt:
+) -> tuple[Receipt, bool]:
+    """(receipt, usable): `usable` is False when the sample produced no review."""
     from empiricist.llm.schemas import ReviewOut
 
     common = dict(
@@ -222,7 +227,7 @@ def _receipt_from_sample(
                 dimension="ledger_consistency", severity="warning",
                 text="reviewer returned no parseable review; sample discarded, re-run review",
             )],
-        )
+        ), False
     findings = [Finding(dimension=f.dimension, severity=f.severity, text=f"{f.text} [{f.where}]")
                 for f in parsed.findings]
     blocking = any(f.severity == "blocking" for f in findings)
@@ -235,7 +240,7 @@ def _receipt_from_sample(
             dimension="decision_soundness", severity="warning",
             text=f"reviewer examined only {sorted(set(parsed.checked))}; PASS needs all six",
         ))
-    return Receipt(**common, verdict=verdict, findings=findings)
+    return Receipt(**common, verdict=verdict, findings=findings), True
 
 
 async def _review_async(
@@ -271,13 +276,14 @@ async def _review_async(
             except KeyError:
                 pass
         out = result.parsed if result is not None and result.has_artifact else None
-        receipt = _receipt_from_sample(
+        receipt, usable = _receipt_from_sample(
             claim=claim, repo=repo, rid=rid, created=created, reviewer=reviewer, out=out,
             target_level=target_level, provenance=provenance,
         )
-        if closes and receipt.verdict == "PASS":
-            # a fresh, independent PASS over the corrected claim closes the earlier blocks;
-            # a sample that still objects (or is unusable) closes nothing
+        if closes and usable and receipt.verdict != "BLOCK":
+            # a fresh, independent review of the corrected claim that raises no blocking
+            # finding closes the earlier blocks (its own warnings stay on record as
+            # REVISE); a sample that still blocks, or is unusable, closes nothing
             receipt = receipt.model_copy(update={"closes": list(closes)})
         receipts.append(receipt)
     return receipts
@@ -298,8 +304,9 @@ def review_with_model(
     """Run `samples` independent reviewer calls (fresh context each) and write one receipt
     per sample. `ledger` (a v0 Ledger under the repo's `.empiricist/`) records the model
     runs; the receipts carry the run ids and receipt digests as provenance. With
-    `closes`, a PASS sample records that it closes those earlier blocking receipts (the
-    claim was corrected and re-reviewed); a BLOCK or REVISE sample never closes."""
+    `closes`, a fresh sample that raises no blocking finding (PASS or REVISE) records
+    that it closes those earlier blocking receipts (the claim was corrected and
+    re-reviewed); a BLOCK sample, or an unusable one, never closes."""
     repo = Path(repo)
     claims = load_all(repo)
     if claim_id not in claims:

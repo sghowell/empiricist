@@ -58,10 +58,12 @@ Run the CLI as `empiricist claims <command> --repo .` (an installed `empiricist`
    independent model reviewer (two samples for elevated targets; one receipt each,
    provenance under `.empiricist/`), or `claims review --repo . --id <id> --human
    --reviewer "<name>" --verdict PASS|REVISE|BLOCK [--finding dimension:severity:text ...]
-   [--closes <receipt id>]` records a human review. Dimensions: evidence_support,
+   [--closes <receipt id> ...]` records a human review. Dimensions: evidence_support,
    assumption_explicitness, internal_consistency, ledger_consistency,
    confidence_calibration, decision_soundness. A blocking finding makes the claim
-   CHALLENGED until a later receipt on the same claim closes it.
+   CHALLENGED until a later receipt on the same claim closes it: fix the record or the
+   claim, then `review --closes <blocking receipt id> ...` (a fresh model sample that
+   raises no blocking finding closes; a human `--human --closes` closes too).
 6. **Keep it green**: `claims check --repo . --min-claims <n>` (pure; belongs in
    pre-commit/CI) and `claims report --repo .` (writes derived standings and CLAIMS.md).
    `claims reverify --repo . [--id <id>]` re-runs the verifiers of STALE claims;

@@ -222,9 +222,33 @@ def test_model_review_can_close_an_earlier_block_only_with_a_pass(tmp_path):
     assert again[0].closes == [] and again[1].closes == [first[0].id]
     # the new BLOCK keeps the claim CHALLENGED even though the old one is closed
     assert check(repo).standings == {"P.s": "CHALLENGED"}
-    # one fresh PASS may close several blocks at once (two-sample reviews block in pairs)
+    # a REVISE sample (warnings only) closes too; an unusable sample never does
+    warn = {"findings": [{"dimension": "assumption_explicitness", "severity": "warning",
+                          "text": "scope", "where": "statement"}], "checked": _ALL,
+            "verdict": "REVISE"}
+    more = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([_result(warn),
+                                                                          _result(None)]),
+                             samples=2, closes=[again[0].id], now="2026-09-06T13:30:00+00:00")
+    assert [r.verdict for r in more] == ["REVISE", "REVISE"]
+    assert more[0].closes == [again[0].id] and more[1].closes == []
+    assert check(repo).standings == {"P.s": "CURRENT"}
+    # one fresh sample may close several blocks at once (two-sample reviews block in pairs)
     final = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([_result(ok)]),
                               samples=1, closes=[first[0].id, again[0].id],
                               now="2026-09-06T14:00:00+00:00")
     assert final[0].closes == [first[0].id, again[0].id]
     assert check(repo).standings == {"P.s": "CURRENT"}
+
+
+def test_review_bundle_gives_every_evidence_file_a_fair_share(tmp_path):
+    repo = _repo(tmp_path)
+    (repo / "certs" / "big.json").write_text(json.dumps({"ok": True, "pad": "x" * 200_000}))
+    (repo / "notes.md").write_text("FORMULATION TAIL MARKER " * 400)
+    c = load_all(repo)["P.s"]
+    big = c.evidence[0].model_copy(update={"path": "certs/big.json"})
+    md = c.evidence[0].model_copy(update={"path": "notes.md", "verdict": "IMPORTED",
+                                          "verifier": "table-import"})
+    c = c.model_copy(update={"evidence": [*c.evidence, big, md]})
+    bundle = build_review_bundle(repo, c, target_level="CERTIFIED", byte_cap=90_000)
+    assert "FORMULATION TAIL MARKER" in bundle          # the note survives the big file
+    assert bundle.count("(truncated;") == 1              # only the big file is cut
