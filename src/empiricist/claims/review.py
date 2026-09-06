@@ -76,8 +76,11 @@ def record_human_review(
     closes: str | list[str] | None = None,
     target_level: str | None = None,
     now: str | None = None,
+    waivers: list[str] | None = None,
 ) -> Receipt:
-    """Write `receipts/<id>.json` for a human review and refresh the derived standings."""
+    """Write `receipts/<id>.json` for a human review and refresh the derived standings.
+    `waivers` (human reviews only) names rules this receipt explicitly waives for the
+    promotion it warrants, e.g. `level_inversion`."""
     repo = Path(repo)
     claims = load_all(repo)
     if claim_id not in claims:
@@ -96,6 +99,7 @@ def record_human_review(
             evidence_sha256=evidence_hashes(repo, claim),
             findings=list(findings or []), verdict=verdict,  # type: ignore[arg-type]
             closes=closes, created=created, target_level=target_level,  # type: ignore[arg-type]
+            waivers=list(waivers or []),  # type: ignore[arg-type]
         )
     except ValueError as exc:
         raise ReviewRefused(str(exc)) from exc

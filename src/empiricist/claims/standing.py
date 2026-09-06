@@ -76,6 +76,8 @@ class Receipt(BaseModel):
     created: str
     target_level: Level | None = None       # the promotion this review was asked to warrant
     provenance: dict[str, str] | None = None  # model reviews: run_id, model, receipt digests
+    # rules a HUMAN reviewer explicitly waives for the promotion this receipt warrants
+    waivers: list[Literal["level_inversion"]] = Field(default_factory=list)
 
     @field_validator("id")
     @classmethod
@@ -103,6 +105,8 @@ class Receipt(BaseModel):
             raise ValueError("a receipt cannot close itself")
         if len(set(self.closes)) != len(self.closes):
             raise ValueError("duplicate ids in closes")
+        if len(set(self.waivers)) != len(self.waivers):
+            raise ValueError("duplicate waivers")
         if self.verdict == "PASS" and self.blocking:
             raise ValueError("a PASS receipt cannot carry a blocking finding")
         if self.verdict == "BLOCK" and not self.blocking:

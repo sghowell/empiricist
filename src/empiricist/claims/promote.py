@@ -35,6 +35,7 @@ from empiricist.claims.model import (
     EvidenceEntry,
     claim_path,
     is_path_dependency,
+    level_cap,
     load_all,
     load_claim,
     revalidate,
@@ -230,6 +231,23 @@ def promote(
             f"{claim_id} is STALE ({'; '.join(reasons) or 'a newer verifier is stamped'}); "
             "run reverify first"
         )
+    # Levels are capped by dependencies (charter section 3): a claim may not rise above
+    # the lowest level among the claims it depends on unless a human receipt waives it.
+    cap, limiting = level_cap(claim, claims)
+    if level != "REFUTED" and LEVEL_RANK[level] > cap and limiting is not None:
+        waived = False
+        if receipt_id is not None:
+            r = load_receipts(repo).get(receipt_id)
+            waived = (
+                r is not None and r.claim_id == claim_id
+                and r.statement_sha256 == statement_sha256(claim.statement)
+                and "level_inversion" in r.waivers
+            )
+        if not waived:
+            raise PromotionRefused(
+                f"{level} is above dependency {limiting} at {claims[limiting].level}; re-earn "
+                "the dependency first, or pass a human receipt that waives level_inversion"
+            )
     # Everything the lock will cover must be a committed file BEFORE anything runs.
     _committed_or_refuse(repo, evidence_path, "evidence")
     for p in lock_paths_for(claim):

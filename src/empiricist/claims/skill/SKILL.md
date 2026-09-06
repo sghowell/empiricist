@@ -22,6 +22,11 @@ Run the CLI as `empiricist claims <command> --repo .` (an installed `empiricist`
   the verifier changed), CHALLENGED (a blocking review finding is open), SUPERSEDED.
 - A claim imported from an older table shows `HEURISTIC (legacy CERTIFIED, not re-earned)`
   until `promote` re-earns the level with a certified verifier.
+- A claim's level may not exceed the lowest level among the claims it depends on
+  (`promote` refuses; `check` reports `level_inversion`). Re-earn chains bottom-up, or a
+  human receipt waives it once: `review --human ... --waive level_inversion`.
+- `claims deps-from-pins --repo .` adds the dependency edges your certificates pin
+  (`prior_*_sha256` fields naming another claim's evidence file).
 
 ## The workflow
 
@@ -79,6 +84,7 @@ Run the CLI as `empiricist claims <command> --repo .` (an installed `empiricist`
 | `is CHALLENGED by blocking receipt(s)` | address the finding; record a closing receipt |
 | `requires a review receipt` | `review` (model or human), then pass `--receipt` |
 | `dependency X is STALE` | `reverify` (or promote) X first |
+| `is above dependency X at <level>` | re-earn X first, or a human receipt with `--waive level_inversion` |
 | `returned FAIL, not PASS` | the evidence does not pass; the FAIL entry is recorded |
 | `not a committed regular file` | commit the file; no symlinks, nothing outside the repo |
 

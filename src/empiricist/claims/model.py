@@ -190,6 +190,20 @@ class ClaimFile(BaseModel):
         return self.rank < LEVEL_RANK[self.legacy_level]
 
 
+def level_cap(claim: ClaimFile, claims: dict[str, ClaimFile]) -> tuple[int, str | None]:
+    """The highest rank `claim` may hold: the lowest level among its claim dependencies
+    (charter section 3, dependency-level rule). Returns (rank, limiting dependency id);
+    REFUTED dependencies are ignored here (standing makes the claim STALE instead)."""
+    cap, who = LEVEL_RANK["FORMALIZED"], None
+    for d in claim.depends_on:
+        dep = claims.get(d)
+        if dep is None or dep.level == "REFUTED":
+            continue
+        if dep.rank < cap:
+            cap, who = dep.rank, d
+    return cap, who
+
+
 def claims_dir(repo: Path | str) -> Path:
     return Path(repo) / CLAIMS_DIRNAME
 
