@@ -66,7 +66,7 @@ def test_human_block_then_close_then_certified(tmp_path):
         findings=[Finding(dimension="evidence_support", severity="note", text="fixed")],
         closes=block.id, now="2026-09-06T11:00:00+00:00",
     )
-    assert ok.id == "P.s.20260906.sean-howell.2" and ok.closes == block.id
+    assert ok.id == "P.s.20260906.sean-howell.2" and ok.closes == [block.id]
     assert check(repo).standings == {"P.s": "CURRENT"}
     c = promote(repo, claim_id="P.s", level="CERTIFIED", verifier="toy",
                 evidence_path="certs/good.json", receipt_id=ok.id)
@@ -100,6 +100,9 @@ def test_human_review_refusals(tmp_path):
     with pytest.raises(ValueError, match="close itself"):
         Receipt(id="r", claim_id="P.s", reviewer="h", statement_sha256="0" * 64,
                 verdict="PASS", created="2026-09-06", closes="r")
+    legacy = Receipt(id="r", claim_id="P.s", reviewer="h", statement_sha256="0" * 64,
+                     verdict="PASS", created="2026-09-06", closes=None)
+    assert legacy.closes == []
     with pytest.raises(ValueError, match="filename-safe"):
         Receipt(id="bad/id", claim_id="P.s", reviewer="h", statement_sha256="0" * 64,
                 verdict="PASS", created="2026-09-06")
@@ -175,7 +178,7 @@ def test_model_review_bundle_and_two_samples(tmp_path):
     # a human closes the model's block; the PASS sample then carries the promotion
     closing = record_human_review(repo, claim_id="P.s", reviewer="Sean", verdict="PASS",
                                   closes=receipts[0].id, now="2026-09-06T13:00:00+00:00")
-    assert check(repo).standings == {"P.s": "CURRENT"} and closing.closes == receipts[0].id
+    assert check(repo).standings == {"P.s": "CURRENT"} and closing.closes == [receipts[0].id]
     c = promote(repo, claim_id="P.s", level="CERTIFIED", verifier="toy",
                 evidence_path="certs/good.json", receipt_id=receipts[1].id)
     assert c.level == "CERTIFIED"
@@ -197,3 +200,31 @@ def test_model_review_unusable_samples_are_revise_receipts(tmp_path):
     assert receipts[0].verdict == "REVISE" and len(load_receipts(repo)) == 4
     with pytest.raises(ReviewRefused, match="samples"):
         review_with_model(repo, claim_id="P.s", client=FakeLLMClient([]), samples=0)
+
+
+def test_model_review_can_close_an_earlier_block_only_with_a_pass(tmp_path):
+    repo = _repo(tmp_path)
+    block = {"findings": [{"dimension": "ledger_consistency", "severity": "blocking",
+                           "text": "no deps", "where": "depends_on"}], "checked": _ALL,
+             "verdict": "BLOCK"}
+    first = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([_result(block)]),
+                              samples=1, now="2026-09-06T12:00:00+00:00")
+    assert first[0].verdict == "BLOCK" and check(repo).standings == {"P.s": "CHALLENGED"}
+    with pytest.raises(ReviewRefused, match="not a receipt of"):
+        review_with_model(repo, claim_id="P.s", client=FakeLLMClient([]), samples=1,
+                          closes="ghost")
+    # the claim is corrected; a fresh round: one sample still objects, one passes
+    ok = {"findings": [], "checked": _ALL, "verdict": "PASS"}
+    again = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([_result(block),
+                                                                           _result(ok)]),
+                              samples=2, closes=first[0].id, now="2026-09-06T13:00:00+00:00")
+    assert [r.verdict for r in again] == ["BLOCK", "PASS"]
+    assert again[0].closes == [] and again[1].closes == [first[0].id]
+    # the new BLOCK keeps the claim CHALLENGED even though the old one is closed
+    assert check(repo).standings == {"P.s": "CHALLENGED"}
+    # one fresh PASS may close several blocks at once (two-sample reviews block in pairs)
+    final = review_with_model(repo, claim_id="P.s", client=FakeLLMClient([_result(ok)]),
+                              samples=1, closes=[first[0].id, again[0].id],
+                              now="2026-09-06T14:00:00+00:00")
+    assert final[0].closes == [first[0].id, again[0].id]
+    assert check(repo).standings == {"P.s": "CURRENT"}

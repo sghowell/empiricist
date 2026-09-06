@@ -57,6 +57,15 @@ def _now(now: str | None) -> str:
     return now or datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def _closes_of(claim_id: str, closes: str | list[str] | None, receipts: dict) -> list[str]:
+    ids = [closes] if isinstance(closes, str) else list(closes or [])
+    for rid in ids:
+        target = receipts.get(rid)
+        if target is None or target.claim_id != claim_id:
+            raise ReviewRefused(f"{rid!r} is not a receipt of {claim_id}")
+    return ids
+
+
 def record_human_review(
     repo: Path | str,
     *,
@@ -64,7 +73,7 @@ def record_human_review(
     reviewer: str,
     verdict: str,
     findings: list[Finding] | None = None,
-    closes: str | None = None,
+    closes: str | list[str] | None = None,
     target_level: str | None = None,
     now: str | None = None,
 ) -> Receipt:
@@ -77,10 +86,7 @@ def record_human_review(
         raise ReviewRefused(f"unknown level {target_level!r}")
     claim = claims[claim_id]
     receipts = load_receipts(repo)
-    if closes is not None:
-        target = receipts.get(closes)
-        if target is None or target.claim_id != claim_id:
-            raise ReviewRefused(f"{closes!r} is not a receipt of {claim_id}")
+    closes = _closes_of(claim_id, closes, receipts)
     created = _now(now)
     rid = new_receipt_id(claim_id, reviewer, created, set(receipts))
     try:
@@ -235,6 +241,7 @@ def _receipt_from_sample(
 async def _review_async(
     repo: Path, claim: ClaimFile, *, client: Any, samples: int, target_level: str | None,
     ledger: Any, standings: dict[str, str], now: str | None, reviewer: str,
+    closes: list[str] | None = None,
 ) -> list[Receipt]:
     from empiricist.llm.roles import ROLES
     from empiricist.llm.schemas import ReviewOut
@@ -264,10 +271,15 @@ async def _review_async(
             except KeyError:
                 pass
         out = result.parsed if result is not None and result.has_artifact else None
-        receipts.append(_receipt_from_sample(
+        receipt = _receipt_from_sample(
             claim=claim, repo=repo, rid=rid, created=created, reviewer=reviewer, out=out,
             target_level=target_level, provenance=provenance,
-        ))
+        )
+        if closes and receipt.verdict == "PASS":
+            # a fresh, independent PASS over the corrected claim closes the earlier blocks;
+            # a sample that still objects (or is unusable) closes nothing
+            receipt = receipt.model_copy(update={"closes": list(closes)})
+        receipts.append(receipt)
     return receipts
 
 
@@ -281,16 +293,20 @@ def review_with_model(
     ledger: Any = None,
     now: str | None = None,
     reviewer: str = "model",
+    closes: str | list[str] | None = None,
 ) -> list[Receipt]:
     """Run `samples` independent reviewer calls (fresh context each) and write one receipt
     per sample. `ledger` (a v0 Ledger under the repo's `.empiricist/`) records the model
-    runs; the receipts carry the run ids and receipt digests as provenance."""
+    runs; the receipts carry the run ids and receipt digests as provenance. With
+    `closes`, a PASS sample records that it closes those earlier blocking receipts (the
+    claim was corrected and re-reviewed); a BLOCK or REVISE sample never closes."""
     repo = Path(repo)
     claims = load_all(repo)
     if claim_id not in claims:
         raise ReviewRefused(f"claim {claim_id!r} does not exist")
     if target_level is not None and target_level not in LEVEL_RANK:
         raise ReviewRefused(f"unknown level {target_level!r}")
+    closes = _closes_of(claim_id, closes, load_receipts(repo))
     n = samples if samples is not None else default_samples(target_level)
     if n < 1:
         raise ReviewRefused("samples must be >= 1")
@@ -298,6 +314,7 @@ def review_with_model(
     receipts = asyncio.run(_review_async(
         repo, claims[claim_id], client=client, samples=n, target_level=target_level,
         ledger=ledger, standings=dict(report.standings), now=now, reviewer=reviewer,
+        closes=closes,
     ))
     for r in receipts:
         save_receipt(repo, r)
