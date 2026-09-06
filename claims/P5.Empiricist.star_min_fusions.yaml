@@ -1,0 +1,39 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: ff1e5c0bd528881d17d5445ed0faab1ee771247d3a7afc935cc00eaf266bade4
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/60b904be671f0d9a.lean
+  stamped: '2026-07-15T03:12:43.112123+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim f04fc19d22f4
+  path: claims/evidence/60b904be671f0d9a.lean
+  stamped: '2026-09-05T21:51:26.329354+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.star_min_fusions
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35;
+  title: Empiricist.star_min_fusions'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35
+standing: CURRENT
+statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (Empiricist.starGraph\
+  \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\
+  \ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-15'

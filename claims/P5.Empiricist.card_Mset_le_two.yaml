@@ -1,0 +1,30 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 2953abc93fcf7cb50488c44fce92e945a39de3103843daf51b903c699385fe91
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 5ddf37a5de4a
+  path: claims/evidence/807fcf84e7981004.lean
+  stamped: '2026-08-11T18:43:14.113360+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.card_Mset_le_two
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22;
+  title: Empiricist.card_Mset_le_two'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22
+standing: CURRENT
+statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∀ (i : Fin 4), (Empiricist.Mset U
+  i).card ≤ 2'
+substatus: null
+supersedes: []
+updated: '2026-08-11'

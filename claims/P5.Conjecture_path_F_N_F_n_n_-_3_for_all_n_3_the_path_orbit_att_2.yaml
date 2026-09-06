@@ -1,0 +1,34 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e36c85d6ef1d9dbecd3a138a4dcef4f16ee10cca9bac56600cb0349f82a3e10f
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/2a84ece822a78384.json
+  stamped: '2026-07-09T21:39:25.244553+00:00'
+  verdict: PASS
+  verifier: auto_attack
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_the_path_orbit_att_2
+kind: statement
+legacy_level: null
+level: CONJECTURED
+n: null
+notes: 'artifact 2a84ece822a783843f5e694add920d1b04a05555122e1860ff64127379656263;
+  title: Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (the path orbit attains
+  the universal lower bound F(N) >= N-3 with equality, consistent with F(N) ≡ N-3
+  (mod 3)); no canonical claim row (pre-hardening record; statement is the artifact
+  title)'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 2a84ece822a783843f5e694add920d1b04a05555122e1860ff64127379656263
+standing: CURRENT
+statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (the path orbit attains
+  the universal lower bound F(N) >= N-3 with equality, consistent with F(N) ≡ N-3
+  (mod 3))'
+substatus: null
+supersedes: []
+updated: '2026-07-09'

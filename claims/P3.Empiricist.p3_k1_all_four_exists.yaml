@@ -1,0 +1,30 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 8d983c39ae79
+  path: claims/evidence/c6e57d9d6135ef3c.lean
+  stamped: '2026-09-06T00:14:21.225148+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: p3-linear-optical-scheme-v1
+id: P3.Empiricist.p3_k1_all_four_exists
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact c6e57d9d6135ef3c3493a4712a32971f79717bde7ce49d15b682062c2fe47ce5;
+  title: Empiricist.p3_k1_all_four_exists'
+problem: P3
+receipts: []
+source:
+  kind: ledger
+  ref: c6e57d9d6135ef3c3493a4712a32971f79717bde7ce49d15b682062c2fe47ce5
+standing: CURRENT
+statement: '∃ V ∈ Matrix.unitaryGroup (Fin 5) ℂ, ∀ (mu : Empiricist.BellLabel), ∃
+  i j k, Empiricist.Identifies3 V i j k mu'
+substatus: null
+supersedes: []
+updated: '2026-09-06'

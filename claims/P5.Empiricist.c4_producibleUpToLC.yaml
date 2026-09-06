@@ -1,0 +1,38 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: a424b1839e9c5fb2435efff7150382680bc177765c76904feaec342e97354743
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/82fd7e86acb14808.lean
+  stamped: '2026-07-16T07:21:26.641767+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim e0bbc4aff37c
+  path: claims/evidence/82fd7e86acb14808.lean
+  stamped: '2026-09-05T21:52:38.680227+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.c4_producibleUpToLC
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 82fd7e86acb148082814ee864d93008c04bcda733068ab779ff52efc47a0c580;
+  title: Empiricist.c4_producibleUpToLC'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 82fd7e86acb148082814ee864d93008c04bcda733068ab779ff52efc47a0c580
+standing: CURRENT
+statement: Empiricist.ProducibleUpToLC 1 (Empiricist.addFalseTwin Empiricist.GHZ3graph
+  1)
+substatus: null
+supersedes: []
+updated: '2026-07-16'

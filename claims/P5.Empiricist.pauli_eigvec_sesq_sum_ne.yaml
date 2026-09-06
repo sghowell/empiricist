@@ -1,0 +1,35 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: d7827d0e2ef323a8968a5f1252bebc19bf3e03d469bc575935bae08977db79ab
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2bd2569625fb
+  path: claims/evidence/d0a3ac4745d1e9bf.lean
+  stamped: '2026-08-21T20:23:24.208433+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: p5-ghz3-v1
+id: P5.Empiricist.pauli_eigvec_sesq_sum_ne
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact d0a3ac4745d1e9bf8d001f6eeb7974362f46f0647f1ffd0e2bfbb4dcc3a7d337;
+  title: Empiricist.pauli_eigvec_sesq_sum_ne'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: d0a3ac4745d1e9bf8d001f6eeb7974362f46f0647f1ffd0e2bfbb4dcc3a7d337
+standing: CURRENT
+statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ Empiricist.BellLabel.phiP →\n\
+  \    Empiricist.pauliOf mu * Empiricist.pauliOf nu = -(Empiricist.pauliOf nu * Empiricist.pauliOf\
+  \ mu) →\n      ∀ (u v : Fin 2 → ℂ),\n        u ≠ 0 →\n          v ≠ 0 →\n      \
+  \      ∀ (cu cv : ℂ),\n              (Empiricist.pauliOf mu).mulVec u = cu • u →\n\
+  \                (Empiricist.pauliOf mu).mulVec v = cv • v →\n                 \
+  \ ∀ (c : ℂ), c ≠ 0 → sesq u v + c * sesq u ((Empiricist.pauliOf nu).mulVec v) ≠\
+  \ 0"
+substatus: null
+supersedes: []
+updated: '2026-08-21'

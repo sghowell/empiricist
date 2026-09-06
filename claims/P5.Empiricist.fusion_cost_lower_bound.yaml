@@ -1,0 +1,38 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e848404dbb4f2aee60091a0dcd6b4c9f6d68de5f9496c1f00e8bec6ec1dbe047
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/66e3e2c36d89b4ff.lean
+  stamped: '2026-07-15T00:20:42.375606+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.2'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim a99f5a2229fb
+  path: claims/evidence/66e3e2c36d89b4ff.lean
+  stamped: '2026-09-05T21:50:53.460659+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.fusion_cost_lower_bound
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 66e3e2c36d89b4ff916de965d871c6ff98e8926c8a5ac8cea133e3bf5817aa36;
+  title: Empiricist.fusion_cost_lower_bound'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 66e3e2c36d89b4ff916de965d871c6ff98e8926c8a5ac8cea133e3bf5817aa36
+standing: CURRENT
+statement: "∀ (N g f : Nat) (c : Nat → Nat),\n  3 ≤ N → N + 2 * f = 3 * g → c 0 =\
+  \ g → c f = 1 → (∀ (i : Nat), i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-15'

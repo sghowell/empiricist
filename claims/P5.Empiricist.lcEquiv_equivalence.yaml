@@ -1,0 +1,37 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: ec07e410263365c85f6f3ba16b3f40eafacb5a0668ac240886c132dc7dd58b19
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/6508627b597155e0.lean
+  stamped: '2026-07-15T01:32:46.009067+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2a55eb581d6b
+  path: claims/evidence/6508627b597155e0.lean
+  stamped: '2026-09-05T21:51:03.654466+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.lcEquiv_equivalence
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 6508627b597155e04c349e522caa1e450c9e208c92566495d90d26e26b515087;
+  title: Empiricist.lcEquiv_equivalence'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 6508627b597155e04c349e522caa1e450c9e208c92566495d90d26e26b515087
+standing: CURRENT
+statement: '∀ {V : Type u_1}, Equivalence Empiricist.LCEquiv'
+substatus: null
+supersedes: []
+updated: '2026-07-15'

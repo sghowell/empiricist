@@ -95,7 +95,8 @@ def test_output_truncation():
 
 def test_limits_are_applied():
     res = run(py_spec("while True: pass", limits=ResourceLimits(cpu_s=1)))
-    assert res.exit_code == -signal.SIGXCPU
+    # Linux delivers SIGKILL once the hard CPU limit is hit; macOS reports SIGXCPU.
+    assert res.exit_code in (-signal.SIGXCPU, -signal.SIGKILL)
 
 
 def test_ledger_wiring_records_run(tmp_path):

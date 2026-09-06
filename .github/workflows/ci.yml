@@ -13,8 +13,10 @@ permissions:
 jobs:
   fast:
     name: Lint and fast tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # macOS: the executor's sandbox is `sandbox-exec`, which Linux runners lack, and the
+    # fast suite exercises it (114 errors on ubuntu once geng is present).
+    runs-on: macos-14
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
@@ -29,11 +31,17 @@ jobs:
       - name: Sync locked environment
         run: uv sync --frozen
 
+      - name: Install exact graph enumerator (nauty geng; P5 n=8 tablebase tests need it)
+        run: brew install nauty
+
       - name: Lint
         run: uv run ruff check src tests
 
       - name: Run fast offline tests
         run: uv run pytest -m "not slow and not slow_lean"
+
+      - name: Check the claim ledger (hashes, DAG, standing, rendered CLAIMS.md)
+        run: uv run empiricist claims check --repo . --min-claims 1
 
   trust-boundaries:
     name: Manual slow exact and Lean checks

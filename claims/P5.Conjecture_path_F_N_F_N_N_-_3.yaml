@@ -1,0 +1,30 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: e36c85d6ef1d9dbecd3a138a4dcef4f16ee10cca9bac56600cb0349f82a3e10f
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/3f0d80f0bae8695d.json
+  stamped: '2026-07-09T20:56:57.122558+00:00'
+  verdict: PASS
+  verifier: auto_attack
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_path_F_N_F_N_N_-_3
+kind: statement
+legacy_level: null
+level: CONJECTURED
+n: null
+notes: 'artifact 3f0d80f0bae8695de28c4380f4bd4cc2e815071f1dc613ccfe04d348ed329a8e;
+  title: Conjecture: path F(N) = F(N) = N - 3; no canonical claim row (pre-hardening
+  record; statement is the artifact title)'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 3f0d80f0bae8695de28c4380f4bd4cc2e815071f1dc613ccfe04d348ed329a8e
+standing: CURRENT
+statement: 'Conjecture: path F(N) = F(N) = N - 3'
+substatus: null
+supersedes: []
+updated: '2026-07-09'

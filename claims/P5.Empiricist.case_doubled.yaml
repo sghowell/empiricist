@@ -1,0 +1,32 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 325b8f754c37e1c9e044c304aa21df8a28cff1e7a44c2f49e23c10d9eb0b3e43
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 02e34dd290ac
+  path: claims/evidence/122f690fa853dce9.lean
+  stamped: '2026-08-12T00:19:02.886329+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.case_doubled
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd;
+  title: Empiricist.case_doubled'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd
+standing: CURRENT
+statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
+  \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
+  \ μ) →\n      (Empiricist.DoubledEdges fun i => Finset.image (⇑e) (Empiricist.Mset\
+  \ U i)) → False"
+substatus: null
+supersedes: []
+updated: '2026-08-12'

@@ -1,0 +1,30 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: d98b7e0ef6053c453d2fe1899b8b1ed69d3c4f37362885b342f2a8546f2b7c43
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/dc8649519e5f8694.json
+  stamped: '2026-07-08T04:05:18.247382+00:00'
+  verdict: PASS
+  verifier: p5_tablebase_dataset_ingest
+  version: '1.0'
+formulation_version: legacy
+id: P5.GHZ3_min-fusion_tablebase_F_G_for_connected_orbits_n_3..9
+kind: dataset
+legacy_level: null
+level: VERIFIED_N
+n: 9
+notes: 'artifact dc8649519e5f86948a4283118b979fd958511687731bdb5ddc78c11956571f25;
+  title: GHZ3 min-fusion tablebase: F(G) for connected orbits, n=3..9; no canonical
+  claim row (pre-hardening record; statement is the artifact title)'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: dc8649519e5f86948a4283118b979fd958511687731bdb5ddc78c11956571f25
+standing: CURRENT
+statement: 'GHZ3 min-fusion tablebase: F(G) for connected orbits, n=3..9'
+substatus: null
+supersedes: []
+updated: '2026-07-08'

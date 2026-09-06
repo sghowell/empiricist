@@ -1,0 +1,38 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 6e36bd2337b418472dcaa83147d3d195721c3d25f102774a56bae0fdc864c976
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/0571b9fd6234b740.lean
+  stamped: '2026-07-16T17:54:19.112342+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 06e1465ed4c6
+  path: claims/evidence/0571b9fd6234b740.lean
+  stamped: '2026-09-05T21:53:08.056135+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.dh_forward
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 0571b9fd6234b740384a9c47fef512833bc5f8b6beaf48bf6c5a2f06c52a75cc;
+  title: Empiricist.dh_forward'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 0571b9fd6234b740384a9c47fef512833bc5f8b6beaf48bf6c5a2f06c52a75cc
+standing: CURRENT
+statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.PendantTwinBuildable\
+  \ G → Empiricist.ProducibleByExt (Fintype.card V - 3) G"
+substatus: null
+supersedes: []
+updated: '2026-07-16'

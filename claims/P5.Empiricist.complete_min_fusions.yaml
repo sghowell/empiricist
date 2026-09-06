@@ -1,0 +1,39 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 04feeb53d8c8981ceb79e32a8b6e3e26c9f984ad309fe4d19ab9a1e8a83be39d
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/ae693e034fa7b3e4.lean
+  stamped: '2026-07-15T06:41:08.755435+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 32574438e895
+  path: claims/evidence/ae693e034fa7b3e4.lean
+  stamped: '2026-09-05T21:51:54.723099+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.complete_min_fusions
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact ae693e034fa7b3e40cc96d33ffea9ab8e9f44016841cde0cb58a5527fee7d179;
+  title: Empiricist.complete_min_fusions'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: ae693e034fa7b3e40cc96d33ffea9ab8e9f44016841cde0cb58a5527fee7d179
+standing: CURRENT
+statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleUpToLC (N - 3) (SimpleGraph.completeGraph\
+  \ (Fin N)) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f =\
+  \ 1 → (∀ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
+substatus: null
+supersedes: []
+updated: '2026-07-15'

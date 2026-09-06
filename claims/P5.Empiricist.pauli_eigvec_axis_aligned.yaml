@@ -1,0 +1,29 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 22eb00709aecc363d548c06089bdbc9721c219a768c74512428d4b3678e469cf
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim f294401eb8db
+  path: claims/evidence/adcedf473a63fc9d.lean
+  stamped: '2026-08-20T21:49:39.697142+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.pauli_eigvec_axis_aligned
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c;
+  title: Empiricist.pauli_eigvec_axis_aligned'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c
+standing: CURRENT
+statement: 'True'
+substatus: null
+supersedes: []
+updated: '2026-08-20'

@@ -1,0 +1,32 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: fa23b212c7600b9a4ea6ecf820e5816a02c3341fd5f894895f6e6b219d33fa96
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/90c1fdcadf65a380.json
+  stamped: '2026-07-10T01:23:23.178886+00:00'
+  verdict: PASS
+  verifier: auto_attack
+  version: '1.0'
+formulation_version: legacy
+id: P5.Conjecture_cycle_F_N_F_n_n_-_3_for_n_4_F_n_n_for_n_5_equival
+kind: statement
+legacy_level: null
+level: CONJECTURED
+n: null
+notes: 'artifact 90c1fdcadf65a3807281270599d93dbcd029a9fc15da5ed626b2d35574749a7d;
+  title: Conjecture: cycle F(N) = F(n) = n - 3 for n <= 4; F(n) = n for n >= 5 (equivalently
+  F(n) = (n-3) + 3*[n>=5]); no canonical claim row (pre-hardening record; statement
+  is the artifact title)'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 90c1fdcadf65a3807281270599d93dbcd029a9fc15da5ed626b2d35574749a7d
+standing: CURRENT
+statement: 'Conjecture: cycle F(N) = F(n) = n - 3 for n <= 4; F(n) = n for n >= 5
+  (equivalently F(n) = (n-3) + 3*[n>=5])'
+substatus: null
+supersedes: []
+updated: '2026-07-10'

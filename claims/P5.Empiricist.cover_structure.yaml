@@ -1,0 +1,31 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 7279813da88aa77ad5af36ee57ac9a24b366a69e7079407c573cca63fb3dcd92
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim d27cf2dab8b6
+  path: claims/evidence/22d86202d8917fd2.lean
+  stamped: '2026-08-11T21:43:27.973585+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.cover_structure
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4;
+  title: Empiricist.cover_structure'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4
+standing: CURRENT
+statement: "∀ (M : Fin 4 → Finset (Fin 4)),\n  (∀ (i : Fin 4), (M i).card ≤ 2) →\n\
+  \    (∀ (μ : Fin 4), 2 ≤ {i | μ ∈ M i}.card) → Empiricist.DoubledEdges M ∨ Empiricist.FourCycle\
+  \ M"
+substatus: null
+supersedes: []
+updated: '2026-08-11'

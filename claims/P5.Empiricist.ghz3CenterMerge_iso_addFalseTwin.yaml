@@ -1,0 +1,38 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: a424b1839e9c5fb2435efff7150382680bc177765c76904feaec342e97354743
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/cf676c0ec297b9ea.lean
+  stamped: '2026-07-16T16:26:41.173209+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim fa8aa9e315e1
+  path: claims/evidence/cf676c0ec297b9ea.lean
+  stamped: '2026-09-05T21:52:46.008766+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P5.Empiricist.ghz3CenterMerge_iso_addFalseTwin
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'artifact cf676c0ec297b9ea3a3c503e5a7daed3cb14b3ec412de9e87393c95a2924814b;
+  title: Empiricist.ghz3CenterMerge_iso_addFalseTwin'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: cf676c0ec297b9ea3a3c503e5a7daed3cb14b3ec412de9e87393c95a2924814b
+standing: CURRENT
+statement: "{V : Type} →\n  [DecidableEq V] → (G : SimpleGraph V) → (a : V) → Empiricist.ghz3CenterMerge\
+  \ G a ≃g Empiricist.addFalseTwin G a"
+substatus: null
+supersedes: []
+updated: '2026-07-16'
