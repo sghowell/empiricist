@@ -38,7 +38,8 @@ def _repo(tmp_path):
     (tmp_path / "claims" / "verifiers").mkdir(parents=True)
     (tmp_path / "claims" / "verifiers" / "toy.yaml").write_text(yaml.safe_dump({
         "name": "toy", "version": "1", "argv": [sys.executable, "tools/check.py", "{evidence}"],
-        "inputs": ["tools"], "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
+        "inputs": ["tools"], "fail_exit_codes": [3],
+        "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
     }))
     certify_command_verifier(tmp_path, "toy")
     formulate(tmp_path, claim_id="P.s", problem="P", formulation_version="v1", kind="statement",
