@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 400b8c9d3825669730f8954debb1b6258940e6ab93c0cd85686eaf6cc3cd61d5
-standing: STALE
+standing: CURRENT
 statement: '∀ (m n : ℕ), 1 ≤ m → 1 ≤ n → Empiricist.LCEquiv (Empiricist.completeBipartite
   m n) (Empiricist.doubleStar m n)'
 substatus: null

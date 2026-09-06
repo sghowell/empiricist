@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: cf676c0ec297b9ea3a3c503e5a7daed3cb14b3ec412de9e87393c95a2924814b
-standing: STALE
+standing: CURRENT
 statement: "{V : Type} →\n  [DecidableEq V] → (G : SimpleGraph V) → (a : V) → Empiricist.ghz3CenterMerge\
   \ G a ≃g Empiricist.addFalseTwin G a"
 substatus: null

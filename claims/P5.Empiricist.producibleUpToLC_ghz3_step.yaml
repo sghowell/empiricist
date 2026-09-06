@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ab3221475f3454ec23ce651308621d6db8e0af1daaf305d6d7d2c5c828b4e10a
-standing: STALE
+standing: CURRENT
 statement: '∀ (a : Fin 3), Empiricist.ProducibleUpToLC 1 (Empiricist.ghz3LeafMerge
   Empiricist.GHZ3graph a)'
 substatus: null

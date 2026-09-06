@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ff6c58d78cf346feb64cf295b55adf4c60e58a7fd8c88662dd5e4b319e2001c2
-standing: STALE
+standing: CURRENT
 statement: "∀ (m n : ℕ),\n  1 ≤ m →\n    1 ≤ n →\n      3 ≤ m + n →\n        Empiricist.ProducibleUpToLC\
   \ (m + n - 3) (Empiricist.completeBipartite m n) ∧\n          ∀ (g f : ℕ) (c : ℕ\
   \ → ℕ),\n            m + n + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀ i < f, c i ≤\

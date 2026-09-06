@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35
-standing: STALE
+standing: CURRENT
 statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (Empiricist.starGraph\
   \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\
   \ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"

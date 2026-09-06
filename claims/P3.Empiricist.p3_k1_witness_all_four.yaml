@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2e37fd1cab67
+  path: claims/evidence/57d67ad5b8d1a742.lean
+  stamped: '2026-09-06T20:12:54.920487+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: p3-linear-optical-scheme-v1
 id: P3.Empiricist.p3_k1_witness_all_four
 kind: statement

@@ -1,11 +1,11 @@
 {
   "stamps": {
     "lean": {
-      "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+      "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
       "declaration": null,
       "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
       "name": "lean",
-      "stamped": "2026-09-06T19:59:53+00:00",
+      "stamped": "2026-09-06T20:10:03+00:00",
       "version": "3.3"
     },
     "p3_exact_witness": {

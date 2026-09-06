@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ae693e034fa7b3e40cc96d33ffea9ab8e9f44016841cde0cb58a5527fee7d179
-standing: STALE
+standing: CURRENT
 statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleUpToLC (N - 3) (SimpleGraph.completeGraph\
   \ (Fin N)) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f =\
   \ 1 → (∀ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"

@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 66e3e2c36d89b4ff916de965d871c6ff98e8926c8a5ac8cea133e3bf5817aa36
-standing: STALE
+standing: CURRENT
 statement: "∀ (N g f : Nat) (c : Nat → Nat),\n  3 ≤ N → N + 2 * f = 3 * g → c 0 =\
   \ g → c f = 1 → (∀ (i : Nat), i < f → c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
 substatus: null

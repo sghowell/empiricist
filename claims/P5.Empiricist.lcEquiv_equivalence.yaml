@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 6508627b597155e04c349e522caa1e450c9e208c92566495d90d26e26b515087
-standing: STALE
+standing: CURRENT
 statement: '∀ {V : Type u_1}, Equivalence Empiricist.LCEquiv'
 substatus: null
 supersedes: []

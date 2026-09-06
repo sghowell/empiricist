@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 8f240a8226090599ed1523aaaf2144a7189c29956821ace279d78fabec7cafda
-standing: STALE
+standing: CURRENT
 statement: '∀ (m n : ℕ), 1 ≤ m → 1 ≤ n → (Empiricist.doubleStar m n).IsTree'
 substatus: null
 supersedes: []

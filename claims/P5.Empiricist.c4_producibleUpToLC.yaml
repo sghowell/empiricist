@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 82fd7e86acb148082814ee864d93008c04bcda733068ab779ff52efc47a0c580
-standing: STALE
+standing: CURRENT
 statement: Empiricist.ProducibleUpToLC 1 (Empiricist.addFalseTwin Empiricist.GHZ3graph
   1)
 substatus: null

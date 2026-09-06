@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 1fef0fed87be0c7dad385a29ce9292c403dc6beab84da1715a156a6f57e101e8
-standing: STALE
+standing: CURRENT
 statement: "∀ {V : Type} [DecidableEq V] (G : SimpleGraph V) (u : V),\n  Empiricist.localComplement\
   \ (Empiricist.addPendant G u) (some u) =\n    Empiricist.addTrueTwin (Empiricist.localComplement\
   \ G u) u"

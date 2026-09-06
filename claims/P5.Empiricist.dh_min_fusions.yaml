@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: ced4c030c0e266025efdc8ea099dd253b6feeda7ebc41fbfa629593c67e8a7d4
-standing: STALE
+standing: CURRENT
 statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  Empiricist.PendantTwinBuildable\
   \ G →\n    Empiricist.ProducibleByExt (Fintype.card V - 3) G ∧\n      ∀ (g f : ℕ)\
   \ (c : ℕ → ℕ),\n        Fintype.card V + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\

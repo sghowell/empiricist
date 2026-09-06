@@ -64,7 +64,7 @@
       "sha256": "b2efa2a2404b195584836f9bfd58e639b98f7ea283007f265888ed2594282d31",
       "verifiers": {
         "lean": {
-          "binary_hash": "325b8f754c37e1c9e044c304aa21df8a28cff1e7a44c2f49e23c10d9eb0b3e43",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -74,7 +74,7 @@
       "sha256": "90807a0d87cdf68eca6279ee1550ed49fd91e8f19b0c235e28a2a81e5c68e916",
       "verifiers": {
         "lean": {
-          "binary_hash": "0b3a89addd0e965ee08cc07f1ebed880fc3144bbf46216a6b826c9d91cd5142e",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -84,7 +84,7 @@
       "sha256": "ee1cccd4f22ed144c86a306fb6fdb44df2a27462ef816e3940620765025bc5f3",
       "verifiers": {
         "lean": {
-          "binary_hash": "6aacfa893c3635fff395c7fb4fc6f12da264046ce9adfad0886acd886ba71f85",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -124,7 +124,7 @@
       "sha256": "012269e7730e8c399af1c630f3885c9d9ff2b05a9c4baa1b7ab325af61d71770",
       "verifiers": {
         "lean": {
-          "binary_hash": "7279813da88aa77ad5af36ee57ac9a24b366a69e7079407c573cca63fb3dcd92",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -134,7 +134,7 @@
       "sha256": "d78d29ddee5322de3f3a700ff317027b9d0b7c5d680150b05e1160ce0fa9e36f",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -234,7 +234,7 @@
       "sha256": "29ab0f96b54649f538cd0fbe3369884811c1d2e92352d27d4ed968ba7ec4fcc3",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -244,7 +244,7 @@
       "sha256": "4491380ff905ad50d26a312a3a8eab3e57b5b99f5d29f541b99a50ca46d22577",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -264,7 +264,7 @@
       "sha256": "b79bf03a87de75807a2b5a7755d0c144bf35bf4bf1419483641eaa10773b40ec",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -334,7 +334,7 @@
       "sha256": "8899b51179e3006ed1112c8fe1d404131ff77be4801386d11e13ff9d83dbff3e",
       "verifiers": {
         "lean": {
-          "binary_hash": "2953abc93fcf7cb50488c44fce92e945a39de3103843daf51b903c699385fe91",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -364,7 +364,7 @@
       "sha256": "626670ea04baf101af526eea98771fc647ff10a8466dc53f4de1ca5cb2484015",
       "verifiers": {
         "lean": {
-          "binary_hash": "ef23d7e9038377cb3877382497b936e39efe1c2bd677c5e79e8b8618bee623ff",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -404,7 +404,7 @@
       "sha256": "e5d019aaa21acff6b695341f1dcad9c65cefc302c023c0370b0ceacd46517554",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -414,7 +414,7 @@
       "sha256": "12d109efb93c84a9749bb9a063276ac4684b15167d70693169f48958930166eb",
       "verifiers": {
         "lean": {
-          "binary_hash": "973ecbc1e07dc8787d0f07edef1c4e24a4bd0b736c59381a28e4ebf052f513a4",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -434,7 +434,7 @@
       "sha256": "9f4694a14c6d7c89bc9614c8131b783988ae4886e9cd4e2c4457b390509e1efc",
       "verifiers": {
         "lean": {
-          "binary_hash": "22eb00709aecc363d548c06089bdbc9721c219a768c74512428d4b3678e469cf",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -504,7 +504,7 @@
       "sha256": "6c7fb8edf0a6009732f0ab7a410197dba9924f03c14ac83dfe360e130b25504f",
       "verifiers": {
         "lean": {
-          "binary_hash": "e2ce955e1f6cbf6688dc99a40e14356bccf568075204d271e53da9809c34b35d",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -554,7 +554,7 @@
       "sha256": "80171e2eea1cf50ea33b57b9083ca684517dd6ed8083aa70da8919158b30a10c",
       "verifiers": {
         "lean": {
-          "binary_hash": "d7827d0e2ef323a8968a5f1252bebc19bf3e03d469bc575935bae08977db79ab",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }
@@ -594,7 +594,7 @@
       "sha256": "9177c649d97707f1c50ec913bb704feb282e13040803c0c966f03986b737b34a",
       "verifiers": {
         "lean": {
-          "binary_hash": "22eb00709aecc363d548c06089bdbc9721c219a768c74512428d4b3678e469cf",
+          "binary_hash": "a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
         }

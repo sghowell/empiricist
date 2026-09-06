@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim c7ecf25d5662
+  path: claims/evidence/807fcf84e7981004.lean
+  stamped: '2026-09-06T20:10:06.335239+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.card_Mset_le_two
 kind: statement
@@ -22,7 +30,7 @@ receipts: []
 source:
   kind: ledger
   ref: 807fcf84e79810040d713e5984d9cafa53625f5d9e61b9be48036f09db8d0a22
-standing: STALE
+standing: CURRENT
 statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∀ (i : Fin 4), (Empiricist.Mset U
   i).card ≤ 2'
 substatus: null
