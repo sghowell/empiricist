@@ -272,10 +272,9 @@ def promote(
             raise PromotionRefused(f"receipt {receipt_id} reviewed a different statement")
         if receipt.blocking or receipt.verdict == "BLOCK":
             raise PromotionRefused(f"receipt {receipt_id} has a blocking finding")
-        if level in ELEVATED and receipt.verdict != "PASS":
-            raise PromotionRefused(
-                f"receipt {receipt_id} is {receipt.verdict}, not PASS; {level} needs a PASS review"
-            )
+        # Charter F4: the bar is "a receipt with no blocking issue". A REVISE receipt
+        # (warnings, no blocker) warrants the promotion; its findings stay on record for
+        # the author and are counted in the claim notes.
         if receipt.evidence_sha256:
             now_hashes = _evidence_hashes(repo, [*(e.path for e in claim.evidence), evidence_path])
             if set(receipt.evidence_sha256) != now_hashes:
@@ -310,6 +309,12 @@ def promote(
     }
     if receipt is not None and receipt_id not in claim.receipts:
         update["receipts"] = [*claim.receipts, receipt_id]
+    if receipt is not None and receipt.verdict == "REVISE":
+        n_warn = sum(1 for f in receipt.findings if f.severity == "warning")
+        update["notes"] = (claim.notes + "\n" if claim.notes else "") + (
+            f"promoted to {level} on receipt {receipt_id} (REVISE: {n_warn} open warning(s) "
+            "for the author, no blocking finding)"
+        )
     if claim.legacy_level is not None and (
         level == claim.legacy_level
         or (claim.legacy_level != "REFUTED" and LEVEL_RANK[level] >= LEVEL_RANK[claim.legacy_level])

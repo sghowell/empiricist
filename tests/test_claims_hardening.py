@@ -284,23 +284,37 @@ def test_formulate_locks_path_dependencies(tmp_path):
                   statement="e", depends_on=["data/none.json"])
 
 
-# ---- NITs: a REVISE receipt does not warrant CERTIFIED; the receipt's evidence must match
-def test_elevated_needs_a_pass_receipt_over_the_same_evidence(tmp_path):
+# ---- a REVISE receipt (warnings, no blocker) warrants CERTIFIED and leaves its warnings
+# on record; the receipt's evidence must match
+def test_elevated_accepts_a_non_blocking_receipt_over_the_same_evidence(tmp_path):
     from empiricist.claims.lock import sha256_file
+    from empiricist.claims.standing import Finding, Receipt, save_receipt, statement_sha256
 
     repo = _ready(tmp_path, kind="statement")
-    _receipt(repo, "r-rev", "P.x", "x holds", verdict="REVISE")
-    with pytest.raises(PromotionRefused, match="is REVISE, not PASS"):
-        promote(repo, claim_id="P.x", level="CERTIFIED", verifier="toy",
-                evidence_path="certs/good.json", receipt_id="r-rev")
-    mine = sha256_file(repo / "certs" / "mine.json")
+    save_receipt(repo, Receipt(
+        id="r-rev", claim_id="P.x", reviewer="model", statement_sha256=statement_sha256("x holds"),
+        findings=[Finding(dimension="assumption_explicitness", severity="warning", text="scope")],
+        verdict="REVISE", created="2026-09-06"))
+    c = promote(repo, claim_id="P.x", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/mine.json", receipt_id="r-rev")
+    assert c.level == "CERTIFIED" and "1 open warning(s)" in c.notes
+    formulate(repo, claim_id="P.z", problem="P", formulation_version="v1", kind="statement",
+              statement="z holds")
+    promote(repo, claim_id="P.z", level="VERIFIED_N", verifier="toy",
+            evidence_path="certs/good.json", n=1)
+    _receipt(repo, "r-zb", "P.z", "z holds", verdict="BLOCK", blocking=True)
+    with pytest.raises(PromotionRefused, match="CHALLENGED"):
+        promote(repo, claim_id="P.z", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/good.json", receipt_id="r-zb")
+    repo_x = repo
+    mine = sha256_file(repo_x / "certs" / "mine.json")
     _receipt(repo, "r-ev", "P.x", "x holds", evidence=[mine])
     with pytest.raises(PromotionRefused, match="reviewed different evidence"):
-        promote(repo, claim_id="P.x", level="CERTIFIED", verifier="toy",
+        promote(repo, claim_id="P.x", level="FORMALIZED", verifier="toy",
                 evidence_path="certs/other.json", receipt_id="r-ev")
-    c = promote(repo, claim_id="P.x", level="CERTIFIED", verifier="toy",
+    c = promote(repo, claim_id="P.x", level="FORMALIZED", verifier="toy",
                 evidence_path="certs/mine.json", receipt_id="r-ev")
-    assert c.level == "CERTIFIED"
+    assert c.level == "FORMALIZED"
 
 
 # ---- M1 / M5: an edited checker has no stamp
