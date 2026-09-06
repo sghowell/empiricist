@@ -252,3 +252,18 @@ def test_review_bundle_gives_every_evidence_file_a_fair_share(tmp_path):
     bundle = build_review_bundle(repo, c, target_level="CERTIFIED", byte_cap=90_000)
     assert "FORMULATION TAIL MARKER" in bundle          # the note survives the big file
     assert bundle.count("(truncated;") == 1              # only the big file is cut
+
+
+def test_bundle_states_level_semantics_and_full_verifier_identity(tmp_path):
+    repo = _repo(tmp_path)
+    c = load_all(repo)["P.s"]
+    bundle = build_review_bundle(repo, c, target_level="CERTIFIED")
+    assert bundle.startswith("# Level semantics of this ledger")
+    assert "CERTIFIED: a certificate that a certified verifier replays" in bundle
+    assert f"binary_hash {c.evidence[0].binary_hash}" in bundle    # full hash, not a prefix
+    assert "toy v1: argv [" in bundle and "every file under inputs ['tools']" in bundle
+    assert "current stamp: v1 binary_hash" in bundle
+    (repo / "claims" / "LEVELS.md").write_text("Our levels: CERTIFIED means replayed by us.\n")
+    bundle = build_review_bundle(repo, c, target_level="CERTIFIED")
+    assert "Our levels: CERTIFIED means replayed by us." in bundle
+    assert "charter, section 3" not in bundle

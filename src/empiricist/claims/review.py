@@ -115,6 +115,25 @@ def record_human_review(
 ELEVATED = frozenset({"CERTIFIED", "FORMALIZED"})
 BUNDLE_BYTE_CAP = 240_000
 MIN_FILE_SHARE = 24_000
+LEVELS_FILENAME = "LEVELS.md"   # a repository's own level semantics, under claims/
+DEFAULT_LEVEL_SEMANTICS = """\
+Levels (Empiricist v1 charter, section 3). A level names the strongest machine or
+review evidence on record for the exact statement text; it is not a truth value.
+- HEURISTIC: stated; no machine evidence yet (a level imported from an older table is
+  kept as `legacy_level` until re-earned).
+- CONJECTURED: a precise statement whose evidence file(s) a certified verifier has
+  replayed with PASS, not yet reviewed.
+- VERIFIED_N: checked on N cases (`n`, `coverage`).
+- CERTIFIED: a certificate that a certified verifier replays with PASS, plus an
+  independent review receipt (no blocking finding) attesting that the certificate
+  establishes THIS statement within its disclosed verification boundary. Written
+  analytic steps the certificate declares as outside machine replay are permitted and
+  must be disclosed in the evidence; they are not machine-checked.
+- FORMALIZED: the statement is a machine-checked theorem (e.g. Lean) under a
+  certified kernel gate.
+- REFUTED: a certified verifier produced FAIL on a counterexample; terminal.
+A claim's level may not exceed the lowest level among the claims it depends on.
+"""
 
 
 def default_samples(target_level: str | None) -> int:
@@ -149,7 +168,15 @@ def build_review_bundle(
     repo = Path(repo)
     claims = load_all(repo)
     standings = standings or {}
+    levels_file = repo / "claims" / LEVELS_FILENAME
+    semantics = (
+        levels_file.read_text(encoding="utf-8") if levels_file.is_file()
+        else DEFAULT_LEVEL_SEMANTICS
+    )
     lines = [
+        "# Level semantics of this ledger",
+        semantics.strip(),
+        "",
         "# Claim under review",
         f"id: {claim.id}",
         f"problem: {claim.problem}",
@@ -181,11 +208,13 @@ def build_review_bundle(
     for e in claim.evidence:
         lines.append(
             f"- {e.path}: {e.verifier} v{e.version} -> {e.verdict} at {e.stamped}"
-            + (f" (binary {e.binary_hash[:12]})" if e.binary_hash else "")
+            + (f" (binary_hash {e.binary_hash})" if e.binary_hash else "")
             + (f"; note: {e.note}" if e.note else "")
         )
     if not claim.evidence:
         lines.append("(none)")
+    lines += ["", "## Verifiers named above (declarations, as committed)"]
+    lines += _verifier_declarations(repo, claim)
     lines += ["", "## Evidence files"]
     paths = list(dict.fromkeys(e.path for e in claim.evidence))
     # fair shares: one large certificate must not starve the formulation or proof notes
@@ -202,6 +231,39 @@ def build_review_bundle(
         "`checked`.",
     ]
     return "\n".join(lines)
+
+
+def _verifier_declarations(repo: Path, claim: ClaimFile) -> list[str]:
+    """What each command verifier named in the evidence IS: its declaration (argv, cwd,
+    env, the inputs hashed into binary_hash, fixtures) and its current stamp. A reviewer
+    can then see that an adapter script in argv is covered by the hash."""
+    from empiricist.claims.command_verifier import declared_verifiers
+    from empiricist.claims.registry import read_registry
+
+    names = list(dict.fromkeys(e.verifier for e in claim.evidence))
+    declared, _errors = declared_verifiers(repo)
+    stamps = read_registry(repo).stamps
+    out: list[str] = []
+    for name in names:
+        v = declared.get(name)
+        s = stamps.get(name)
+        if v is None:
+            out.append(f"- {name}: not a command verifier declared in this repository"
+                       + (f"; registry stamp v{s.version} binary_hash {s.binary_hash}" if s
+                          else "; no registry stamp"))
+            continue
+        spec = v.spec
+        out.append(f"- {name} v{spec.version}: argv {spec.argv}; cwd {spec.cwd!r}; "
+                   f"env {spec.env}; fail_exit_codes {spec.fail_exit_codes}")
+        out.append(f"  binary_hash = sha256(declaration + every file under inputs "
+                   f"{spec.inputs}); fixtures PASS {spec.fixtures.passing}, "
+                   f"FAIL {spec.fixtures.failing}")
+        if s is not None:
+            out.append(f"  current stamp: v{s.version} binary_hash {s.binary_hash} "
+                       f"golden_suite_hash {s.golden_suite_hash} stamped {s.stamped}")
+        else:
+            out.append("  no current registry stamp")
+    return out or ["(none)"]
 
 
 def _receipt_from_sample(
