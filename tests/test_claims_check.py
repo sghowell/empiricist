@@ -91,7 +91,7 @@ def test_current_on_noncurrent_and_imported_notes(tmp_path):
     assert any(i.code == "imported_unverified" and i.claim_id == "user" for i in rep.issues)
     assert rep.ok
     md = (repo / "CLAIMS.md").read_text()
-    assert "| HEURISTIC (legacy CERTIFIED, unverified) | STALE | ev/user.json (imported) |" in md
+    assert "| HEURISTIC (legacy CERTIFIED, not re-earned) | STALE | ev/user.json (imported) |" in md
 
 
 def test_table_import_pass_never_counts(tmp_path):

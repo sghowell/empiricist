@@ -35,7 +35,7 @@ def _level_cell(c: ClaimFile) -> str:
     if c.substatus:
         level += f" [{c.substatus}]"
     if c.legacy_pending:
-        level += f" (legacy {c.legacy_level}, unverified)"
+        level += f" (legacy {c.legacy_level}, not re-earned)"
     return level
 
 

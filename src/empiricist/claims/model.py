@@ -8,7 +8,7 @@ level. A dependency string that contains a `/` is a repo-relative PATH (a data
 manifest); anything else is a claim id.
 
 Levels are earned. A claim imported from a legacy table enters at HEURISTIC with the
-table's level kept in `legacy_level` (rendered as "unverified") until `promote` reaches
+table's level kept in `legacy_level` (rendered "not re-earned") until `promote` reaches
 it; its evidence entries carry the verdict IMPORTED, which never counts as PASS.
 """
 from __future__ import annotations
