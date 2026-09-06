@@ -118,3 +118,37 @@ CLI: `empiricist claims formulate|promote|reverify|demote ...` with the argument
   branch (needs their `.venv`; declaration + a mutated-certificate FAIL fixture), then
   `reverify` the claim rows it covers so they carry a real PASS entry, and run `check`.
   Record what the first genuine `promote` there would need (a receipt → M22c).
+
+
+---
+
+## Outcome (2026-09-06)
+
+- Task 1 (registry) and Task 2 (command verifier): as planned. `check` consults the
+  committed registry by default (`registry_newer(repo)`); `certify-verifier` is a CLI
+  command; a verifier run records its exact argv/cwd in the evidence note.
+- Task 3: `formulate` / `promote` / `reverify` / `demote` as planned, plus: a failed
+  verifier run is recorded as evidence without moving the level; `promote` clears
+  `legacy_level` once the promoted level reaches it; `reverify` re-runs only claims that
+  are STALE for their own reasons (lock drift, newer verifier) because propagated
+  staleness clears with its source.
+- Task 4 deviation: `RunConfig` is untouched. A machine path inside `config_hash` would
+  make certificates non-portable, so the repo is `claims_repo=` on the ingest functions,
+  else `EMPIRICIST_CLAIMS_REPO`. `materialize_artifacts(ledger, store, repo,
+  artifact_ids=...)` is the shared per-artifact importer (import_ledger delegates) and
+  stamps `claims/verifiers.json` from the ledger's PASS certifications without
+  downgrading. The projection never blocks the ledger write (logged; `import-ledger`
+  catches up).
+- Task 5 (death_and_gravity trial, local branch `empiricist-claims-import`, commit
+  c17c356): `tools/empiricist_check.py` adapts every `<package>.verify` checker (all 20
+  P8 modules share `REPORT` / `build_report()` / `validate_report()`) to a command
+  verifier; `claims/verifiers/p8a_remainder.yaml` certified (PASS fixture = pinned
+  certificate, FAIL fixture = mutated status; ~4 s per replay); `P8-A.7` promoted to
+  CONJECTURED with a real PASS entry. `promote --level CERTIFIED` is refused: a
+  statement claim needs a review receipt -- that is M22c's `review`. `CLAIMS.md` there
+  is now the rendered ledger (`report --force`, one-time) and `check --min-claims 50`
+  is green with 51 claims (M22a's importer had silently dropped 2 rows with `|` in
+  their statements; recovered).
+- M22a review (17 findings) applied first; imported claims now enter at HEURISTIC with
+  `legacy_level` ("not re-earned") and IMPORTED evidence, which is why the trial's rows
+  read HEURISTIC until re-earned through `promote`.
