@@ -232,6 +232,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     c_it.add_argument("--file", required=True, type=Path)
     c_it.add_argument("--repo", required=True, type=Path)
+    c_is = claims_sub.add_parser(
+        "install-skill", help="install the claim-ledger skill and checker adapter into a repo"
+    )
+    c_is.add_argument("--repo", required=True, type=Path)
+    c_is.add_argument(
+        "--force", action="store_true", help="overwrite an existing tools/empiricist_check.py"
+    )
     c_cv = claims_sub.add_parser(
         "certify-verifier", help="run a command verifier's PASS/FAIL fixtures and stamp it"
     )
@@ -269,7 +276,10 @@ def build_parser() -> argparse.ArgumentParser:
     c_rw.add_argument(
         "--finding", action="append", default=[], help="dimension:severity:text (repeatable)"
     )
-    c_rw.add_argument("--closes", default=None, help="id of the receipt this one resolves")
+    c_rw.add_argument(
+        "--closes", action="append", default=[],
+        help="id of an earlier receipt this review resolves (repeatable)",
+    )
     c_rw.add_argument("--target-level", default=None)
     c_rw.add_argument(
         "--samples", type=int, default=None,
@@ -712,6 +722,17 @@ def _cmd_claims(args: argparse.Namespace) -> int:
         return _cmd_claims_promotion(args)
     if args.claims_command == "review":
         return _cmd_claims_review(args)
+    if args.claims_command == "install-skill":
+        from empiricist.claims.install import install_skill
+
+        rep = install_skill(args.repo, force=args.force)
+        for w in rep.written:
+            print(f"install-skill: wrote {w}")
+        for k in rep.kept:
+            print(f"install-skill: kept {k}")
+        if rep.gitignore_updated:
+            print("install-skill: added .empiricist/ to .gitignore")
+        return 0
     if args.claims_command == "import-ledger":
         rep = import_ledger(args.run_dir, args.repo, id_prefix=args.id_prefix)
     else:
@@ -763,7 +784,7 @@ def _cmd_claims_review_model(args: argparse.Namespace) -> int:
         receipts = review_with_model(
             args.repo, claim_id=args.claim_id, client=client, samples=args.samples,
             target_level=args.target_level, ledger=ledger,
-            reviewer=args.reviewer or "model",
+            reviewer=args.reviewer or "model", closes=args.closes,
         )
     except (ReviewRefused, ClaimSchemaError) as exc:
         print(f"review: refused: {exc}", file=sys.stderr)

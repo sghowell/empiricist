@@ -4,8 +4,8 @@ dependency DAG, review receipts and `supersedes`.
 
 - SUPERSEDED: a newer claim names this one in `supersedes` (the row is kept).
 - CHALLENGED: a receipt on this claim carries a blocking finding that no later receipt on
-  the same claim closes (a receipt cannot close itself, cannot close a receipt of another
-  claim, and cannot predate the receipt it closes).
+  the same claim closes (a receipt may close several earlier receipts; it cannot close
+  itself, cannot close a receipt of another claim, and cannot predate what it closes).
 - STALE: an evidence or dependency file's hash differs from the lock, the registry holds
   a newer certified version of a verifier named in the evidence, or a dependency is
   anything but CURRENT (STALE, CHALLENGED, SUPERSEDED, or REFUTED). CURRENT means "every
@@ -19,7 +19,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -60,8 +60,8 @@ class Finding(BaseModel):
 
 class Receipt(BaseModel):
     """One reviewer sample (charter section 3): what was reviewed (statement and evidence
-    hashes), the findings per dimension, and the verdict. `closes` names an earlier
-    receipt on the same claim whose blocking issue this one resolves."""
+    hashes), the findings per dimension, and the verdict. `closes` names earlier
+    receipts on the same claim whose blocking issues this one resolves."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -72,7 +72,7 @@ class Receipt(BaseModel):
     evidence_sha256: list[str] = Field(default_factory=list)
     findings: list[Finding] = Field(default_factory=list)
     verdict: Literal["PASS", "REVISE", "BLOCK"]
-    closes: str | None = None
+    closes: list[str] = Field(default_factory=list)
     created: str
     target_level: Level | None = None       # the promotion this review was asked to warrant
     provenance: dict[str, str] | None = None  # model reviews: run_id, model, receipt digests
@@ -82,6 +82,16 @@ class Receipt(BaseModel):
     def _id(cls, v: str) -> str:
         return validate_id(v, "receipt id")
 
+    @field_validator("closes", mode="before")
+    @classmethod
+    def _closes_list(cls, v: Any) -> list[str]:
+        """Accept a single id, a list, or null (older receipts wrote one id or null)."""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        return list(v)
+
     @field_validator("created")
     @classmethod
     def _created(cls, v: str) -> str:
@@ -89,8 +99,10 @@ class Receipt(BaseModel):
 
     @model_validator(mode="after")
     def _consistent(self) -> Receipt:
-        if self.closes == self.id:
+        if self.id in self.closes:
             raise ValueError("a receipt cannot close itself")
+        if len(set(self.closes)) != len(self.closes):
+            raise ValueError("duplicate ids in closes")
         if self.verdict == "PASS" and self.blocking:
             raise ValueError("a PASS receipt cannot carry a blocking finding")
         if self.verdict == "BLOCK" and not self.blocking:
@@ -216,9 +228,10 @@ def open_blocking_receipts(claim: ClaimFile, receipts: dict[str, Receipt]) -> li
     mine = {r.id: r for r in receipts.values() if r.claim_id == claim.id}
     closed: set[str] = set()
     for r in mine.values():
-        target = mine.get(r.closes) if r.closes else None
-        if target is not None and target.id != r.id and r.created >= target.created:
-            closed.add(target.id)
+        for target_id in r.closes:
+            target = mine.get(target_id)
+            if target is not None and target.id != r.id and r.created >= target.created:
+                closed.add(target.id)
     return sorted(rid for rid, r in mine.items() if r.blocking and rid not in closed)
 
 

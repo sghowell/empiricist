@@ -167,6 +167,7 @@ archived.
 | By | Deliverable | Counts only if |
 |---|---|---|
 | 2026-09-18 | Claim files, lock, standing, `check`, generic command verifier, one-time import; `promote`, `review`, `reverify`, `demote`, `report`; skill pack; batch loops materialize claims | `check` runs green in `death_and_gravity` and one promotion goes through `promote` there |
+| *status 2026-09-06* | *Built and merged (PRs #70–#73). `check` is green in death_and_gravity (51 claims, branch `empiricist-claims-import`) and P8-A.7 went through `promote` (CONJECTURED, certified verifier). The stricter section 0 wording (CERTIFIED with a review receipt) is open: two review rounds blocked on a real record defect, then warned on un-earned dependencies. See `docs/science/2026-09-06-claims-trial-death-and-gravity.md`.* | *a receipt has blocked a promotion on a genuine defect (section 1's first event)* |
 | 2026-10-02 | Cosmology pack; core factored from packs as far as that port demands; `ftfbqc` extracted only as far as the factoring requires | A cosmology claim is promoted with a pack verifier and a receipt |
 | 2026-10-18 | Kill gate review | §1 |
 
