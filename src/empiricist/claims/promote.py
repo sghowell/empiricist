@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from empiricist.claims.check import check, refresh_repo
+from empiricist.claims.check import check, drifted_verifiers, refresh_repo
 from empiricist.claims.command_verifier import golden_suite_hash, load_command_verifier
 from empiricist.claims.lock import (
     committed_file,
@@ -200,6 +200,15 @@ def promote(
     report = check(repo)
     if any(i.code in ("schema_error", "graph_error") for i in report.issues):
         raise PromotionRefused("repository does not check: " + report.issues[0].detail)
+    own = report.standings.get(claim_id)
+    if own == "CHALLENGED":
+        open_ids = open_blocking_receipts(claim, load_receipts(repo))
+        raise PromotionRefused(
+            f"{claim_id} is CHALLENGED by blocking receipt(s) {', '.join(open_ids)}; a later "
+            "receipt must close them first"
+        )
+    if own == "SUPERSEDED":
+        raise PromotionRefused(f"{claim_id} is SUPERSEDED; promote the superseding claim")
     for d in claim.depends_on:
         if not is_path_dependency(d) and report.standings.get(d) != "CURRENT":
             raise PromotionRefused(
@@ -325,7 +334,8 @@ def reverify(
     `verifiers` supplies objects for other names. Returns id -> outcome; a claim returns
     to CURRENT only when every entry passes again."""
     repo = Path(repo)
-    newer = registry_newer(repo)
+    drifted, _errors = drifted_verifiers(repo)
+    newer = registry_newer(repo, drifted=drifted)
     claims = load_all(repo)
     lock = read_lock(repo)
     if claim_id:

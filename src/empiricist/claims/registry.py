@@ -118,14 +118,20 @@ def is_current(repo: Path | str, *, name: str, version: str, binary_hash: str) -
     return s is not None and s.version == version and s.binary_hash == binary_hash
 
 
-def registry_newer(repo: Path | str) -> Callable[[EvidenceEntry], bool]:
+def registry_newer(
+    repo: Path | str, *, drifted: frozenset[str] | set[str] = frozenset()
+) -> Callable[[EvidenceEntry], bool]:
     """The predicate `compute_standing` needs: True iff the entry's verifier is in the
     registry and the entry was NOT produced by the currently stamped identity -- an older
-    or a never-certified newer version, a different binary hash, or no hash at all.
-    Unknown verifiers (e.g. `table-import`) are never newer."""
+    or a never-certified newer version, a different binary hash, or no hash at all -- or
+    the verifier's declaration/inputs on disk no longer match its stamp (`drifted`,
+    computed by `check`). Unknown verifiers (e.g. `table-import`) are never newer."""
     reg = read_registry(repo)
+    drifted = frozenset(drifted)
 
     def newer(entry: EvidenceEntry) -> bool:
+        if entry.verifier in drifted:
+            return True
         s = reg.stamps.get(entry.verifier)
         if s is None:
             return False

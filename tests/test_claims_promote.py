@@ -7,7 +7,7 @@ import sys
 import pytest
 import yaml
 
-from empiricist.claims.check import check
+from empiricist.claims.check import check, refresh_repo
 from empiricist.claims.command_verifier import certify_command_verifier
 from empiricist.claims.model import load_all
 from empiricist.claims.promote import (
@@ -209,3 +209,32 @@ def test_promote_re_earns_a_legacy_level(tmp_path):
     assert c.level == "CERTIFIED" and c.legacy_level is None
     assert [e.verdict for e in c.evidence] == ["IMPORTED", "PASS"]
     assert check(repo).ok and check(repo).issues == []
+
+
+def test_edited_checker_makes_its_claims_stale_until_recertified(tmp_path):
+    """Verifier drift: `check` hashes each declaration's inputs against the registry
+    stamp (no verifier runs); a changed checker makes its evidence STALE."""
+    repo = _repo(tmp_path)
+    certify_command_verifier(repo, "toy")
+    formulate(repo, claim_id="P.x", problem="P", formulation_version="v1", kind="dataset",
+              statement="x")
+    promote(repo, claim_id="P.x", level="VERIFIED_N", verifier="toy",
+            evidence_path="certs/good.json", n=1)
+    formulate(repo, claim_id="P.y", problem="P", formulation_version="v1", kind="dataset",
+              statement="y", depends_on=["P.x"])
+    assert check(repo).standings == {"P.x": "CURRENT", "P.y": "CURRENT"}
+    (repo / "tools" / "check.py").write_text(_CHECKER + "\n# edited\n")
+    rep = refresh_repo(repo)  # report: derived standings and the table follow the drift
+    assert rep.standings == {"P.x": "STALE", "P.y": "STALE"}
+    assert any(i.code == "verifier_drift" and "toy" in i.detail for i in rep.issues)
+    assert rep.ok  # drift is a state, not a broken ledger; promote still refuses on it
+    with pytest.raises(PromotionRefused, match="no current stamp"):
+        promote(repo, claim_id="P.y", level="VERIFIED_N", verifier="toy",
+                evidence_path="certs/mine.json", n=1)
+    assert reverify(repo) == {"P.x": "verifier toy has no current stamp"}
+    assert certify_command_verifier(repo, "toy")[0] is not None
+    assert reverify(repo) == {"P.x": "re-verified"}
+    assert check(repo).standings == {"P.x": "CURRENT", "P.y": "CURRENT"}
+    # a declaration that no longer loads is blocking
+    (repo / "claims" / "verifiers" / "toy.yaml").write_text("name: toy\n")
+    assert [i.code for i in check(repo).blocking] == ["verifier_declaration_error"]
