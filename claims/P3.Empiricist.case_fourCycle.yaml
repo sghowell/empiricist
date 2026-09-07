@@ -1,0 +1,50 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 0b3a89addd0e965ee08cc07f1ebed880fc3144bbf46216a6b826c9d91cd5142e
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 3e0967829b6c
+  path: claims/evidence/173a14587939c53d.lean
+  stamped: '2026-08-21T22:32:32.399805+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 3e0967829b6c
+  path: claims/evidence/173a14587939c53d.lean
+  stamped: '2026-09-06T20:12:30.706895+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 7894801d3fe9
+  path: claims/evidence/173a14587939c53d.lean
+  stamped: '2026-09-07T17:10:34.317867+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: p5-ghz3-v1
+id: P3.Empiricist.case_fourCycle
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'relabelled from P5 (P5.Empiricist.case_fourCycle) after the ledger corrected
+  the artifact''s problem; artifact 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67;
+  title: Empiricist.case_fourCycle'
+problem: P3
+receipts: []
+source:
+  kind: ledger
+  ref: 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67
+standing: CURRENT
+statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
+  \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
+  \ μ) →\n      (Empiricist.FourCycle fun i => Finset.image (⇑e) (Empiricist.Mset\
+  \ U i)) → False"
+substatus: null
+supersedes:
+- P5.Empiricist.case_fourCycle
+updated: '2026-08-21'

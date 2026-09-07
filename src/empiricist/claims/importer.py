@@ -133,7 +133,11 @@ def materialize_artifacts(
     repo = Path(repo)
     report = ImportReport()
     existing = load_all(repo)
-    by_artifact = {_ledger_ref(c): cid for cid, c in existing.items() if _ledger_ref(c)}
+    by_artifact: dict[str, list[str]] = {}
+    for cid, c in existing.items():
+        ref = _ledger_ref(c)
+        if ref:
+            by_artifact.setdefault(ref, []).append(cid)
     taken = set(existing)
     lock = read_lock(repo)
     if artifact_ids is None:
@@ -185,8 +189,10 @@ def materialize_artifacts(
             evidence=entries, updated=art.created_at[:10],
             source=Source(kind="ledger", ref=art.id),
         )
-        if art.id in by_artifact:
-            prev = existing[by_artifact[art.id]]
+        sourced = by_artifact.get(art.id, [])
+        same_problem = [cid for cid in sourced if existing[cid].problem == art.problem]
+        if same_problem:
+            prev = existing[same_problem[0]]
             keep_level = prev.level == "REFUTED" or (
                 art.status is not Status.REFUTED and prev.rank > LEVEL_RANK[art.status.value]
             )
@@ -200,6 +206,21 @@ def materialize_artifacts(
             derived["evidence"] = entries + [e for e in prev.evidence if e not in entries]
             derived["updated"] = max(prev.updated, derived["updated"])
             claim = revalidate(prev.model_copy(update=derived))
+        elif sourced:
+            # The ledger relabelled this artifact: the earlier materialisation stays as a
+            # superseded row; the new problem gets its own claim carrying the same evidence.
+            prev = existing[max(sourced, key=lambda cid: (existing[cid].updated, cid))]
+            prefix = id_prefix or art.problem
+            family = canonical.family if canonical and canonical.family else art.title
+            cid = _unique_id(f"{prefix}.{_slug(family)}", taken)
+            derived["evidence"] = entries + [e for e in prev.evidence if e not in entries]
+            derived["updated"] = max(prev.updated, derived["updated"])
+            claim = ClaimFile(
+                id=cid, depends_on=list(prev.depends_on), supersedes=[prev.id],
+                notes=(f"relabelled from {prev.problem} ({prev.id}) after the ledger "
+                       f"corrected the artifact's problem; {notes}"),
+                **derived,
+            )
         else:
             prefix = id_prefix or art.problem
             family = canonical.family if canonical and canonical.family else art.title
@@ -207,7 +228,9 @@ def materialize_artifacts(
             claim = ClaimFile(id=cid, notes=notes, **derived)
         save_claim(repo, claim)
         existing[claim.id] = claim
-        by_artifact[art.id] = claim.id
+        taken.add(claim.id)
+        if claim.id not in by_artifact.setdefault(art.id, []):
+            by_artifact[art.id].append(claim.id)
         lock = refresh_lock_entries(repo, claim, lock)
         report.written.append(claim.id)
     write_lock(repo, lock)

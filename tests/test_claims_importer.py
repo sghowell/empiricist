@@ -273,3 +273,31 @@ def test_import_table_inherits_evidence_from_a_referenced_claim(tmp_path):
     rep = refresh_repo(repo, force=True)
     assert rep.ok and rep.standings == {"P9b-0": "CURRENT", "P9b-1.K": "CURRENT"}
     assert all(c.level == "HEURISTIC" and c.legacy_level == "CERTIFIED" for c in claims.values())
+
+
+def test_relabelled_artifact_materializes_as_a_superseding_claim(tmp_path):
+    run_dir = _v0_ledger(tmp_path)
+    repo = tmp_path / "repo"
+    import_ledger(run_dir, repo)
+    old = load_all(repo)["P3.Empiricist.foo"]
+    lg = Ledger(run_dir / "ledger.db")
+    lg.relabel_artifact(old.source.ref, problem="P5", note="test")
+    lg.close()
+    rep = import_ledger(run_dir, repo)
+    assert "P5.Empiricist.foo" in rep.written and "P3.Empiricist.foo" not in rep.written
+    claims = load_all(repo)
+    new, kept = claims["P5.Empiricist.foo"], claims["P3.Empiricist.foo"]
+    assert new.supersedes == ["P3.Empiricist.foo"] and new.problem == "P5"
+    assert new.level == "FORMALIZED" and new.evidence == kept.evidence
+    assert new.source.ref == kept.source.ref and "relabelled from P3" in new.notes
+    # the superseded file is untouched except for its derived standing
+    assert kept.standing == "SUPERSEDED"
+    assert kept.model_copy(update={"standing": "CURRENT"}) == old
+    report = check(repo)
+    assert report.ok, report.issues
+    assert report.standings["P3.Empiricist.foo"] == "SUPERSEDED"
+    assert report.standings["P5.Empiricist.foo"] == "CURRENT"
+    # idempotent: a third import touches the new claim only
+    rep3 = import_ledger(run_dir, repo)
+    assert "P5.Empiricist.foo" in rep3.written and len(load_all(repo)) == 3
+    assert load_all(repo)["P3.Empiricist.foo"] == kept

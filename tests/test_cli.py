@@ -704,3 +704,48 @@ def test_p3_ingest_results_accepts_float_leakage_within_the_budget(tmp_path, cap
     text = capsys.readouterr().out
     assert rc == 0, text
     assert "at HEURISTIC" in text and "at CERTIFIED" in text
+
+
+def test_relabel_cli_rewrites_problem(tmp_path, capsys):
+    from empiricist.ledger.db import Ledger
+    from empiricist.store import Store
+
+    run_dir = tmp_path / "run"
+    lg = Ledger(run_dir / "ledger.db")
+    digest = Store(run_dir / "store").put(b"lemma")
+    lg.add_artifact(Artifact(id=digest, kind="lean", problem="P5", title="Empiricist.x",
+                             content_path=digest, status=Status.FORMALIZED))
+    lg.close()
+    rc = main(["relabel", "--run-dir", str(run_dir), "--artifact", digest,
+               "--problem", "P3", "--note", "P3 lemma ingested under the P5 default"])
+    assert rc == 0
+    assert f"relabel: {digest[:12]} P5 -> P3" in capsys.readouterr().out
+    lg = Ledger(run_dir / "ledger.db")
+    assert lg.get_artifact(digest).problem == "P3"
+    lg.close()
+    rc = main(["relabel", "--run-dir", str(run_dir), "--artifact", digest,
+               "--problem", "P3", "--note", "again"])
+    assert rc == 1 and "error:" in capsys.readouterr().err
+
+
+def test_reverify_only_certificates_runs_the_certificate_pass(tmp_path, capsys):
+    from empiricist.certificates.goldens import certify_sos, load_k0_golden
+    from empiricist.certificates.ingest import ingest_p3_certificate
+    from empiricist.certificates.verifier import SOSCertificateVerifier, certificate_to_json
+    from empiricist.ledger.db import Ledger
+    from empiricist.store import Store
+
+    run_dir = tmp_path / "run"
+    lg, st = Ledger(run_dir / "ledger.db"), Store(run_dir / "store")
+    certify_sos(lg, SOSCertificateVerifier())
+    art = ingest_p3_certificate(lg, st, certificate_json=certificate_to_json(load_k0_golden()),
+                                target="k0_standard_assignment_p_avg", title="k0 cert")
+    lg.close()
+    rc = main(["reverify", "--run-dir", str(run_dir), "--only", "certificates"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "reverify: 1 certificate artifact(s)" in out
+    assert f"PASS: k0 cert artifact={art.id} re-verified" in out
+    assert "lean artifact" not in out
+    rc = main(["reverify", "--run-dir", str(run_dir), "--only", "lean"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "reverify: 0 lean artifact(s)" in out and "certificate" not in out

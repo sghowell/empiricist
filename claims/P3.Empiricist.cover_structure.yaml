@@ -1,0 +1,49 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 7279813da88aa77ad5af36ee57ac9a24b366a69e7079407c573cca63fb3dcd92
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim d27cf2dab8b6
+  path: claims/evidence/22d86202d8917fd2.lean
+  stamped: '2026-08-11T21:43:27.973585+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim ebaadfc18e5a
+  path: claims/evidence/22d86202d8917fd2.lean
+  stamped: '2026-09-06T20:10:14.390673+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2b58eea6f396
+  path: claims/evidence/22d86202d8917fd2.lean
+  stamped: '2026-09-07T17:08:41.370814+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P3.Empiricist.cover_structure
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'relabelled from P5 (P5.Empiricist.cover_structure) after the ledger corrected
+  the artifact''s problem; artifact 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4;
+  title: Empiricist.cover_structure'
+problem: P3
+receipts: []
+source:
+  kind: ledger
+  ref: 22d86202d8917fd227c14f83263f8f0e12a45157ba714fa6f218404dee280ba4
+standing: CURRENT
+statement: "∀ (M : Fin 4 → Finset (Fin 4)),\n  (∀ (i : Fin 4), (M i).card ≤ 2) →\n\
+  \    (∀ (μ : Fin 4), 2 ≤ {i | μ ∈ M i}.card) → Empiricist.DoubledEdges M ∨ Empiricist.FourCycle\
+  \ M"
+substatus: null
+supersedes:
+- P5.Empiricist.cover_structure
+updated: '2026-08-11'

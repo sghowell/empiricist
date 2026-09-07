@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 7f40aad9bdae
+  path: claims/evidence/c84d528bedee2ae0.lean
+  stamped: '2026-09-07T17:14:06.787286+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.floor_schedule_iff_dh
 kind: statement
@@ -32,7 +40,16 @@ legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact c84d528bedee2ae037b6ce0bb39a65ab5a3729fa63e6a01b336b8b8547379726;
-  title: Empiricist.floor_schedule_iff_dh'
+  title: Empiricist.floor_schedule_iff_dh
+
+  2026-09-07 (M23a hygiene): supersedes the Fable-generated conjecture `F(G) = N-3
+  <=> distance-hereditary (rank-width 1)`: `PendantTwinBuildable` is the Bandelt-Mulder
+  generative characterization of distance-hereditary graphs (rank-width 1 <=> distance-hereditary
+  is Oum 2005), and `BlobSchedule (N-3) G` is a schedule at the universal floor `F
+  >= N-3` (`fusion_cost_lower_bound`); companions `dh_characterization` and `dh_min_fusions`.
+  The one boundary left between this theorem and the physical minimum is the single-blob
+  normal form (an arbitrary multi-component schedule reduces to one growing blob),
+  justified at the domain level and engine-checked, not formalized (see docs/science/2026-07-16-p5-dh-forward-formalized.md).'
 problem: P5
 receipts: []
 source:
@@ -43,5 +60,6 @@ statement: "∀ {V : Type} [inst : Fintype V] (G : SimpleGraph V),\n  3 ≤ Fint
   \ V → (Empiricist.BlobSchedule (Fintype.card V - 3) G ↔ Empiricist.PendantTwinBuildable\
   \ G)"
 substatus: null
-supersedes: []
-updated: '2026-07-17'
+supersedes:
+- P5.Conjecture_Fable-generated_F_G_N-3_distance-hereditary_rank
+updated: '2026-09-07'

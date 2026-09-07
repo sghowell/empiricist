@@ -302,3 +302,24 @@ def test_reverify_nothing_to_do_never_touches_certification(env):
     v = _StubLean()  # deliberately uncertified: with no targets it must not matter
     rep = reverify_lean_artifacts(lg, st, verifier=v, certify=True)
     assert rep.ok and rep.outcomes == () and rep.certified_now is False
+
+
+def test_reverify_skips_a_vacuous_true_statement(env):
+    lg, st = env
+
+    class _TrueStub(_StubLean):
+        def verify(self, module_source, *, decl, timeout_s=600.0):
+            r = super().verify(module_source, decl=decl, timeout_s=timeout_s)
+            if decl == "Empiricist.t":
+                r.details["statement"] = "True"
+                r.details["statement_hash"] = blake3(b"True").hexdigest()
+            return r
+
+    v = _TrueStub()
+    _stamp(lg, v)
+    art = _legacy_formalized(lg, st, "theorem t : True := trivial", "Empiricist.t")
+    rep = reverify_lean_artifacts(lg, st, verifier=v)
+    assert [o.verdict for o in rep.outcomes] == ["SKIPPED"]
+    assert "vacuous" in rep.outcomes[0].detail and not rep.ok
+    assert len(lg.evidence_for(art.id)) == 1     # nothing new recorded
+    assert lg.get_artifact(art.id).status is Status.FORMALIZED

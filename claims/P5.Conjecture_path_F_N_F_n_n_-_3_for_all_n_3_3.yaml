@@ -23,7 +23,7 @@ receipts: []
 source:
   kind: ledger
   ref: c8c94e51d0efbfa31c1ffb0121af966d2641dcbc41bdba3144139d0ad6b0f142
-standing: CURRENT
+standing: SUPERSEDED
 statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3'
 substatus: null
 supersedes: []

@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: 645a70370c55993391d5868b2d9aea62568df0ed2e6cb93096ae3afa977f9467
-standing: CURRENT
+standing: SUPERSEDED
 statement: "∀ (U : Matrix (Fin 4) (Fin 4) ℂ) (i j : Fin 4),\n  Empiricist.rawAmp U\
   \ i j Empiricist.BellLabel.phiP = (Empiricist.Q U i j).trace ∧\n    Empiricist.rawAmp\
   \ U i j Empiricist.BellLabel.psiP = (Empiricist.sigmaX * Empiricist.Q U i j).trace\

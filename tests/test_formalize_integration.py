@@ -97,7 +97,7 @@ def test_real_verifier_end_to_end_pass_ingests_formalized(tmp_path):
 
     report = asyncio.run(
         loop.run(FormalizeTask(
-            name="loop-smoke", goal="Prove True.", context="No dependencies needed.",
+            name="loop-smoke", goal="Prove 1 + 1 = 2.", context="No dependencies needed.",
         ))
     )
 

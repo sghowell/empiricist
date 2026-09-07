@@ -348,3 +348,34 @@ def test_run_aggregates_buckets_null_role_separately(ledger):
     assert {a.role for a in aggs} == {None, "searcher"}
     total_cost = sum(a.cost_usd for a in aggs)
     assert total_cost == pytest.approx(ledger.spent().cost_usd)
+
+
+# -- relabel (M23a) ---------------------------------------------------------
+
+
+def test_relabel_artifact_rewrites_problem_and_leaves_a_run_row(ledger, store):
+    import json
+
+    art = make_artifact(store, problem="P5")
+    ledger.add_artifact(art)
+    out = ledger.relabel_artifact(art.id, problem="P3", note="mis-defaulted at ingest")
+    assert out.problem == "P3" and ledger.get_artifact(art.id).problem == "P3"
+    rows = ledger.conn.execute("SELECT * FROM runs WHERE move = 'relabel'").fetchall()
+    assert len(rows) == 1
+    run = ledger.get_run(rows[0]["run_id"])
+    assert run.exit_code == 0 and run.ended is not None
+    assert json.loads(run.argv) == {
+        "artifact_id": art.id, "from": "P5", "to": "P3", "note": "mis-defaulted at ingest",
+    }
+
+
+def test_relabel_artifact_refuses_unknown_same_or_empty(ledger, store):
+    art = make_artifact(store, problem="P5")
+    ledger.add_artifact(art)
+    with pytest.raises(KeyError):
+        ledger.relabel_artifact("nope", problem="P3", note="x")
+    with pytest.raises(ValueError):
+        ledger.relabel_artifact(art.id, problem="P5", note="x")
+    with pytest.raises(ValueError):
+        ledger.relabel_artifact(art.id, problem="  ", note="x")
+    assert ledger.conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0

@@ -318,7 +318,7 @@ def test_scaffold_lemma_verifies_pass_and_ingests_formalized(ledger, store, veri
     decl = "Empiricist.connected_edge_bound"
     stamp_current_verifier(ledger, verifier)
     art = ingest_lean_artifact(
-        ledger, store, source, decl, verifier=verifier, timeout_s=120
+        ledger, store, source, decl, verifier=verifier, timeout_s=120, problem="P5"
     )
     assert art.kind == "lean"
     assert art.problem == "P5"
@@ -352,7 +352,7 @@ def test_ingest_lean_artifact_rejects_non_pass(ledger, store, verifier):
     stamp_current_verifier(ledger, verifier)
     with pytest.raises(ValueError):
         ingest_lean_artifact(
-            ledger, store, source, decl, verifier=verifier, timeout_s=120
+            ledger, store, source, decl, verifier=verifier, timeout_s=120, problem="P5"
         )
     # No partial artifact from a rejected ingest.
     assert ledger.find_artifacts(kind="lean") == []
@@ -668,7 +668,7 @@ def test_ingest_lean_artifact_records_the_given_verifiers_identity(ledger, store
             return "f" * 64
 
         def verify(self, module_source, *, decl, timeout_s=600.0):
-            statement = "True"
+            statement = "1 = 1"
             return VerifierResult(
                 verdict=Verdict.PASS,
                 details={
@@ -684,9 +684,10 @@ def test_ingest_lean_artifact_records_the_given_verifiers_identity(ledger, store
     art = ingest_lean_artifact(
         ledger,
         store,
-        "theorem x : True := trivial",
+        "theorem x : 1 = 1 := rfl",
         "Empiricist.x",
         verifier=fake,
+        problem="P5",
     )
     ev = ledger.evidence_for(art.id)
     assert ev[0].binary_hash == "f" * 64
@@ -964,3 +965,54 @@ def test_parse_driver_result_picks_correct_nonce_amid_forged_lines():
     ])
     result = parse_driver_result(stdout, "realnonce")
     assert result == {"declFound": True, "errors": [], "axioms": ["Empiricist.evil"]}
+
+
+# -- ingest hygiene (M23a): explicit problem, no vacuous statements -----------
+
+
+class _TrueStub:
+    """LeanVerifier-shaped stub whose headline theorem resolves to the bare `True`."""
+
+    name, version, binary_hash = "lean", "9.9", "ab" * 32
+
+    def verify(self, module_source, *, decl, timeout_s=600.0):
+        statement = "True"
+        return VerifierResult(verdict=Verdict.PASS, details={
+            "decl": decl, "axioms": [], "statement": statement,
+            "statement_hash": blake3(statement.encode("utf-8")).hexdigest(),
+        })
+
+
+def test_ingest_refuses_a_vacuous_true_statement(ledger, store):
+    from empiricist.verifiers.lean import VacuousStatementError
+
+    stub = _TrueStub()
+    stamp_current_verifier(ledger, stub)
+    with pytest.raises(VacuousStatementError):
+        ingest_lean_artifact(ledger, store, "theorem t : True := trivial", "Empiricist.t",
+                             verifier=stub, problem="P3")
+    assert ledger.find_artifacts(kind="lean") == []
+
+
+def test_verify_and_ingest_reports_a_vacuous_gate_instead_of_recording(ledger, store):
+    import asyncio
+
+    from empiricist.verifiers.lean import verify_and_ingest_lean_artifact
+
+    stub = _TrueStub()
+    stamp_current_verifier(ledger, stub)
+    result, art = asyncio.run(verify_and_ingest_lean_artifact(
+        ledger, store, "theorem t : True := trivial", "Empiricist.t", verifier=stub,
+        problem="P3",
+    ))
+    assert art is None and result.verdict is Verdict.FAIL
+    assert result.details["gate"] == "vacuous" and result.details["statement"] == "True"
+    assert ledger.find_artifacts(kind="lean") == []
+
+
+def test_ingest_requires_an_explicit_problem(ledger, store):
+    stub = _TrueStub()
+    stamp_current_verifier(ledger, stub)
+    with pytest.raises(TypeError):
+        ingest_lean_artifact(ledger, store, "theorem t : 1 = 1 := rfl", "Empiricist.t",
+                             verifier=stub)

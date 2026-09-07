@@ -23,7 +23,7 @@ receipts: []
 source:
   kind: ledger
   ref: 716793e3d9c32def82b0b759d726f6479e1c421a2ad44933d15eb5d1327121b1
-standing: CURRENT
+standing: SUPERSEDED
 statement: 'Conjecture: star F(N) = F(n) = n - 3 for all n >= 3'
 substatus: null
 supersedes: []

@@ -1,0 +1,50 @@
+"""Live identities of the verifiers this package ships, for `claims check`.
+
+A research repository's registry (`claims/verifiers.json`) stamps the identity each
+verifier held when its evidence was certified. Command verifiers are compared to their
+declaration on disk; the built-in verifiers (Lean, the SOS certificate checker, the P3
+exact-witness checker) are compared to the identity the installed package computes. An
+identity this build cannot compute (no Lean project on disk, an import error) is
+"unknown", never drift.
+"""
+from __future__ import annotations
+
+from collections.abc import Callable
+
+
+def _lean():
+    from empiricist.verifiers.lean import LeanVerifier
+
+    return LeanVerifier()
+
+
+def _sos():
+    from empiricist.certificates.verifier import SOSCertificateVerifier
+
+    return SOSCertificateVerifier()
+
+
+def _p3_exact():
+    from empiricist.verifiers.p3_exact import P3ExactVerifier
+
+    return P3ExactVerifier()
+
+
+_FACTORIES: dict[str, Callable[[], object]] = {
+    "lean": _lean,
+    "sos_certificate": _sos,
+    "p3_exact_witness": _p3_exact,
+}
+
+
+def builtin_identity(name: str) -> tuple[str, str] | None:
+    """(version, binary_hash) of the live built-in verifier `name`, or None when the name
+    is not a built-in or its identity cannot be computed here."""
+    factory = _FACTORIES.get(name)
+    if factory is None:
+        return None
+    try:
+        v = factory()
+        return str(v.version), str(v.binary_hash)
+    except Exception:  # noqa: BLE001 - an uncomputable identity is unknown, not drift
+        return None

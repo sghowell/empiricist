@@ -1,0 +1,49 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: ef23d7e9038377cb3877382497b936e39efe1c2bd677c5e79e8b8618bee623ff
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 33939bca7330
+  path: claims/evidence/8cf8808cd434ff59.lean
+  stamped: '2026-08-11T23:49:34.249472+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim fcb77b46e744
+  path: claims/evidence/8cf8808cd434ff59.lean
+  stamped: '2026-09-06T20:10:23.394470+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim bb2d16c3ad56
+  path: claims/evidence/8cf8808cd434ff59.lean
+  stamped: '2026-09-07T17:08:48.175363+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P3.Empiricist.identifies_rowDecouples
+kind: statement
+legacy_level: null
+level: FORMALIZED
+n: null
+notes: 'relabelled from P5 (P5.Empiricist.identifies_rowDecouples) after the ledger
+  corrected the artifact''s problem; artifact 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436;
+  title: Empiricist.identifies_rowDecouples'
+problem: P3
+receipts: []
+source:
+  kind: ledger
+  ref: 8cf8808cd434ff59cfa388f0a97236b809a0ab3c2d71abfeb745f5a047642436
+standing: CURRENT
+statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (i j : Fin 4) (μ : Empiricist.BellLabel),\n\
+  \    Empiricist.Identifies U i j μ → Empiricist.RowDecouples U i μ ∧ Empiricist.RowDecouples\
+  \ U j μ"
+substatus: null
+supersedes:
+- P5.Empiricist.identifies_rowDecouples
+updated: '2026-08-11'

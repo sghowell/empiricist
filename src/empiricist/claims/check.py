@@ -32,6 +32,7 @@ from empiricist.claims.standing import (
     load_receipts,
     statement_sha256,
 )
+from empiricist.verifiers.builtin import builtin_identity
 
 BLOCKING_CODES = frozenset({
     "schema_error", "graph_error", "lock_mismatch", "elevated_without_pass",
@@ -42,9 +43,12 @@ BLOCKING_CODES = frozenset({
 
 
 def drifted_verifiers(repo: Path | str) -> tuple[set[str], list[tuple[str, str]]]:
-    """Command verifiers whose declaration or hashed inputs on disk no longer match their
-    registry stamp (their evidence is STALE until `certify-verifier` + `reverify`), plus
-    (name, error) for declarations that do not load. Pure: hashing only."""
+    """Verifiers whose live identity no longer matches their registry stamp: command
+    verifiers whose declaration or hashed inputs on disk changed (STALE until
+    `certify-verifier` + `reverify`), and built-in verifiers (Lean, the certificate
+    checkers) whose installed identity moved (STALE until the ledger re-certifies them and
+    `import-ledger` re-stamps the repository). Also returns (name, error) for declarations
+    that do not load. Pure: hashing only."""
     from empiricist.claims.command_verifier import declared_verifiers
     from empiricist.claims.registry import read_registry
 
@@ -62,7 +66,32 @@ def drifted_verifiers(repo: Path | str) -> tuple[set[str], list[tuple[str, str]]
             continue
         if s.version != v.version or s.binary_hash != current:
             drifted.add(name)
+    for name, s in reg.stamps.items():
+        if name in verifiers:
+            continue
+        live = builtin_identity(name)
+        if live is not None and (live[0] != s.version or live[1] != s.binary_hash):
+            drifted.add(name)
     return drifted, errors
+
+
+
+def _drift_detail(repo: Path, name: str) -> str:
+    from empiricist.claims.registry import read_registry
+
+    s = read_registry(repo).stamps.get(name)
+    stamped = f"{s.version} {s.binary_hash[:12]}" if s else "?"
+    live = builtin_identity(name)
+    if live is not None:
+        return (
+            f"verifier {name}: the live verifier ({live[0]} {live[1][:12]}) is not the stamped "
+            f"identity ({stamped}); its evidence is STALE until the ledger re-certifies it "
+            "(`reverify`) and `import-ledger` re-stamps this repository"
+        )
+    return (
+        f"command verifier {name}: declaration or inputs changed since its stamp ({stamped}); "
+        "its evidence is STALE until `certify-verifier` and `reverify`"
+    )
 
 
 class CheckIssue(BaseModel):
@@ -127,7 +156,12 @@ def check(
 
     lock = read_lock(repo)
     mism = mismatches(repo, claims, lock)
+    # A superseded row is kept for the record, not enforced: its successor may share an
+    # evidence path and hold the lock's current verifier identity (a relabelled artifact).
+    superseded = {s for c in claims.values() for s in c.supersedes}
     for cid, reasons in sorted(mism.items()):
+        if cid in superseded:
+            continue
         issues.append(CheckIssue(code="lock_mismatch", claim_id=cid, detail="; ".join(reasons)))
     if registry_newer is None:
         from empiricist.claims.registry import registry_newer as _from_registry
@@ -136,13 +170,7 @@ def check(
         for name, err in decl_errors:
             issues.append(CheckIssue(code="verifier_declaration_error", detail=f"{name}: {err}"))
         for name in sorted(drifted):
-            issues.append(CheckIssue(
-                code="verifier_drift",
-                detail=(
-                    f"command verifier {name}: declaration or inputs changed since its stamp; "
-                    "its evidence is STALE until `certify-verifier` and `reverify`"
-                ),
-            ))
+            issues.append(CheckIssue(code="verifier_drift", detail=_drift_detail(repo, name)))
         registry_newer = _from_registry(repo, drifted=drifted)
     standings = compute_standing(claims, mism, receipts, registry_newer)
 

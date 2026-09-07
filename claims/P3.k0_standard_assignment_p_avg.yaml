@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: sos_certificate
   version: '1.0'
+- binary_hash: 68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014
+  golden_suite_hash: fa1d8397d27a5a3c46c9d568b23a2ed2fcb4b1a75c4f1b09eec041bd908b32e9
+  note: claim 370ca8ee9e44
+  path: claims/evidence/d11c6b254005d555.json
+  stamped: '2026-09-07T17:11:02.937131+00:00'
+  verdict: PASS
+  verifier: sos_certificate
+  version: '1.0'
 formulation_version: p3-sos-certificate-v1
 id: P3.k0_standard_assignment_p_avg
 kind: statement

@@ -38,7 +38,7 @@ receipts: []
 source:
   kind: ledger
   ref: a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7
-standing: CURRENT
+standing: SUPERSEDED
 statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∃ μ, ∀ (i j : Fin 4), ¬Empiricist.Identifies
   U i j μ'
 substatus: null

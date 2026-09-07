@@ -1,0 +1,43 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 22eb00709aecc363d548c06089bdbc9721c219a768c74512428d4b3678e469cf
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim f294401eb8db
+  path: claims/evidence/adcedf473a63fc9d.lean
+  stamped: '2026-08-20T21:49:39.697142+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+- binary_hash: a6613d45df54f87bec181540dc628a62f726a8304d9dce4149dccac0b0090fa9
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim cae4d821b582
+  path: claims/evidence/adcedf473a63fc9d.lean
+  stamped: '2026-09-06T20:10:56.198313+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
+formulation_version: legacy
+id: P3.Empiricist.pauli_eigvec_axis_aligned
+kind: statement
+legacy_level: null
+level: HEURISTIC
+n: null
+notes: 'relabelled from P5 (P5.Empiricist.pauli_eigvec_axis_aligned) after the ledger
+  corrected the artifact''s problem; artifact adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c;
+  title: Empiricist.pauli_eigvec_axis_aligned
+
+  demoted to HEURISTIC: statement is the placeholder True: the module is a diagnostic
+  probe (its docstring says so), not a result; the intended lemma is P3.pauli_eigvec_axis_aligned'
+problem: P3
+receipts:
+- P3.Empiricist.pauli_eigvec_axis_aligned.20260907.model
+source:
+  kind: ledger
+  ref: adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c
+standing: SUPERSEDED
+statement: 'True'
+substatus: null
+supersedes:
+- P5.Empiricist.pauli_eigvec_axis_aligned
+updated: '2026-09-07'

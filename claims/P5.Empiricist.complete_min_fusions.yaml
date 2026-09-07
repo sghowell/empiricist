@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 32574438e895
+  path: claims/evidence/ae693e034fa7b3e4.lean
+  stamped: '2026-09-07T17:12:50.335561+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.complete_min_fusions
 kind: statement
@@ -32,7 +40,11 @@ legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact ae693e034fa7b3e40cc96d33ffea9ab8e9f44016841cde0cb58a5527fee7d179;
-  title: Empiricist.complete_min_fusions'
+  title: Empiricist.complete_min_fusions
+
+  2026-09-07 (M23a hygiene): supersedes the CONJECTURED `F(K_N) = N-3` (this theorem
+  states it, up to LC) and the 2026-07-10 copy of the same theorem with an implicit
+  binder.'
 problem: P5
 receipts: []
 source:
@@ -43,5 +55,7 @@ statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleUpToLC (N - 
   \ (Fin N)) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f =\
   \ 1 → (∀ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
 substatus: null
-supersedes: []
-updated: '2026-07-15'
+supersedes:
+- P5.Conjecture_complete_F_N_F_N_N_-_3_for_all_N_3_the_complete_g
+- P5.Empiricist.complete_min_fusions_2
+updated: '2026-09-07'

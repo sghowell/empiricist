@@ -166,3 +166,10 @@ def test_unrecognized_gate_falls_back_to_raw_details():
     msg = format_feedback(result)
     assert "decl_missing" in msg
     assert "Foo.bar" in msg
+
+
+def test_vacuous_gate_asks_for_the_intended_theorem():
+    result = VerifierResult(verdict=Verdict.FAIL, details={"gate": "vacuous", "statement": "True"})
+    msg = format_feedback(result)
+    assert "placeholder" in msg and "`True`" in msg
+    assert "intended theorem" in msg

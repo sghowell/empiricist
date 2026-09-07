@@ -1,0 +1,75 @@
+{
+  "claim_id": "P3.Empiricist.pauli_eigvec_axis_aligned",
+  "closes": [],
+  "created": "2026-09-07T17:18:31+00:00",
+  "evidence_sha256": [
+    "9f4694a14c6d7c89bc9614c8131b783988ae4886e9cd4e2c4457b390509e1efc"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "blocking",
+      "text": "The sole evidence is a self-described diagnostic probe: its module comment calls it a 'Round-2 probe (error-tolerant)', its headline theorem is annotated 'Headline placeholder for this probe round', and every branch is wrapped in 'first | ... | trivial' so that 'a wrong guess degrades to `trivial`'. A recorded PASS therefore certifies at most the trivial proposition; moreover the file's own declared success condition was 'gate=diagnostics (\"unsolved goals\")', so a clean PASS is exactly the outcome in which the probes resolved nothing and every theorem reduced to `trivial`. The evidence establishes no property of Pauli matrices, eigenvectors, or axis alignment at any level, and cannot carry FORMALIZED for the record as identified. [claims/evidence/adcedf473a63fc9d.lean \u2014 docstring 'Headline placeholder for this probe round', tactic 'first | ... | trivial', module comment 'The expected outcome is `gate=diagnostics`', vs. the two recorded PASS entries]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "blocking",
+      "text": "The receipt-bound statement text is the single token 'True'. Every substantive element \u2014 which operators, which eigenvectors, what axis-alignment predicate, over what space \u2014 is absent from the bound text and appears only in the unbound claim id and the notes' title. There are no missing scope words because there is no scope at all: the entire purported content of the entry is an implicit assumption carried by the label, unverified by any evidence the receipt binds to. [Statement field ('exact; the receipt binds to this text'): 'True', vs. id 'P3.Empiricist.pauli_eigvec_axis_aligned' and notes 'title: Empiricist.pauli_eigvec_axis_aligned']"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "blocking",
+      "text": "The three layers of the record describe three different objects: the id/title announce a substantive eigenvector theorem; the bound statement is the trivial proposition; and the evidence file states that the real result was still pending after this probe round ('the faithful headline theorem is then written against it'). These cannot be reconciled into a single claim, and the recorded PASS additionally contradicts the file's own declared expected outcome ('gate=diagnostics'). [id 'P3.Empiricist.pauli_eigvec_axis_aligned' / notes 'title: Empiricist.pauli_eigvec_axis_aligned' vs. Statement 'True' vs. claims/evidence/adcedf473a63fc9d.lean docstrings 'Round-2 probe (error-tolerant)' and 'the faithful headline theorem is then written against it']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "blocking",
+      "text": "FORMALIZED requires 'a certified kernel gate' (charter section 3). The recorded verifier is 'not a command verifier declared in this repository', and neither PASS record's binary_hash (22eb00709aecc363... on 2026-08-20; a6613d45df54f87b... on 2026-09-06) matches the registry stamp for lean v3.3 (34cd2464253757eb...). The two runs also disagree with each other while carrying the same version tag. No run on record was produced by the certified binary, so the kernel-gate condition backing the current level is unmet as committed. ['Verifiers named above': 'lean: not a command verifier declared in this repository; registry stamp v3.3 binary_hash 34cd2464...' vs. evidence entries' binary_hash fields 22eb0070... and a6613d45...]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The artifact hash pinned in the notes (adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c) does not equal the sha256 of the evidence file on record (9f4694a14c6d7c89bc9614c8131b783988ae4886e9cd4e2c4457b390509e1efc); only the filename stem 'adcedf473a63fc9d' echoes the artifact id. Nothing in the record ties the replayed file to the pinned artifact. [Notes field 'artifact adcedf473a63fc9dd...518c' vs. 'Evidence files' header 'sha256 9f4694a14c6d7c89...']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The two PASS records bind to two distinct claim identifiers ('claim f294401eb8db' and 'claim cae4d821b582'), neither of which matches any identifier appearing in this record. Given the notes' statement that the entry was 'relabelled from P5 ... after the ledger corrected the artifact's problem', the record does not establish that either replay attaches to this claim rather than to its predecessor. [Evidence entries' notes 'claim f294401eb8db' (2026-08-20 PASS) and 'claim cae4d821b582' (2026-09-06 PASS) vs. id 'P3.Empiricist.pauli_eigvec_axis_aligned']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The record carries 'formulation_version: legacy' while holding a live FORMALIZED level. The charter's stated handling for material from an older table is retention 'as `legacy_level` until re-earned' (section 3, HEURISTIC clause). The only re-earning candidates on record are the two replays whose binary hashes fail the registry stamp (see blocking finding), so the top level stands on a legacy formulation without a valid re-earning trail. [Fields 'formulation_version: legacy' and 'current level: FORMALIZED', against charter section 3 parenthetical 'a level imported from an older table is kept as `legacy_level` until re-earned']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Dependencies are declared '(none)', yet the evidence file explicitly targets 'the promoted engine `axis_pairing_not_both_zero`' and probes `plainPair`, `twistPair`, and `AxisAligned` from the pinned EmpiricistLean API. The empty dependency list is consistent only because the bound statement needs nothing \u2014 a further symptom that the entry does not describe the result its evidence is aimed at. The level-cap rule is satisfied only vacuously. ['Dependencies: (none)' vs. claims/evidence/adcedf473a63fc9d.lean docstring 'the exact statement of the promoted engine `axis_pairing_not_both_zero`']"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "blocking",
+      "text": "FORMALIZED is the ledger's strongest machine level, and here it sits atop evidence that (a) warrants at most the trivial proposition via `trivial`-guarded branches and (b) was not produced by the registry-stamped binary. Under the claim id it is attached to, the badge conveys that a Pauli-eigenvector result is machine-checked when no verifier ever saw such content; even CONJECTURED's own precondition ('a precise statement') is not met by the bound text. The recorded level is maximal overclaim relative to what the evidence warrants. ['current level: FORMALIZED' on id 'P3.Empiricist.pauli_eigvec_axis_aligned', given Statement 'True' and the binary_hash mismatches in the evidence entries]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "blocking",
+      "text": "The artifact is, by its own account, an intermediate API-discovery step whose planned successor ('the faithful headline theorem is then written against it') appears nowhere in the record. Affirming the current standing at review time would convert discovery scaffolding into a terminal top-level badge \u2014 with a second replay dated 2026-09-06, one day before this review, still failing the registry stamp. There is no sound basis for this record to stand at FORMALIZED now; downstream claims keyed to this id would inherit an unearned top-level dependency. ['current level: FORMALIZED' (review only) together with claims/evidence/adcedf473a63fc9d.lean module comment 'the faithful headline theorem is then written against it' and the 2026-09-06 PASS entry]"
+    }
+  ],
+  "id": "P3.Empiricist.pauli_eigvec_axis_aligned.20260907.model",
+  "provenance": {
+    "cost_usd": "2.2383",
+    "model": "claude-fable-5",
+    "request_digest": "75976dfcb60777352d4591d121df9f7202239b59adbb90d83dfe104720a67927",
+    "response_digest": "72e9030504c5a6c17129b101971080a16ecc7acc9fe64c80090b215319f8a9d3",
+    "run_id": "review-P3.Empiricist.pauli_eigvec_axis_aligned-6a281c-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "3cbc87c7681f34db4617feaa2c8801931bc5e42d8d0f560e756dd4cd92885f18",
+  "target_level": null,
+  "usable": true,
+  "verdict": "BLOCK",
+  "waivers": []
+}

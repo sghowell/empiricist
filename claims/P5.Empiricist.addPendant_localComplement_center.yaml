@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 52fc337a4443
+  path: claims/evidence/1fef0fed87be0c7d.lean
+  stamped: '2026-09-07T17:13:36.082456+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.addPendant_localComplement_center
 kind: statement

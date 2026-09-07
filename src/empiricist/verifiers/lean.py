@@ -995,6 +995,15 @@ class LeanVerifier:
         return None
 
 
+class VacuousStatementError(ValueError):
+    """A PASS whose theorem statement is the bare `True`: provable, but not a result."""
+
+
+def is_vacuous_statement(statement: str) -> bool:
+    """True iff the resolved statement is literally `True` (a placeholder headline)."""
+    return statement.strip() == "True"
+
+
 def ingest_lean_artifact(
     ledger: Ledger,
     store: Store,
@@ -1002,13 +1011,17 @@ def ingest_lean_artifact(
     decl: str,
     *,
     verifier: LeanVerifier | None = None,
-    problem: str = "P5",
+    problem: str,
     problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
     run_id: str | None = None,
     timeout_s: float = 600.0,
     claims_repo: Path | None = None,
 ) -> Artifact:
     """Verify the exact source and atomically record its FORMALIZED claim.
+
+    `problem` is required: the ledger files the theorem under it, and a default
+    once filed fourteen P3 lemmas under P5 (M23a). A statement that is the bare
+    `True` is refused (`VacuousStatementError`) -- a proof of `True` is not a result.
 
     A caller cannot inject a previously manufactured PASS: this function owns
     both the verifier invocation and the artifact/claim/evidence transaction.
@@ -1046,13 +1059,16 @@ async def verify_and_ingest_lean_artifact(
     decl: str,
     *,
     verifier: LeanVerifier,
-    problem: str = "P5",
+    problem: str,
     problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION,
     run_id: str | None = None,
     timeout_s: float = 600.0,
     claims_repo: Path | None = None,
 ) -> tuple[VerifierResult, Artifact | None]:
     """Async event-loop-safe version used by ``FormalizeLoop``.
+
+    A PASS whose resolved statement is the bare `True` is returned as a FAIL-shaped
+    result (gate ``vacuous``) with no artifact, so the loop can feed it back.
 
     Lean verification runs in a worker because ``LeanVerifier.verify`` wraps
     ``asyncio.run``. All SQLite reads/writes stay on the owning event-loop
@@ -1067,6 +1083,15 @@ async def verify_and_ingest_lean_artifact(
     )
     if result.verdict is not Verdict.PASS:
         return result, None
+    statement = str(result.details.get("statement") or "")
+    if is_vacuous_statement(statement):
+        return (
+            VerifierResult(
+                verdict=Verdict.FAIL,
+                details={"gate": "vacuous", "decl": decl, "statement": statement},
+            ),
+            None,
+        )
     artifact = _record_verified_lean_artifact(
         ledger,
         store,
@@ -1119,6 +1144,10 @@ def _record_verified_lean_artifact(
     statement_hash = result.details.get("statement_hash")
     if not isinstance(statement, str) or not statement:
         raise ValueError("Lean PASS omitted the resolved theorem statement")
+    if is_vacuous_statement(statement):
+        raise VacuousStatementError(
+            f"refusing to record {decl!r} at FORMALIZED: its statement is the bare `True`"
+        )
     expected_statement_hash = blake3(statement.encode("utf-8")).hexdigest()
     if statement_hash != expected_statement_hash:
         raise ValueError("Lean PASS statement_hash does not match its statement")

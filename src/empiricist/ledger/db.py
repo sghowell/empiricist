@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +53,25 @@ class RunAlreadyFinishedError(Exception):
 class PromotionIntegrityError(RuntimeError):
     """A claimed artifact did not meet the certified atomic-ingestion contract."""
 
+
+
+_INSERT_RUN_SQL = (
+    "INSERT INTO runs (run_id, move, role, model, provider,"
+    " reasoning_mode, reasoning_effort, auth_route, request_digest,"
+    " response_digest, argv, seed, config_hash,"
+    " env_fingerprint, tokens_in, tokens_out, cache_read, cost_usd,"
+    " peak_rss_mb, exit_code, started, ended, wall_s)"
+    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+)
+
+
+def _run_row(run: Run) -> tuple:
+    return (run.run_id, run.move, run.role, run.model, run.provider,
+            run.reasoning_mode, run.reasoning_effort, run.auth_route,
+            run.request_digest, run.response_digest, run.argv, run.seed,
+            run.config_hash, run.env_fingerprint, run.tokens_in, run.tokens_out,
+            run.cache_read, run.cost_usd, run.peak_rss_mb, run.exit_code,
+            run.started, run.ended, run.wall_s)
 
 class Ledger:
     def __init__(self, path: Path | str) -> None:
@@ -116,6 +136,32 @@ class Ledger:
         if row is None:
             raise KeyError(artifact_id)
         return self._artifact_from_row(row)
+
+    def relabel_artifact(self, artifact_id: str, *, problem: str, note: str) -> Artifact:
+        """Correct an artifact's `problem` label. The label is metadata (the id is the
+        content digest; the status lattice is untouched), so this is not a status
+        change -- but it is an act on the record, so it leaves a finished `runs` row
+        (move='relabel') whose argv is the canonical JSON of what changed, in the same
+        transaction as the rewrite. KeyError for an unknown artifact; ValueError for an
+        empty label or one the artifact already carries."""
+        new = problem.strip()
+        if not new:
+            raise ValueError("problem must be non-empty")
+        art = self.get_artifact(artifact_id)
+        if art.problem == new:
+            raise ValueError(f"artifact {artifact_id[:12]} is already filed under {new}")
+        run = Run(
+            run_id=f"relabel-{uuid.uuid4().hex[:12]}", move="relabel",
+            argv=json.dumps(
+                {"artifact_id": artifact_id, "from": art.problem, "to": new, "note": note},
+                sort_keys=True,
+            ),
+            exit_code=0, ended=now_iso(), wall_s=0.0,
+        )
+        with self._tx() as c:
+            c.execute("UPDATE artifacts SET problem = ? WHERE id = ?", (new, artifact_id))
+            c.execute(_INSERT_RUN_SQL, _run_row(run))
+        return self.get_artifact(artifact_id)
 
     def find_artifacts(
         self,
@@ -623,21 +669,7 @@ class Ledger:
 
     def start_run(self, run: Run) -> None:
         with self._tx() as c:
-            c.execute(
-                "INSERT INTO runs (run_id, move, role, model, provider,"
-                " reasoning_mode, reasoning_effort, auth_route, request_digest,"
-                " response_digest, argv, seed, config_hash,"
-                " env_fingerprint, tokens_in, tokens_out, cache_read, cost_usd,"
-                " peak_rss_mb, exit_code, started, ended, wall_s)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-                " ?, ?, ?, ?)",
-                (run.run_id, run.move, run.role, run.model, run.provider,
-                 run.reasoning_mode, run.reasoning_effort, run.auth_route,
-                 run.request_digest, run.response_digest, run.argv, run.seed,
-                 run.config_hash, run.env_fingerprint, run.tokens_in, run.tokens_out,
-                 run.cache_read, run.cost_usd, run.peak_rss_mb, run.exit_code,
-                 run.started, run.ended, run.wall_s),
-            )
+            c.execute(_INSERT_RUN_SQL, _run_row(run))
 
     def finish_run(
         self,
