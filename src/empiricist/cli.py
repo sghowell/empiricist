@@ -684,7 +684,7 @@ def _cmd_reverify(args: argparse.Namespace) -> int:
     store = Store(args.run_dir / "store")
     reports: list[tuple[str, str, object]] = []
     try:
-        if args.only != "certificates":
+        if args.only in (None, "lean"):
             reports.append(("lean", "LeanVerifier", reverify_lean_artifacts(
                 ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
                 timeout_s=args.timeout_s,

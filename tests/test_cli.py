@@ -749,6 +749,10 @@ def test_reverify_only_certificates_runs_the_certificate_pass(tmp_path, capsys):
     rc = main(["reverify", "--run-dir", str(run_dir), "--only", "lean"])
     out = capsys.readouterr().out
     assert rc == 0 and "reverify: 0 lean artifact(s)" in out and "certificate" not in out
+    rc = main(["reverify", "--run-dir", str(run_dir), "--only", "constructions"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "construction artifact(s)" in out
+    assert "lean artifact" not in out and "certificate artifact" not in out
 
 
 def test_run_live_claims_repo_flag_materializes_claim_files(tmp_path):
