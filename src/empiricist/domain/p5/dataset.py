@@ -29,8 +29,10 @@ from __future__ import annotations
 import json
 import sqlite3
 import sys
+from pathlib import Path
 from typing import Any
 
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.domain.p5.canonical import iso_certificate
 from empiricist.domain.p5.construction import Construction, FusionOp, LocalComplement
@@ -371,7 +373,12 @@ def _validate_dataset(dataset: dict[str, Any], registry: Registry) -> dict[str, 
 
 
 def ingest_dataset(
-    ledger: Ledger, store: Store, dataset: dict[str, Any], registry: Registry
+    ledger: Ledger,
+    store: Store,
+    dataset: dict[str, Any],
+    registry: Registry,
+    *,
+    claims_repo: Path | None = None,
 ) -> Artifact:
     """Verify `dataset` in full (every exact row's witness via
     `verify_agreed`, the mod-3 ladder invariant, per-n totals against Adcock,
@@ -455,4 +462,7 @@ def ingest_dataset(
             # golden-suite certification of the ingest verifier itself.
             self_validating=True,
         )
+    # The batch hook (charter section 4): the VERIFIED_N tablebase becomes a claim file
+    # in the configured repository (idempotent on the re-ingest path above).
+    materialize_after_ingest(ledger, store, art.id, claims_repo=claims_repo)
     return ledger.get_artifact(art.id)

@@ -52,10 +52,12 @@ import sqlite3
 import sys
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 
 from blake3 import blake3
 from pydantic import ValidationError
 
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.domain.p5.canonical import lc_orbit_key
 from empiricist.domain.p5.graphstate import GraphState
@@ -461,7 +463,14 @@ def conjecture_artifact_id(conj: ConjectureOut) -> str:
     return blake3(_semantic_conjecture_key(conj)).hexdigest()
 
 
-def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackReport) -> Artifact:
+def submit(
+    ledger: Ledger,
+    store: Store,
+    conj: ConjectureOut,
+    report: AttackReport,
+    *,
+    claims_repo: Path | None = None,
+) -> Artifact:
     """Ingest `conj` as a `statement` artifact at `HEURISTIC`, then record
     `report` as `auto_attack` evidence -- promoting to `CONJECTURED` on
     survival or `REFUTED` (terminal) with the counterexample on falsification.
@@ -521,4 +530,7 @@ def submit(ledger: Ledger, store: Store, conj: ConjectureOut, report: AttackRepo
         ),
         new_status=Status.CONJECTURED if report.survived else Status.REFUTED,
     )
+    # The batch hook (charter section 4): a CONJECTURED or REFUTED statement becomes a
+    # claim file in the configured repository; the ledger row is already committed.
+    materialize_after_ingest(ledger, store, art.id, claims_repo=claims_repo)
     return art

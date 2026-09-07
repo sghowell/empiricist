@@ -218,8 +218,8 @@ def test_run_campaign_failing_campaign_end_log_does_not_mask_original_error(
 
     real_load = CampaignState.load
 
-    def load_with_broken_logger(run_dir_arg):
-        state = real_load(run_dir_arg)
+    def load_with_broken_logger(run_dir_arg, **kwargs):
+        state = real_load(run_dir_arg, **kwargs)
         original_log = state.population.log_event
 
         def flaky_log(gen, trigger, detail=None):
@@ -413,3 +413,21 @@ def test_run_campaign_all_targets_solved_drops_search_and_stalls_out(tmp_path):
     assert summary.stop_reason == "stalled_out"
     assert summary.generations == 0        # search never ran -- no targets left
     assert summary.conjecture_waves == 3   # scheduler_patience no-progress waves
+
+
+def test_run_campaign_materializes_claims_when_a_repo_is_configured(tmp_path):
+    """Charter deliverable 2: an unattended campaign's promotions are claim files that
+    pass `check` (M23b Task 2)."""
+    from empiricist.claims.check import check
+    from empiricist.claims.model import load_all
+
+    repo = tmp_path / "repo"
+    cfg = RunConfig(**FAST_KW, conjecture_every=1, max_generations=2)
+    summary = run(run_campaign(tmp_path / "run", cfg, scripted_client(), claims_repo=repo))
+    assert summary.conjectured == 1
+    claims = load_all(repo)
+    levels = sorted(c.level for c in claims.values())
+    assert levels == ["CONJECTURED", "VERIFIED_N"]
+    rep = check(repo)
+    assert rep.ok, rep.issues
+    assert set(rep.standings.values()) == {"CURRENT"}

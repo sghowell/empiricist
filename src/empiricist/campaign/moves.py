@@ -108,7 +108,9 @@ def ensure_enumerate(state: CampaignState, cfg: RunConfig) -> Artifact:
     tier1 = tier1_search(cfg.tier1_n)
     dataset = build_dataset(tier0, tier1)
 
-    return ingest_dataset(state.ledger, state.store, dataset, state.registry)
+    return ingest_dataset(
+        state.ledger, state.store, dataset, state.registry, claims_repo=state.claims_repo
+    )
 
 
 def dataset_rows(state: CampaignState, artifact: Artifact) -> list[dict]:
@@ -218,7 +220,10 @@ async def search_move(
             "population-solved), or every open orbit there exceeded the "
             "LC-orbit cap (see open_targets)"
         )
-    loop = SearchLoop(client, state.ledger, state.store, state.registry, state.population)
+    loop = SearchLoop(
+        client, state.ledger, state.store, state.registry, state.population,
+        claims_repo=state.claims_repo,
+    )
     return await loop.run_generation(gen, targets)
 
 
@@ -267,5 +272,7 @@ async def conjecture_move(
             )
             continue
         report = attack(conj, rows)
-        artifacts.append(submit(state.ledger, state.store, conj, report))
+        artifacts.append(
+            submit(state.ledger, state.store, conj, report, claims_repo=state.claims_repo)
+        )
     return artifacts

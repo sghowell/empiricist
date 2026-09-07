@@ -92,6 +92,13 @@ def build_parser() -> argparse.ArgumentParser:
                 "(must be >= 1; not a paid-attempt cap)"
             ),
         )
+        sp.add_argument(
+            "--claims-repo", type=Path, default=None, dest="claims_repo",
+            help=(
+                "research repository whose claims/ the campaign's promotions are "
+                "materialized into (default: $EMPIRICIST_CLAIMS_REPO, else none)"
+            ),
+        )
         sp.add_argument("--tier0-n", type=int, default=None, dest="tier0_n")
         sp.add_argument("--tier1-n", type=int, default=None, dest="tier1_n")
         sp.add_argument("--search-n", type=int, default=None, dest="search_n")
@@ -568,7 +575,7 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
     finally:
         preflight_ledger.close()
 
-    summary = asyncio.run(run_campaign(run_dir, cfg, client))
+    summary = asyncio.run(run_campaign(run_dir, cfg, client, claims_repo=args.claims_repo))
     print(f"campaign summary: {summary}")
 
     # run_campaign closes its own mutating handle.  Rendering the completed
