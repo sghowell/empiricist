@@ -25,23 +25,33 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 1a426269969b
+  path: claims/evidence/28354a566933a414.lean
+  stamped: '2026-09-07T17:08:26.874651+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
-id: P5.Empiricist.identifies_iff_prop
+id: P3.Empiricist.identifies_iff_prop
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d;
+notes: 'relabelled from P5 (P5.Empiricist.identifies_iff_prop) after the ledger corrected
+  the artifact''s problem; artifact 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d;
   title: Empiricist.identifies_iff_prop'
-problem: P5
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: 28354a566933a414890f3bd1fe4a2964a279fc2c102de65052e70da0c43ca80d
-standing: SUPERSEDED
+standing: CURRENT
 statement: "∀ (U : Matrix (Fin 4) (Fin 4) ℂ) (i j : Fin 4) (mu : Empiricist.BellLabel),\n\
   \  Empiricist.Identifies U i j mu ↔ ∃ t, t ≠ 0 ∧ Empiricist.Q U i j = t • Empiricist.pauliOf\
   \ mu"
 substatus: null
-supersedes: []
+supersedes:
+- P5.Empiricist.identifies_iff_prop
 updated: '2026-07-21'

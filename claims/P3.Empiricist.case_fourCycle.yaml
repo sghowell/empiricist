@@ -17,24 +17,34 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 7894801d3fe9
+  path: claims/evidence/173a14587939c53d.lean
+  stamped: '2026-09-07T17:10:34.317867+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: p5-ghz3-v1
-id: P5.Empiricist.case_fourCycle
+id: P3.Empiricist.case_fourCycle
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67;
+notes: 'relabelled from P5 (P5.Empiricist.case_fourCycle) after the ledger corrected
+  the artifact''s problem; artifact 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67;
   title: Empiricist.case_fourCycle'
-problem: P5
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: 173a14587939c53dad283a82435805ed8682ebecc1865a94ce4891a4f7ecdd67
-standing: SUPERSEDED
+standing: CURRENT
 statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
   \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
   \ μ) →\n      (Empiricist.FourCycle fun i => Finset.image (⇑e) (Empiricist.Mset\
   \ U i)) → False"
 substatus: null
-supersedes: []
+supersedes:
+- P5.Empiricist.case_fourCycle
 updated: '2026-08-21'

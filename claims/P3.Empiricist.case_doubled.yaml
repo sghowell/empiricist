@@ -17,24 +17,34 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim b2d6a0b2b344
+  path: claims/evidence/122f690fa853dce9.lean
+  stamped: '2026-09-07T17:08:54.981946+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
-id: P5.Empiricist.case_doubled
+id: P3.Empiricist.case_doubled
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd;
+notes: 'relabelled from P5 (P5.Empiricist.case_doubled) after the ledger corrected
+  the artifact''s problem; artifact 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd;
   title: Empiricist.case_doubled'
-problem: P5
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: 122f690fa853dce90e13ec832c6e277dbf23839f37248c97d0b3641b66d083cd
-standing: SUPERSEDED
+standing: CURRENT
 statement: "∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ,\n  ∀ (e : Empiricist.BellLabel ≃\
   \ Fin 4),\n    (∀ (μ : Empiricist.BellLabel), ∃ i j, Empiricist.Identifies U i j\
   \ μ) →\n      (Empiricist.DoubledEdges fun i => Finset.image (⇑e) (Empiricist.Mset\
   \ U i)) → False"
 substatus: null
-supersedes: []
+supersedes:
+- P5.Empiricist.case_doubled
 updated: '2026-08-12'

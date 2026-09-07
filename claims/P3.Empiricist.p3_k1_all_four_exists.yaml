@@ -17,6 +17,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 8d983c39ae79
+  path: claims/evidence/c6e57d9d6135ef3c.lean
+  stamped: '2026-09-07T17:11:02.189758+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: p3-linear-optical-scheme-v1
 id: P3.Empiricist.p3_k1_all_four_exists
 kind: statement

@@ -25,7 +25,7 @@ receipts: []
 source:
   kind: ledger
   ref: d97a28d0955ed9ad7bac18629366824d174f3b2646e32be9accd0bc97083519a
-standing: CURRENT
+standing: SUPERSEDED
 statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (path family attains
   the universal lower bound F(N) >= N-3 with equality; congruence F(N) === N-3 (mod
   3) holds trivially)'

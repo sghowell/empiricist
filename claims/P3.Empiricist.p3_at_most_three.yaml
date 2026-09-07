@@ -25,22 +25,32 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim c3b13934042b
+  path: claims/evidence/a532440b9fd3c0c8.lean
+  stamped: '2026-09-07T17:10:42.099474+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: p5-ghz3-v1
-id: P5.Empiricist.p3_min_support
+id: P3.Empiricist.p3_at_most_three
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7;
+notes: 'relabelled from P5 (P5.Empiricist.p3_min_support) after the ledger corrected
+  the artifact''s problem; artifact a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7;
   title: Empiricist.p3_at_most_three'
-problem: P5
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: a532440b9fd3c0c82b3aa49dac3a1658561c291234a9de258316fe810a8edde7
-standing: SUPERSEDED
-statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ∃ μ, ∀ (i j : Fin 4), ¬Empiricist.Identifies
-  U i j μ'
+standing: CURRENT
+statement: '∀ U ∈ Matrix.unitaryGroup (Fin 4) ℂ, ¬∀ (μ : Empiricist.BellLabel), ∃
+  i j, Empiricist.Identifies U i j μ'
 substatus: null
-supersedes: []
+supersedes:
+- P5.Empiricist.p3_min_support
 updated: '2026-08-21'

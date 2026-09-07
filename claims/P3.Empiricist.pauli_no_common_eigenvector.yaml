@@ -25,24 +25,34 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 6f20e8c9366f
+  path: claims/evidence/506c6dbc955a9bed.lean
+  stamped: '2026-09-07T17:08:20.408550+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
-id: P5.Empiricist.pauli_no_common_eigenvector
+id: P3.Empiricist.pauli_no_common_eigenvector
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact 506c6dbc955a9bed1a3624ab4dc15950f81d01e8be716964c6167442b8c07f48;
+notes: 'relabelled from P5 (P5.Empiricist.pauli_no_common_eigenvector) after the ledger
+  corrected the artifact''s problem; artifact 506c6dbc955a9bed1a3624ab4dc15950f81d01e8be716964c6167442b8c07f48;
   title: Empiricist.pauli_no_common_eigenvector'
-problem: P5
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: 506c6dbc955a9bed1a3624ab4dc15950f81d01e8be716964c6167442b8c07f48
-standing: SUPERSEDED
+standing: CURRENT
 statement: "∀ (mu nu : Empiricist.BellLabel),\n  mu ≠ nu →\n    mu ≠ Empiricist.BellLabel.phiP\
   \ →\n      nu ≠ Empiricist.BellLabel.phiP →\n        ∀ (v : Fin 2 → ℂ) (a b : ℂ),\n\
   \          v ≠ 0 → (Empiricist.pauliOf mu).mulVec v = a • v → (Empiricist.pauliOf\
   \ nu).mulVec v = b • v → False"
 substatus: null
-supersedes: []
+supersedes:
+- P5.Empiricist.pauli_no_common_eigenvector
 updated: '2026-07-21'

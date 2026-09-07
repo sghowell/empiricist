@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim f04fc19d22f4
+  path: claims/evidence/60b904be671f0d9a.lean
+  stamped: '2026-09-07T17:12:33.758063+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.star_min_fusions
 kind: statement
@@ -32,7 +40,10 @@ legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 60b904be671f0d9aaa4e734ce8b0c793b129aebeec42091448f4673c824b0a35;
-  title: Empiricist.star_min_fusions'
+  title: Empiricist.star_min_fusions
+
+  2026-09-07 (M23a hygiene): supersedes the CONJECTURED `F(star_N) = N-3`: this theorem
+  states exactly that.'
 problem: P5
 receipts: []
 source:
@@ -43,5 +54,6 @@ statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (
   \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\
   \ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
 substatus: null
-supersedes: []
-updated: '2026-07-15'
+supersedes:
+- P5.Conjecture_star_F_N_F_n_n_-_3_for_all_n_3
+updated: '2026-09-07'

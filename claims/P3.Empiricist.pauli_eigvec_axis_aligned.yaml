@@ -18,20 +18,26 @@ evidence:
   verifier: lean
   version: '3.3'
 formulation_version: legacy
-id: P5.Empiricist.pauli_eigvec_axis_aligned
+id: P3.Empiricist.pauli_eigvec_axis_aligned
 kind: statement
 legacy_level: null
-level: FORMALIZED
+level: HEURISTIC
 n: null
-notes: 'artifact adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c;
-  title: Empiricist.pauli_eigvec_axis_aligned'
-problem: P5
-receipts: []
+notes: 'relabelled from P5 (P5.Empiricist.pauli_eigvec_axis_aligned) after the ledger
+  corrected the artifact''s problem; artifact adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c;
+  title: Empiricist.pauli_eigvec_axis_aligned
+
+  demoted to HEURISTIC: statement is the placeholder True: the module is a diagnostic
+  probe (its docstring says so), not a result; the intended lemma is P3.pauli_eigvec_axis_aligned'
+problem: P3
+receipts:
+- P3.Empiricist.pauli_eigvec_axis_aligned.20260907.model
 source:
   kind: ledger
   ref: adcedf473a63fc9dd6d05a7028ffbb0243d68afa9f3915befd72dbe1580b518c
 standing: SUPERSEDED
 statement: 'True'
 substatus: null
-supersedes: []
-updated: '2026-08-20'
+supersedes:
+- P5.Empiricist.pauli_eigvec_axis_aligned
+updated: '2026-09-07'

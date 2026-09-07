@@ -25,7 +25,7 @@ receipts: []
 source:
   kind: ledger
   ref: 2a84ece822a783843f5e694add920d1b04a05555122e1860ff64127379656263
-standing: CURRENT
+standing: SUPERSEDED
 statement: 'Conjecture: path F(N) = F(n) = n - 3 for all n >= 3 (the path orbit attains
   the universal lower bound F(N) >= N-3 with equality, consistent with F(N) ≡ N-3
   (mod 3))'

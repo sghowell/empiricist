@@ -23,7 +23,7 @@ receipts: []
 source:
   kind: ledger
   ref: 85e7a63cdadb48c25fa96b1452fafd7fa28d392d1b11e9dde13ff45b5d3029d3
-standing: CURRENT
+standing: SUPERSEDED
 statement: 'Conjecture (Fable-generated): F(G)=N-3 <=> distance-hereditary (rank-width
   1)'
 substatus: null

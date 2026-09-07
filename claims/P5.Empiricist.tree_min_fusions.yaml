@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2ef11b176874
+  path: claims/evidence/7164238df7d772f0.lean
+  stamped: '2026-09-07T17:12:42.324841+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.tree_min_fusions
 kind: statement
@@ -32,7 +40,9 @@ legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact 7164238df7d772f088a6afac06c87ad369ad7e3ea8f944b4caec8993212fc105;
-  title: Empiricist.tree_min_fusions'
+  title: Empiricist.tree_min_fusions
+
+  2026-09-07 (M23a hygiene): supersedes the 2026-07-10 copy of the same theorem.'
 problem: P5
 receipts: []
 source:
@@ -45,5 +55,6 @@ statement: "∀ {V : Type} [inst : Fintype V] (T : SimpleGraph V) [DecidableRel 
   \ = 3 * g → c 0 = g → c f = 1 → (∀ i < f, c i ≤ c (i + 1) + 1) → Fintype.card V\
   \ - 3 ≤ f"
 substatus: null
-supersedes: []
-updated: '2026-07-15'
+supersedes:
+- P5.Empiricist.tree_min_fusions_2
+updated: '2026-09-07'

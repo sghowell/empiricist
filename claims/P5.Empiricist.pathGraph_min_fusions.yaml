@@ -25,6 +25,14 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim d6e77dd10927
+  path: claims/evidence/c3926eee6182df38.lean
+  stamped: '2026-09-07T17:12:27.266716+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
 id: P5.Empiricist.pathGraph_min_fusions
 kind: statement
@@ -32,7 +40,11 @@ legacy_level: null
 level: FORMALIZED
 n: null
 notes: 'artifact c3926eee6182df38acb6c38490093c5718b548d9cdbaf41998f1aca5feeef07b;
-  title: Empiricist.pathGraph_min_fusions'
+  title: Empiricist.pathGraph_min_fusions
+
+  2026-09-07 (M23a hygiene): supersedes the ten CONJECTURED rewordings of `F(path_N)
+  = N-3` from the 2026-07-09 live campaign: this theorem states exactly that (production
+  at N-3 fusions and the N-3 lower bound).'
 problem: P5
 receipts: []
 source:
@@ -43,5 +55,15 @@ statement: "∀ (N : ℕ),\n  3 ≤ N →\n    Empiricist.ProducibleBy (N - 3) (
   \ N) ∧\n      ∀ (g f : ℕ) (c : ℕ → ℕ), N + 2 * f = 3 * g → c 0 = g → c f = 1 → (∀\
   \ i < f, c i ≤ c (i + 1) + 1) → N - 3 ≤ f"
 substatus: null
-supersedes: []
-updated: '2026-07-15'
+supersedes:
+- P5.Conjecture_path_F_N_F_N_N_-_3
+- P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3
+- P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3_achieves_the_unive
+- P5.Conjecture_path_F_N_F_N_N_-_3_for_all_N_3_the_path_orbit_att
+- P5.Conjecture_path_F_N_F_n_n_-_3_2
+- P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_2
+- P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_3
+- P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_path_family_attain
+- P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_paths_attain_the_u
+- P5.Conjecture_path_F_N_F_n_n_-_3_for_all_n_3_the_path_orbit_att_2
+updated: '2026-09-07'

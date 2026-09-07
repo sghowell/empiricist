@@ -17,22 +17,38 @@ evidence:
   verdict: PASS
   verifier: lean
   version: '3.3'
+- binary_hash: 34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2
+  golden_suite_hash: 5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb
+  note: claim 2536c706162d
+  path: claims/evidence/f2322820c8e1668e.lean
+  stamped: '2026-09-07T17:09:21.883365+00:00'
+  verdict: PASS
+  verifier: lean
+  version: '3.3'
 formulation_version: legacy
-id: P5.pauli_eigvec_axis_aligned
+id: P3.pauli_eigvec_axis_aligned
 kind: statement
 legacy_level: null
 level: FORMALIZED
 n: null
-notes: 'artifact f2322820c8e1668ef2069ff5ce43027775d5871f98f0f0b6a962dcc89c4bf43f;
-  title: pauli_eigvec_axis_aligned'
-problem: P5
+notes: 'relabelled from P5 (P5.pauli_eigvec_axis_aligned) after the ledger corrected
+  the artifact''s problem; artifact f2322820c8e1668ef2069ff5ce43027775d5871f98f0f0b6a962dcc89c4bf43f;
+  title: pauli_eigvec_axis_aligned
+
+  2026-09-07 (M23a hygiene): supersedes P3.Empiricist.pauli_eigvec_axis_aligned, the
+  diagnostic probe module whose headline theorem was the placeholder `True` (demoted
+  to HEURISTIC on receipt P3.Empiricist.pauli_eigvec_axis_aligned.20260907.model);
+  this is the lemma that probe was written to find.'
+problem: P3
 receipts: []
 source:
   kind: ledger
   ref: f2322820c8e1668ef2069ff5ce43027775d5871f98f0f0b6a962dcc89c4bf43f
-standing: SUPERSEDED
+standing: CURRENT
 statement: '∀ (w : Fin 2 → ℂ), w ≠ 0 → ∀ (c : ℂ), Empiricist.sigmaZ.mulVec w = c •
   w → Empiricist.AxisAligned w'
 substatus: null
-supersedes: []
-updated: '2026-08-20'
+supersedes:
+- P5.pauli_eigvec_axis_aligned
+- P3.Empiricist.pauli_eigvec_axis_aligned
+updated: '2026-09-07'
