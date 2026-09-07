@@ -173,3 +173,33 @@ def test_builtin_verifier_drift_makes_its_evidence_stale(tmp_path, monkeypatch):
     # an identity this build cannot compute is unknown, not drift
     monkeypatch.setattr(check_mod, "builtin_identity", lambda name: None)
     assert check(repo).standings["P3.a"] == "CURRENT"
+
+
+def test_lock_is_not_enforced_on_a_superseded_row(tmp_path):
+    """A relabelled artifact's old claim shares its evidence path with the successor; the
+    lock records the successor's verifier identity. The superseded row is kept for the
+    record (standing SUPERSEDED), not enforced -- but the same mismatch on a live row
+    blocks."""
+    from empiricist.claims.lock import Lock, refresh_lock_entries, write_lock
+
+    old = _claim("P5.a", level="FORMALIZED", evidence=[EvidenceEntry(
+        path="ev/a.lean", verifier="lean", version="3.3", verdict="PASS",
+        stamped="2026-09-05T00:00:00Z", binary_hash="ab" * 32)])
+    new = _claim("P3.a", level="FORMALIZED", supersedes=["P5.a"], evidence=[EvidenceEntry(
+        path="ev/a.lean", verifier="lean", version="3.3", verdict="PASS",
+        stamped="2026-09-07T00:00:00Z", binary_hash="cd" * 32)])
+    (tmp_path / "ev").mkdir()
+    (tmp_path / "ev" / "a.lean").write_text("theorem a : 1 = 1 := rfl")
+    save_claim(tmp_path, old)
+    save_claim(tmp_path, new)
+    write_lock(tmp_path, refresh_lock_entries(tmp_path, new, Lock()))   # the successor's identity
+    refresh_repo(tmp_path)
+    rep = check(tmp_path)
+    assert rep.ok, rep.issues
+    assert rep.standings == {"P5.a": "SUPERSEDED", "P3.a": "CURRENT"}
+    # drop the supersedes link: the same mismatch now blocks
+    save_claim(tmp_path, new.model_copy(update={"supersedes": []}))
+    refresh_repo(tmp_path)
+    rep = check(tmp_path)
+    assert [i.code for i in rep.issues if i.claim_id == "P5.a"] == ["lock_mismatch"]
+    assert rep.standings["P5.a"] == "STALE"

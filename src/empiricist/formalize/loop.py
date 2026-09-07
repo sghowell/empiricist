@@ -72,7 +72,7 @@ class FormalizeTask:
     name: str    # short id for the goal (used in run_id / provenance)
     goal: str    # natural-language: WHAT to prove + the intended (informal) statement
     context: str  # available lemmas/defs, import guidance, prior-art, faithfulness constraints
-    problem: str = "P5"
+    problem: str  # the ledger files the theorem under it (P3, P5, ...); no default (M23a)
     problem_version: str = DEFAULT_LEAN_PROBLEM_VERSION
 
 

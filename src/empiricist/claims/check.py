@@ -156,7 +156,12 @@ def check(
 
     lock = read_lock(repo)
     mism = mismatches(repo, claims, lock)
+    # A superseded row is kept for the record, not enforced: its successor may share an
+    # evidence path and hold the lock's current verifier identity (a relabelled artifact).
+    superseded = {s for c in claims.values() for s in c.supersedes}
     for cid, reasons in sorted(mism.items()):
+        if cid in superseded:
+            continue
         issues.append(CheckIssue(code="lock_mismatch", claim_id=cid, detail="; ".join(reasons)))
     if registry_newer is None:
         from empiricist.claims.registry import registry_newer as _from_registry

@@ -118,6 +118,13 @@ def format_feedback(result: VerifierResult) -> str:
             "(Mathlib.*) and EmpiricistLean.Basic."
         )
 
+    if gate == "vacuous":
+        return (
+            "The headline theorem's statement is `True` -- a placeholder, not a "
+            "result. State the intended theorem as the declaration's type and prove "
+            "that; a probe module is never recorded."
+        )
+
     if gate == "residue":
         return (
             "Unexpected files present -- internal error; retry with a clean "

@@ -26,6 +26,7 @@ from empiricist.verifiers.lean import (
     DEFAULT_LEAN_PROBLEM_VERSION,
     LeanVerifier,
     _record_verified_lean_artifact,
+    is_vacuous_statement,
 )
 from empiricist.verifiers.lean_goldens import certify_lean, lean_suite_hash
 
@@ -161,6 +162,13 @@ def _reverify_one(
     source = store.get(art.content_path).decode("utf-8")
     decl = art.title
     result = v.verify(source, decl=decl, timeout_s=timeout_s)
+    if result.verdict is Verdict.PASS and is_vacuous_statement(
+        str(result.details.get("statement") or "")
+    ):
+        return ReverifyOutcome(
+            art.id, decl, "SKIPPED",
+            "vacuous statement (True) is not re-recorded as FORMALIZED",
+        )
     if result.verdict is Verdict.PASS:
         problem_version = (
             DEFAULT_LEAN_PROBLEM_VERSION

@@ -143,7 +143,7 @@ def test_missing_or_stale_certification_fails_before_model_call(tmp_path, suite)
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=1)
 
     with pytest.raises(PromotionIntegrityError):
-        run(loop.run(FormalizeTask(name="uncertified", goal="g", context="c")))
+        run(loop.run(FormalizeTask(problem="P5", name="uncertified", goal="g", context="c")))
 
     assert client.calls == []
     assert verifier.calls == []
@@ -183,7 +183,7 @@ def test_rerun_same_task_mints_fresh_run_ids_and_links_evidence(tmp_path):
     ])
     verifier = FakeVerifier([pass_result()])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=1)
-    task = FormalizeTask(name="restartable", goal="prove 1=1", context="none")
+    task = FormalizeTask(problem="P5", name="restartable", goal="prove 1=1", context="none")
 
     first = run(loop.run(task))
     second = run(loop.run(task))  # must not raise DuplicateRunError
@@ -211,7 +211,7 @@ def test_pass_round_one_ingests_formalized_artifact(tmp_path):
     verifier = FakeVerifier([pass_result(statement="1 = 1", axioms=["propext"])])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t1", goal="prove 1=1", context="none")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t1", goal="prove 1=1", context="none")))
 
     assert isinstance(report, FormalizeReport)
     assert report.ok is True
@@ -264,7 +264,7 @@ def test_fail_then_pass_feeds_back_round_one_feedback_into_round_two_prompt(tmp_
     ])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t2", goal="prove foo", context="ctx")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t2", goal="prove foo", context="ctx")))
 
     assert report.ok is True
     assert report.rounds == 2
@@ -296,7 +296,7 @@ def test_all_rounds_fail_exhausts_budget_without_ingesting(tmp_path):
     verifier = FakeVerifier([fail_result(gate="sorry") for _ in range(max_rounds)])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=max_rounds)
 
-    report = run(loop.run(FormalizeTask(name="t3", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t3", goal="g", context="c")))
 
     assert report.ok is False
     assert report.rounds == max_rounds
@@ -323,7 +323,7 @@ def test_no_artifact_round_handled_then_pass(tmp_path):
     verifier = FakeVerifier([pass_result()])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t4", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t4", goal="g", context="c")))
 
     assert report.ok is True
     assert report.rounds == 2
@@ -344,7 +344,7 @@ def test_no_artifact_via_script_exhaustion_is_handled(tmp_path):
     verifier = FakeVerifier([])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=2)
 
-    report = run(loop.run(FormalizeTask(name="t5", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t5", goal="g", context="c")))
 
     assert report.ok is False
     assert report.rounds == 2
@@ -371,7 +371,7 @@ def test_error_verdict_fed_back_not_crashed_then_pass(tmp_path):
     ])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t6", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t6", goal="g", context="c")))
 
     assert report.ok is True
     assert report.rounds == 2
@@ -392,7 +392,7 @@ def test_invalid_json_round_handled_then_pass(tmp_path):
     verifier = FakeVerifier([pass_result()])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t7", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t7", goal="g", context="c")))
 
     assert report.ok is True
     assert report.rounds == 2
@@ -442,7 +442,7 @@ def test_hole_proof_then_filled_proof_carries_full_goal_state_into_round_two(tmp
     ])
     loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
 
-    report = run(loop.run(FormalizeTask(name="t8", goal="prove foo", context="ctx")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="t8", goal="prove foo", context="ctx")))
 
     assert report.ok is True
     assert report.rounds == 2
@@ -483,7 +483,8 @@ def test_default_max_rounds_is_twelve(tmp_path):
 def test_build_prompt_round_one_has_no_prior_attempt(tmp_path):
     lg, st = make_env(tmp_path)
     loop = FormalizeLoop(FakeLLMClient([]), lg, st, FakeVerifier([]))
-    prompt = loop.build_prompt(FormalizeTask(name="t", goal="prove X", context="ctx Y"), [])
+    task = FormalizeTask(problem="P5", name="t", goal="prove X", context="ctx Y")
+    prompt = loop.build_prompt(task, [])
     assert "prove X" in prompt
     assert "ctx Y" in prompt
     assert "FAITHFULLY" in prompt
@@ -494,7 +495,8 @@ def test_build_prompt_round_one_has_no_prior_attempt(tmp_path):
 def test_build_prompt_round_one_carries_hole_development_guidance(tmp_path):
     lg, st = make_env(tmp_path)
     loop = FormalizeLoop(FakeLLMClient([]), lg, st, FakeVerifier([]))
-    prompt = loop.build_prompt(FormalizeTask(name="t", goal="prove X", context="ctx Y"), [])
+    task = FormalizeTask(problem="P5", name="t", goal="prove X", context="ctx Y")
+    prompt = loop.build_prompt(task, [])
     assert "?_" in prompt
     assert "hole" in prompt.lower()
     assert "goal state" in prompt.lower()
@@ -559,7 +561,7 @@ def test_formalize_throttled_attempts_back_off_then_pass(tmp_path):
         client, lg, st, verifier, max_rounds=2,
         throttle=ThrottlePolicy(base_s=1.0, max_s=8.0, max_attempts=4), sleep=fake_sleep,
     )
-    report = run(loop.run(FormalizeTask(name="th", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="th", goal="g", context="c")))
     assert report.ok and report.rounds == 1 and not report.throttled
     assert report.throttled_attempts == 2
     assert slept == [1.0, 2.0]
@@ -580,7 +582,7 @@ def test_formalize_throttle_exhaustion_aborts(tmp_path):
         client, lg, st, verifier, max_rounds=4,
         throttle=ThrottlePolicy(base_s=1.0, max_s=1.0, max_attempts=2), sleep=fake_sleep,
     )
-    report = run(loop.run(FormalizeTask(name="th", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="th", goal="g", context="c")))
     assert not report.ok and report.throttled
     assert report.final_verdict == "THROTTLED" and report.rounds == 1
     assert len(client.run_ids) == 2 and verifier.calls == []
@@ -598,6 +600,33 @@ def test_formalize_default_throttle_policy_is_on(tmp_path):
     client = ThrottlingFakeClient([make_result(out_dict(_MODULE_V2))], n_throttled=1)
     loop = FormalizeLoop(client, lg, st, FakeVerifier([pass_result()]), max_rounds=2,
                          sleep=fake_sleep)
-    report = run(loop.run(FormalizeTask(name="th", goal="g", context="c")))
+    report = run(loop.run(FormalizeTask(problem="P5", name="th", goal="g", context="c")))
     assert report.ok and slept == [60.0] and report.throttled_attempts == 1
     lg.close()
+
+
+# -- vacuous headline (M23a) -------------------------------------------------
+
+
+def test_vacuous_true_round_is_fed_back_then_a_real_statement_passes(tmp_path):
+    lg, st = make_env(tmp_path)
+    client = FakeLLMClient([
+        make_result(out_dict(_MODULE_V1)),
+        make_result(out_dict(_MODULE_V2)),
+    ])
+    verifier = FakeVerifier([pass_result(statement="True"), pass_result(statement="1 = 1")])
+    loop = FormalizeLoop(client, lg, st, verifier, max_rounds=6)
+
+    report = run(loop.run(FormalizeTask(problem="P5", name="tv", goal="g", context="c")))
+
+    assert report.ok is True and report.rounds == 2
+    assert report.history[0][:2] == ("FAIL", "vacuous")
+    assert "placeholder" in client.calls[1][1]
+    assert lg.get_artifact(report.artifact_id).status is Status.FORMALIZED
+    assert len(lg.find_artifacts(kind="lean")) == 1
+    lg.close()
+
+
+def test_formalize_task_requires_an_explicit_problem():
+    with pytest.raises(TypeError):
+        FormalizeTask(goal="g", name="t", context="c")  # no problem given
