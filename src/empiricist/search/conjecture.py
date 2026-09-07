@@ -230,7 +230,7 @@ def _conjectured_families(ledger: Ledger) -> set[str]:
 
 async def mine(
     client: LLMClient, dataset_rows: list[dict], *, k: int | None = None,
-    ledger: Ledger | None = None,
+    ledger: Ledger | None = None, settled: dict[str, str] | None = None,
 ) -> list[ConjectureOut]:
     """Sample `k` (default `ROLES["conjecturer"].k`) nonce-diversified
     Conjecturer prompts over `dataset_summary(dataset_rows)`, returning every
@@ -264,6 +264,15 @@ async def mine(
         "if you have a genuinely new closed form for it.\n"
         if covered else ""
     )
+    # `settled` (family -> claim id): families the claims ledger already holds as a
+    # FORMALIZED theorem (`domain.p5.settled.settled_families`). Named so the model
+    # does not spend a wave restating a theorem; still a nudge, not a restriction.
+    settled_line = (
+        "Settled by a FORMALIZED theorem in the claims ledger (do not re-conjecture): "
+        + ", ".join(f"{fam} ({cid})" for fam, cid in sorted((settled or {}).items()))
+        + ".\n"
+        if settled else ""
+    )
 
     def build_prompt(nonce: str) -> str:
         return (
@@ -272,7 +281,7 @@ async def mine(
             "of the families tabulated above (path, cycle, star, or complete). "
             "Predict F for EVERY n shown in that family's row -- state nothing "
             "you cannot check against the table.\n"
-            f"{nudge}"
+            f"{nudge}{settled_line}"
             'Emit exactly one ConjectureOut JSON object: {"family": str, '
             '"closed_form": str, "predicted_values": {"<n>": int, ...}, '
             '"confidence": float}.\n'

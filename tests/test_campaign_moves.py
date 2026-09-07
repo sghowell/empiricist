@@ -483,9 +483,9 @@ def test_conjecture_move_passes_state_ledger_to_mine(campaign, monkeypatch):
     calls: list[dict] = []
     original_mine = moves_mod.mine
 
-    async def spy_mine(client, rows, *, k=None, ledger=None):
-        calls.append({"ledger": ledger})
-        return await original_mine(client, rows, k=k, ledger=ledger)
+    async def spy_mine(client, rows, *, k=None, ledger=None, settled=None):
+        calls.append({"ledger": ledger, "settled": settled})
+        return await original_mine(client, rows, k=k, ledger=ledger, settled=settled)
 
     monkeypatch.setattr(moves_mod, "mine", spy_mine)
 
@@ -494,6 +494,7 @@ def test_conjecture_move_passes_state_ledger_to_mine(campaign, monkeypatch):
 
     assert len(calls) == 1
     assert calls[0]["ledger"] is state.ledger
+    assert calls[0]["settled"] == {}   # no claims repository configured: nothing is settled
 
 
 # -- open_targets: solved-orbit filtering (I3) ---------------------------------

@@ -38,6 +38,7 @@ from empiricist.domain.p5.canonical import lc_orbit_key
 from empiricist.domain.p5.dataset import build_dataset, ingest_dataset
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.domain.p5.localcomp import OrbitTooLarge
+from empiricist.domain.p5.settled import settled_families
 from empiricist.domain.p5.tablebase import tier0_search, tier1_search
 from empiricist.ledger.models import Artifact, Status, Verdict
 from empiricist.llm.client import LLMClient
@@ -257,7 +258,9 @@ async def conjecture_move(
     (see `mine`'s docstring)."""
     artifact = ensure_enumerate(state, cfg)
     rows = dataset_rows(state, artifact)
-    conjectures = await mine(client, rows, ledger=state.ledger)
+    conjectures = await mine(
+        client, rows, ledger=state.ledger, settled=settled_families(state.claims_repo)
+    )
     artifacts: list[Artifact] = []
     for conj in conjectures:
         art_id = conjecture_artifact_id(conj)
