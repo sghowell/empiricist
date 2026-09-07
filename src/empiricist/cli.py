@@ -156,6 +156,14 @@ def build_parser() -> argparse.ArgumentParser:
     audit_p = sub.add_parser("audit", help="read-only ledger/CAS consistency check")
     audit_p.add_argument("--run-dir", required=True, type=Path)
 
+    relabel_p = sub.add_parser(
+        "relabel", help="correct an artifact's problem label (leaves a runs row)"
+    )
+    relabel_p.add_argument("--run-dir", required=True, type=Path)
+    relabel_p.add_argument("--artifact", required=True, help="artifact id (content digest)")
+    relabel_p.add_argument("--problem", required=True)
+    relabel_p.add_argument("--note", required=True, help="why the label was wrong")
+
     reverify_p = sub.add_parser(
         "reverify",
         help=(
@@ -624,6 +632,27 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         return 1
     finally:
         state.close()
+
+
+def _cmd_relabel(args: argparse.Namespace) -> int:
+    ledger_path = args.run_dir / "ledger.db"
+    if not ledger_path.is_file():
+        print(f"error: campaign ledger does not exist: {ledger_path}", file=sys.stderr)
+        return 1
+    ledger = Ledger(ledger_path)
+    try:
+        before = ledger.get_artifact(args.artifact).problem
+        after = ledger.relabel_artifact(args.artifact, problem=args.problem, note=args.note)
+        run_id = ledger.conn.execute(
+            "SELECT run_id FROM runs WHERE move = 'relabel' ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()["run_id"]
+    except (KeyError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        ledger.close()
+    print(f"relabel: {after.id[:12]} {before} -> {after.problem} (run {run_id})")
+    return 0
 
 
 def _cmd_reverify(args: argparse.Namespace) -> int:
@@ -1105,6 +1134,8 @@ def main(
         return _cmd_status(args)
     if args.command == "audit":
         return _cmd_audit(args)
+    if args.command == "relabel":
+        return _cmd_relabel(args)
     if args.command == "reverify":
         return _cmd_reverify(args)
     if args.command == "p3-optimize":

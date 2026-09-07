@@ -704,3 +704,25 @@ def test_p3_ingest_results_accepts_float_leakage_within_the_budget(tmp_path, cap
     text = capsys.readouterr().out
     assert rc == 0, text
     assert "at HEURISTIC" in text and "at CERTIFIED" in text
+
+
+def test_relabel_cli_rewrites_problem(tmp_path, capsys):
+    from empiricist.ledger.db import Ledger
+    from empiricist.store import Store
+
+    run_dir = tmp_path / "run"
+    lg = Ledger(run_dir / "ledger.db")
+    digest = Store(run_dir / "store").put(b"lemma")
+    lg.add_artifact(Artifact(id=digest, kind="lean", problem="P5", title="Empiricist.x",
+                             content_path=digest, status=Status.FORMALIZED))
+    lg.close()
+    rc = main(["relabel", "--run-dir", str(run_dir), "--artifact", digest,
+               "--problem", "P3", "--note", "P3 lemma ingested under the P5 default"])
+    assert rc == 0
+    assert f"relabel: {digest[:12]} P5 -> P3" in capsys.readouterr().out
+    lg = Ledger(run_dir / "ledger.db")
+    assert lg.get_artifact(digest).problem == "P3"
+    lg.close()
+    rc = main(["relabel", "--run-dir", str(run_dir), "--artifact", digest,
+               "--problem", "P3", "--note", "again"])
+    assert rc == 1 and "error:" in capsys.readouterr().err
