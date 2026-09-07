@@ -149,3 +149,27 @@ def test_min_claims_and_legacy_claims_md(tmp_path):
     assert (repo / "CLAIMS.md").read_text().startswith("| id |")
     assert refresh_repo(repo, force=True).ok
     assert "do not hand-edit" in (repo / "CLAIMS.md").read_text()
+
+
+def test_builtin_verifier_drift_makes_its_evidence_stale(tmp_path, monkeypatch):
+    from empiricist.claims import check as check_mod
+    from empiricist.claims.registry import stamp
+
+    c = _claim("P3.a", level="FORMALIZED", evidence=[EvidenceEntry(
+        path="ev/P3.a.json", verifier="lean", version="3.3", verdict="PASS",
+        stamped="2026-09-05T00:00:00Z", binary_hash="ab" * 32, golden_suite_hash="g")])
+    repo = _mini_repo(tmp_path, c)
+    stamp(repo, name="lean", version="3.3", binary_hash="ab" * 32, golden_suite_hash="g")
+    monkeypatch.setattr(check_mod, "builtin_identity", lambda name: ("3.3", "ab" * 32))
+    refresh_repo(repo)
+    rep = check(repo)
+    assert rep.ok and rep.standings["P3.a"] == "CURRENT"
+    # the live verifier's identity moved away from the committed stamp
+    monkeypatch.setattr(check_mod, "builtin_identity", lambda name: ("3.3", "cd" * 32))
+    rep = check(repo)
+    assert rep.standings["P3.a"] == "STALE"
+    drift = [i for i in rep.issues if i.code == "verifier_drift"]
+    assert len(drift) == 1 and "lean" in drift[0].detail and "cdcdcdcdcdcd" in drift[0].detail
+    # an identity this build cannot compute is unknown, not drift
+    monkeypatch.setattr(check_mod, "builtin_identity", lambda name: None)
+    assert check(repo).standings["P3.a"] == "CURRENT"
