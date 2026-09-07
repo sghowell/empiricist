@@ -178,6 +178,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="restrict to this artifact id (repeatable)",
     )
     reverify_p.add_argument("--timeout-s", type=float, default=600.0)
+    reverify_p.add_argument(
+        "--only", choices=("lean", "certificates"), default=None,
+        help="run one pass only (default: the Lean pass, then the certificate pass)",
+    )
 
     opt_p = sub.add_parser(
         "p3-optimize",
@@ -660,24 +664,36 @@ def _cmd_reverify(args: argparse.Namespace) -> int:
     if not ledger_path.is_file():
         print(f"error: campaign ledger does not exist: {ledger_path}", file=sys.stderr)
         return 1
+    from empiricist.certificates.reverify import reverify_certificate_artifacts
+
     ledger = Ledger(ledger_path)  # write mode: a v0 ledger migrates in place (spec App. A)
     store = Store(args.run_dir / "store")
+    reports: list[tuple[str, str, object]] = []
     try:
-        report = reverify_lean_artifacts(
-            ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
-            timeout_s=args.timeout_s,
-        )
+        if args.only != "certificates":
+            reports.append(("lean", "LeanVerifier", reverify_lean_artifacts(
+                ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
+                timeout_s=args.timeout_s,
+            )))
+        if args.only != "lean":
+            reports.append(("certificate", "certificate checkers", reverify_certificate_artifacts(
+                ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
+            )))
     finally:
         ledger.close()
-    suffix = ""
-    if report.dry_run:
-        suffix += " [dry run]"
-    if report.certified_now:
-        suffix += " [certified LeanVerifier in this pass]"
-    print(f"reverify: {len(report.outcomes)} lean artifact(s){suffix}")
-    for o in report.outcomes:
-        print(f"{o.verdict}: {o.decl} artifact={o.artifact_id} {o.detail}")
-    return 0 if (report.ok or report.dry_run) else 1
+    rc = 0
+    for kind, gate, report in reports:
+        suffix = ""
+        if report.dry_run:
+            suffix += " [dry run]"
+        if report.certified_now:
+            suffix += f" [certified {gate} in this pass]"
+        print(f"reverify: {len(report.outcomes)} {kind} artifact(s){suffix}")
+        for o in report.outcomes:
+            print(f"{o.verdict}: {o.decl} artifact={o.artifact_id} {o.detail}")
+        if not (report.ok or report.dry_run):
+            rc = 1
+    return rc
 
 
 def _cmd_p3_optimize(args: argparse.Namespace) -> int:
