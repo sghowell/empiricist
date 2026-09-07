@@ -461,3 +461,7 @@ def test_reverify_certificate_records_a_pass_under_the_live_identity(tmp_path, m
 
 - M23b: the P5 campaign under v1 — materialise `conjecture.submit` and `ingest_dataset` results through the batch hook, an end-of-campaign catch-up, a `--claims-repo` flag, and a "settled families" nudge for the conjecturer.
 - A `claims reverify` path for Lean evidence inside a research repository without a v0 ledger.
+
+## Outcome (2026-09-07)
+
+All seven tasks done on `feat/m23a-ledger-hygiene`. Fast suite 1117 passed; `claims check --repo . --min-claims 1` green with 77 claims (47 CURRENT, 30 SUPERSEDED); `audit` clean on the three ledgers (p3-campaign's seven pre-existing `run_billing_unknown` notes aside). Reverify walls 241 s / 182 s / 73 s. One reviewer sample ($2.24) blocked the `True` probe on six findings. The uninduced `sos_certificate` drift under `P3.k0_standard_assignment_p_avg` is the charter's second kill-gate event. Narrative: `docs/science/2026-09-07-ledger-hygiene.md`.
