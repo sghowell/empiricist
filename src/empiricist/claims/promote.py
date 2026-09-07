@@ -270,6 +270,11 @@ def promote(
             raise PromotionRefused(f"receipt {receipt_id!r} is not a receipt for {claim_id}")
         if receipt.statement_sha256 != statement_sha256(claim.statement):
             raise PromotionRefused(f"receipt {receipt_id} reviewed a different statement")
+        if not receipt.usable:
+            raise PromotionRefused(
+                f"receipt {receipt_id} records a sample that produced no review; it warrants "
+                "nothing (re-run review)"
+            )
         if receipt.blocking or receipt.verdict == "BLOCK":
             raise PromotionRefused(f"receipt {receipt_id} has a blocking finding")
         # Charter F4: the bar is "a receipt with no blocking issue". A REVISE receipt
@@ -459,6 +464,8 @@ def demote(
         raise PromotionRefused(f"receipt {receipt_id!r} is not a receipt for {claim_id}")
     if receipt.statement_sha256 != statement_sha256(claim.statement):
         raise PromotionRefused(f"receipt {receipt_id} reviewed a different statement")
+    if not receipt.usable:
+        raise PromotionRefused(f"receipt {receipt_id} records a sample that produced no review")
     update: dict[str, Any] = {
         "level": level, "updated": _today(now),
         "notes": (claim.notes + "\n" if claim.notes else "") + f"demoted to {level}: {reason}",

@@ -192,6 +192,10 @@ def test_model_review_unusable_samples_are_revise_receipts(tmp_path):
                                  now="2026-09-06T12:00:00+00:00")
     assert [r.verdict for r in receipts] == ["REVISE", "REVISE", "REVISE"]
     assert "no parseable review" in receipts[0].findings[0].text
+    assert [r.usable for r in receipts] == [False, False, True]
+    with pytest.raises(PromotionRefused, match="produced no review"):
+        promote(repo, claim_id="P.s", level="CERTIFIED", verifier="toy",
+                evidence_path="certs/good.json", receipt_id=receipts[0].id)
     assert "examined only" in receipts[2].findings[0].text
     assert check(repo).standings == {"P.s": "CURRENT"}   # REVISE never blocks by itself
     # a client that returns nothing at all still leaves a receipt per sample
