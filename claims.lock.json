@@ -130,6 +130,16 @@
         }
       }
     },
+    "claims/evidence/235f4cd05ecbc197.json": {
+      "sha256": "056ab3fd9a9fa6c9f22e05bf9d568bb216d44378019c0b3b929827c96bf6f66e",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/28354a566933a414.lean": {
       "sha256": "d78d29ddee5322de3f3a700ff317027b9d0b7c5d680150b05e1160ce0fa9e36f",
       "verifiers": {
@@ -140,12 +150,32 @@
         }
       }
     },
+    "claims/evidence/28a137365e1a043a.json": {
+      "sha256": "388e2d4bf3f08bd870f322b539ecdf6a9d3a12e949dc8bdce7b11b15240e603e",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/2a84ece822a78384.json": {
       "sha256": "02feffdc6f360e1eb337feae6c3c52bebf4de143f84f2a11e4484682cd2c790b",
       "verifiers": {
         "auto_attack": {
           "binary_hash": "e36c85d6ef1d9dbecd3a138a4dcef4f16ee10cca9bac56600cb0349f82a3e10f",
           "golden_suite_hash": null,
+          "version": "1.0"
+        }
+      }
+    },
+    "claims/evidence/30b3f164629e9626.json": {
+      "sha256": "03d1efc79dd7f851cc761b7e724db7b116ac845e229a0365d3da49d726cd6ef9",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
           "version": "1.0"
         }
       }
@@ -400,6 +430,26 @@
         }
       }
     },
+    "claims/evidence/9208e0418d047cbe.json": {
+      "sha256": "6f1b4bac20883ae6d4a49704a4f85cb37f010f585ce18d49cf2a6db2d5d60f31",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
+    "claims/evidence/960c7fec66c8d3a7.json": {
+      "sha256": "1594a4ef544791c0a17a13d58098d45968f33d0891288b687cd07ccbdfec07df",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/a532440b9fd3c0c8.lean": {
       "sha256": "e5d019aaa21acff6b695341f1dcad9c65cefc302c023c0370b0ceacd46517554",
       "verifiers": {
@@ -450,6 +500,16 @@
         }
       }
     },
+    "claims/evidence/b29cbaab38c0f890.json": {
+      "sha256": "0d933c2cf55a56ac7889e517d5f35c12838f8927d66dfd2eca887c67f272201d",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/b505c602f68a91cc.lean": {
       "sha256": "7ec7b09e67f0d12ff133c9716623cdf5e686bce3887a277ac3bfaa04c1f60c0f",
       "verifiers": {
@@ -457,6 +517,16 @@
           "binary_hash": "34cd2464253757ebfecab3f697ce83adedd1f29f64a8b265b1cd56b8538d2cc2",
           "golden_suite_hash": "5560365327215db69b1d86b6a4f2741489bc44e4900de2a0297fe380fc468fdb",
           "version": "3.3"
+        }
+      }
+    },
+    "claims/evidence/b8fe46d3ec0daee5.json": {
+      "sha256": "8a6b82959bc9823cc29eaa81d06c8ff2edbebcfce83964d791aa971e26058ce2",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
         }
       }
     },
@@ -586,6 +656,16 @@
         "p5_tablebase_dataset_ingest": {
           "binary_hash": "d98b7e0ef6053c453d2fe1899b8b1ed69d3c4f37362885b342f2a8546f2b7c43",
           "golden_suite_hash": null,
+          "version": "1.0"
+        }
+      }
+    },
+    "claims/evidence/e2a5d0ea878eb4a4.json": {
+      "sha256": "e4b3598a6a653e83390f6f9009498780b3a1dba360f3a6d458e3c1090df2efb0",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
           "version": "1.0"
         }
       }

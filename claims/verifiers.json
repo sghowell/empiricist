@@ -23,6 +23,14 @@
       "name": "sos_certificate",
       "stamped": "2026-09-07T17:11:22+00:00",
       "version": "1.0"
+    },
+    "verify_agreed": {
+      "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+      "declaration": null,
+      "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+      "name": "verify_agreed",
+      "stamped": "2026-09-07T17:44:20+00:00",
+      "version": "1.0"
     }
   },
   "version": 1
