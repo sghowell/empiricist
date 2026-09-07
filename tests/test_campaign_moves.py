@@ -527,3 +527,27 @@ def test_open_targets_keeps_orbit_whose_witness_is_above_target_f(campaign):
     filtered = open_targets(rows, 5, 8, population=state.population)
     assert len(filtered) == 1
     assert filtered[0].lc_orbit_key == target.lc_orbit_key
+
+
+def test_ensure_certified_stamps_verify_agreed_after_both_engines(campaign):
+    from empiricist.verifiers.goldens import suite_hash
+    from empiricist.verifiers.registry import AGREED_NAME, AGREED_VERSION, agreed_binary_hash
+
+    state, _cfg = campaign
+    assert not state.ledger.is_certified(AGREED_NAME, AGREED_VERSION, agreed_binary_hash())
+    ensure_certified(state)
+    cert = state.ledger.get_certification(AGREED_NAME, AGREED_VERSION, agreed_binary_hash())
+    assert cert is not None and cert.verdict is Verdict.PASS
+    assert cert.golden_suite_hash == suite_hash()
+
+
+def test_certify_agreed_refuses_without_both_engines(tmp_path):
+    from empiricist.ledger.db import Ledger
+    from empiricist.verifiers.registry import UncertifiedVerifierError, certify_agreed
+
+    lg = Ledger(tmp_path / "ledger.db")
+    try:
+        with pytest.raises(UncertifiedVerifierError):
+            certify_agreed(lg)
+    finally:
+        lg.close()

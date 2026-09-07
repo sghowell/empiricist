@@ -46,6 +46,7 @@ from empiricist.search.database import Population
 from empiricist.search.loop import GenerationReport, SearchLoop, TargetSpec
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
 from empiricist.verifiers.goldens import suite_hash
+from empiricist.verifiers.registry import agreed_is_certified, certify_agreed
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,11 @@ def ensure_certified(state: CampaignState) -> None:
             or cert.golden_suite_hash != current_suite_hash
         ):
             state.registry.certify(verifier)
+    # The agreement logic is certified after both engines (it runs them): a
+    # two-engine-agreed exact witness is recorded through the certification-gated
+    # claimed-artifact path, which needs this stamp (M23b).
+    if not agreed_is_certified(state.ledger):
+        certify_agreed(state.ledger)
 
 
 def ensure_enumerate(state: CampaignState, cfg: RunConfig) -> Artifact:
@@ -186,6 +192,7 @@ def open_targets(
                 representative_edges=tuple(tuple(e) for e in row["representative_edges"]),
                 known_bound=f"F >= {row['lower_bound']}",
                 target_f=row["lower_bound"],
+                orbit_id=row["orbit_id"],
             )
         )
     return targets

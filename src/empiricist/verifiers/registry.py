@@ -10,6 +10,7 @@ the verdicts of".
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -139,6 +140,52 @@ def verify_agreed(registry: Registry, construction: Construction) -> VerifierRes
 
     # Full agreement: identical keys, identical verdicts -- PASS, or an honest FAIL.
     return VerifierResult(verdict=stab_res.verdict, details=details)
+
+
+AGREED_NAME = "verify_agreed"
+AGREED_VERSION = "1.0"
+
+
+def agreed_binary_hash() -> str:
+    """Identity of the agreement logic: this module's own source, under the same rule
+    real verifiers follow (editing it mints a new identity)."""
+    from empiricist.verifiers.base import module_source_hash
+
+    return module_source_hash(sys.modules[__name__])
+
+
+class _AgreedIdentity:
+    name = AGREED_NAME
+    version = AGREED_VERSION
+
+    @property
+    def binary_hash(self) -> str:
+        return agreed_binary_hash()
+
+
+def agreed_is_certified(ledger: Ledger) -> bool:
+    """True iff `verify_agreed` holds a PASS stamp for its live identity and suite."""
+    cert = ledger.get_certification(AGREED_NAME, AGREED_VERSION, agreed_binary_hash())
+    return (
+        cert is not None
+        and cert.verdict is Verdict.PASS
+        and cert.golden_suite_hash == suite_hash()
+    )
+
+
+def certify_agreed(ledger: Ledger) -> Certification:
+    """Certify `verify_agreed` itself against the P5 golden suite: every case runs
+    through BOTH engines and the agreement logic, and the stamp is PASS iff every
+    verdict matches its expectation. Both engines must already hold current stamps --
+    `Registry.verify` raises `UncertifiedVerifierError` before any case runs otherwise.
+    With this stamp a two-engine-agreed witness can be recorded through the
+    certification-gated `record_claimed_artifact` path (M23b)."""
+    registry = Registry(ledger)
+    return certify_with_suite(
+        ledger, _AgreedIdentity(), P5_GOLDEN_SUITE,
+        lambda _v, construction: verify_agreed(registry, construction),
+        golden_suite_hash=suite_hash(),
+    )
 
 
 def certify_with_suite(
