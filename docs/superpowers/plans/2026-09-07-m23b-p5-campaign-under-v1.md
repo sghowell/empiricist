@@ -93,3 +93,7 @@
 - Deterministic Tier-1 at n=8 (transients to size 10, ~11.7M graphs) — a timed feasibility spike; it would close the Tier-1-reachable n=8 orbits without model spend.
 - A "grid" family for the conjecturer (2×2, 2×3, 2×4 exact; 3×3 open) so the marquee 2D-cluster conjecture can be stated and attacked in-campaign.
 - A CERTIFIED→receipt path for construction claims (charter F4 applies to `statement` kinds today).
+
+## Outcome (2026-09-07)
+
+Tasks 1–6 done on `feat/m23b-p5-campaign-v1`. Fast suite 1129 passed before the live run. Back-fill: 8/8 July witnesses promoted to CERTIFIED and materialised. Live run on the resumed `runs/p5-live`: phase A (n=7, 6 generations, $42.06) closed nothing; phase B (n=8, 10 generations, $17.66) closed one orbit at F=8 and the hook wrote its claim file during the run; stall stop. Repository ledger 86 claims, `check` green, `audit` OK. Narrative: `docs/science/2026-09-07-p5-campaign-under-v1.md`. Known wart: the family slug uses the LC key's last twelve hex characters, which collide across orbits (ids stay unique via `_2`).

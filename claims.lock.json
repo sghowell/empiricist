@@ -120,6 +120,16 @@
         }
       }
     },
+    "claims/evidence/22359f81f93eacb9.json": {
+      "sha256": "0cc2c53e8381de30e1710679e18e7483f43be1ba3c00de2a07f75e8aef9994fe",
+      "verifiers": {
+        "verify_agreed": {
+          "binary_hash": "d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c",
+          "golden_suite_hash": "75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/22d86202d8917fd2.lean": {
       "sha256": "012269e7730e8c399af1c630f3885c9d9ff2b05a9c4baa1b7ab325af61d71770",
       "verifiers": {
