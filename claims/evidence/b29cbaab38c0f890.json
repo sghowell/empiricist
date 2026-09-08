@@ -1,0 +1,1 @@
+{"resources":8,"steps":[{"args":[16,3],"op":"fuse"},{"args":[4,23],"op":"fuse"},{"args":[17,1],"op":"fuse"},{"args":[22,9],"op":"fuse"},{"args":[11,12],"op":"fuse"},{"args":[14,7],"op":"fuse"},{"args":[19,2],"op":"fuse"},{"args":[20,8],"op":"fuse"},{"args":[0],"op":"lc"}],"target_edges":[[0,5],[0,6],[1,5],[2,6],[2,7],[3,7],[4,7],[5,6],[5,7]],"target_n":8}

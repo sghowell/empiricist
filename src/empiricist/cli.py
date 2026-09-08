@@ -92,6 +92,13 @@ def build_parser() -> argparse.ArgumentParser:
                 "(must be >= 1; not a paid-attempt cap)"
             ),
         )
+        sp.add_argument(
+            "--claims-repo", type=Path, default=None, dest="claims_repo",
+            help=(
+                "research repository whose claims/ the campaign's promotions are "
+                "materialized into (default: $EMPIRICIST_CLAIMS_REPO, else none)"
+            ),
+        )
         sp.add_argument("--tier0-n", type=int, default=None, dest="tier0_n")
         sp.add_argument("--tier1-n", type=int, default=None, dest="tier1_n")
         sp.add_argument("--search-n", type=int, default=None, dest="search_n")
@@ -179,8 +186,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     reverify_p.add_argument("--timeout-s", type=float, default=600.0)
     reverify_p.add_argument(
-        "--only", choices=("lean", "certificates"), default=None,
-        help="run one pass only (default: the Lean pass, then the certificate pass)",
+        "--only", choices=("lean", "certificates", "constructions"), default=None,
+        help=(
+            "run one pass only (default: the Lean pass, then the certificate pass, "
+            "then the construction-witness pass)"
+        ),
+    )
+    reverify_p.add_argument(
+        "--claims-repo", type=Path, default=None, dest="claims_repo",
+        help="project promoted witnesses into this claims repository (constructions pass)",
     )
 
     opt_p = sub.add_parser(
@@ -568,7 +582,7 @@ def _cmd_campaign(args: argparse.Namespace, *, client_factory: Callable[[], LLMC
     finally:
         preflight_ledger.close()
 
-    summary = asyncio.run(run_campaign(run_dir, cfg, client))
+    summary = asyncio.run(run_campaign(run_dir, cfg, client, claims_repo=args.claims_repo))
     print(f"campaign summary: {summary}")
 
     # run_campaign closes its own mutating handle.  Rendering the completed
@@ -670,14 +684,21 @@ def _cmd_reverify(args: argparse.Namespace) -> int:
     store = Store(args.run_dir / "store")
     reports: list[tuple[str, str, object]] = []
     try:
-        if args.only != "certificates":
+        if args.only in (None, "lean"):
             reports.append(("lean", "LeanVerifier", reverify_lean_artifacts(
                 ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
                 timeout_s=args.timeout_s,
             )))
-        if args.only != "lean":
+        if args.only in (None, "certificates"):
             reports.append(("certificate", "certificate checkers", reverify_certificate_artifacts(
                 ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
+            )))
+        if args.only in (None, "constructions"):
+            from empiricist.domain.p5.reverify import reverify_construction_artifacts
+
+            reports.append(("construction", "fusion engines", reverify_construction_artifacts(
+                ledger, store, artifact_ids=args.artifact, dry_run=args.dry_run,
+                claims_repo=args.claims_repo,
             )))
     finally:
         ledger.close()

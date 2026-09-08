@@ -47,28 +47,35 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from pydantic import ValidationError
 
-import empiricist.verifiers.registry as _registry_module
+from empiricist.claims.materialize import materialize_after_ingest
 from empiricist.domain.p5 import P5_PROBLEM_VERSION
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.ingest import ingest_artifact
-from empiricist.ledger.models import EvidenceRow, Status, Verdict
+from empiricist.ledger.models import Artifact, Claim, EvidenceRow, Status, Verdict
 from empiricist.llm.client import LLMClient
 from empiricist.llm.roles import ROLES
 from empiricist.search.database import Population
 from empiricist.search.schemas import ConstructionOut, ScreenReject, to_construction
 from empiricist.store import Store
-from empiricist.verifiers.base import module_source_hash
-from empiricist.verifiers.registry import Registry, verify_agreed
+from empiricist.verifiers.goldens import suite_hash
+from empiricist.verifiers.registry import (
+    AGREED_NAME,
+    AGREED_VERSION,
+    Registry,
+    agreed_binary_hash,
+    agreed_is_certified,
+    certify_agreed,
+    verify_agreed,
+)
 
-_VERIFY_AGREED_VERSION = "1.0"
-# Ties the evidence row's binary_hash to the actual code that decides
-# agreement (verify_agreed lives in verifiers/registry.py) -- consistent
-# with base.module_source_hash's "editing this source mints a new identity"
-# discipline used for real Verifiers.
-_VERIFY_AGREED_BINARY_HASH = module_source_hash(_registry_module)
+_VERIFY_AGREED_VERSION = AGREED_VERSION
+# The evidence row's binary_hash names the code that decides agreement
+# (`verifiers/registry.py`), the same "editing this source mints a new identity"
+# rule real verifiers follow; `certify_agreed` stamps that identity (M23b).
+_VERIFY_AGREED_BINARY_HASH = agreed_binary_hash()
 
 
 @dataclass(frozen=True)
@@ -78,6 +85,7 @@ class TargetSpec:
     representative_edges: tuple  # sorted edge tuples for the prompt
     known_bound: str             # e.g. "F >= 8 (Tier-0 unreachable)" or "best known F = 6"
     target_f: int                # the fusion count a success would establish (e.g. N for open)
+    orbit_id: str = ""           # the tablebase row's orbit id (enumeration root), when known
 
 
 class F3Alarm(Exception):
@@ -108,6 +116,73 @@ def _canonical_construction_json(out: ConstructionOut) -> bytes:
     ).encode("utf-8")
 
 
+
+def exact_value_claim(*, artifact_id: str, target: TargetSpec, f: int, details: dict) -> Claim:
+    """The canonical claim an exact upgrade establishes: `F(G) = f` for the target's
+    LC-orbit, warranted by a two-engine-agreed witness at `f` fusions meeting the
+    tablebase's proven lower bound `f`."""
+    edges = ", ".join(f"({a},{b})" for a, b in target.representative_edges)
+    key = target.lc_orbit_key
+    statement = (
+        f"F(G) = {f} for the LC-orbit {key} of connected {target.n}-qubit graph states "
+        f"(representative edges [{edges}]): a construction with {f} fusions reaches the "
+        "orbit (both certified fusion engines agree) and the exact tablebase's lower bound "
+        f"for the orbit is {f} (the deterministic tiers exclude every smaller rung of the "
+        "mod-3 ladder)."
+    )
+    return Claim.create(
+        artifact_id=artifact_id,
+        problem="P5",
+        problem_version=P5_PROBLEM_VERSION,
+        statement=statement,
+        family=f"n{target.n}_orbit_{key[-12:]}",
+        metric="min_fusions",
+        scope={
+            "n": target.n,
+            "lc_orbit_key": key,
+            "orbit_id": target.orbit_id,
+            "f": f,
+            "lower_bound": target.target_f,
+            "stab_fusion_id": details["stab_fusion_id"],
+            "enum_fusion_id": details["enum_fusion_id"],
+        },
+    )
+
+
+def record_exact_value(
+    ledger: Ledger, store: Store, cert_hash: str, *, target: TargetSpec, f: int,
+    details: dict, claims_repo: Path | None = None,
+) -> Artifact:
+    """Record a witness already in the CAS at `cert_hash` as a CERTIFIED construction
+    artifact with its claim row and `verify_agreed` PASS evidence, then project it into
+    the configured claims repository. Requires `verify_agreed`'s live stamp."""
+    art = Artifact(
+        id=cert_hash,
+        kind="construction",
+        problem="P5",
+        problem_version=P5_PROBLEM_VERSION,
+        title=f"exact value: n={target.n} LC-orbit ...{target.lc_orbit_key[-12:]} F={f}",
+        content_path=cert_hash,
+        status=Status.CERTIFIED,
+    )
+    claim = exact_value_claim(artifact_id=cert_hash, target=target, f=f, details=details)
+    evidence = EvidenceRow(
+        artifact_id=cert_hash,
+        claim_id=claim.id,
+        verifier=AGREED_NAME,
+        verifier_version=AGREED_VERSION,
+        binary_hash=agreed_binary_hash(),
+        golden_suite_hash=suite_hash(),
+        verdict=Verdict.PASS,
+        details=details,
+    )
+    stored = ledger.record_claimed_artifact(
+        art, claim, evidence, expected_golden_suite_hash=suite_hash()
+    )
+    materialize_after_ingest(ledger, store, stored.id, claims_repo=claims_repo)
+    return stored
+
+
 class SearchLoop:
     def __init__(
         self,
@@ -118,12 +193,14 @@ class SearchLoop:
         population: Population,
         *,
         island: int = 0,
+        claims_repo: Path | None = None,
     ) -> None:
         self._client = client
         self._ledger = ledger
         self._store = store
         self._registry = registry
         self._population = population
+        self._claims_repo = claims_repo
         self._island = island
 
     def build_prompt(self, target: TargetSpec, nonce: str) -> str:
@@ -157,6 +234,12 @@ class SearchLoop:
     ) -> GenerationReport:
         if not targets:
             raise ValueError("run_generation requires at least one TargetSpec")
+
+        # Fail closed before any paid call: an exact upgrade is recorded through the
+        # certification-gated claimed-artifact path, which needs `verify_agreed`'s stamp
+        # (cheap; requires both engines to be certified, which `Registry.verify` needs anyway).
+        if not agreed_is_certified(self._ledger):
+            certify_agreed(self._ledger)
 
         role = ROLES["searcher"]
         k_eff = k if k is not None else role.k
@@ -247,31 +330,26 @@ class SearchLoop:
             target = target_by_key.get(achieved_key)
             if improved and target is not None and f == target.target_f:
                 exact_upgrades.append((target.lc_orbit_key, f))
-                art = ingest_artifact(
-                    self._ledger, self._store, content=cert_json, kind="construction",
-                    problem="P5",
-                    problem_version=P5_PROBLEM_VERSION,
-                    title=f"SEARCH exact upgrade: orbit {achieved_key[:12]} F={f}",
-                    status=Status.HEURISTIC,
+                details = {
+                    "achieved_key": achieved_key,
+                    "f": f,
+                    "target": asdict(target),
+                    "upgrade": True,
+                    # Which certified engine pair agreed (M6 T5 review
+                    # M4): name@version:binary_hash[:12] per engine,
+                    # straight from verify_agreed's details.
+                    "stab_fusion_id": verdict_result.details["stab_fusion_id"],
+                    "enum_fusion_id": verdict_result.details["enum_fusion_id"],
+                }
+                # An exact upgrade is a certificate: two certified engines replay the
+                # witness to the target orbit and its fusion count meets the proven lower
+                # bound. It is recorded at CERTIFIED with a canonical claim row through
+                # the certification-gated path (spec §4.1; M23b), and projected into the
+                # configured claims repository.
+                record_exact_value(
+                    self._ledger, self._store, cert_hash, target=target, f=f,
+                    details=details, claims_repo=self._claims_repo,
                 )
-                self._ledger.record_evidence(EvidenceRow(
-                    artifact_id=art.id,
-                    verifier="verify_agreed",
-                    verifier_version=_VERIFY_AGREED_VERSION,
-                    binary_hash=_VERIFY_AGREED_BINARY_HASH,
-                    verdict=Verdict.PASS,
-                    details={
-                        "achieved_key": achieved_key,
-                        "f": f,
-                        "target": asdict(target),
-                        "upgrade": True,
-                        # Which certified engine pair agreed (M6 T5 review
-                        # M4): name@version:binary_hash[:12] per engine,
-                        # straight from verify_agreed's details.
-                        "stab_fusion_id": verdict_result.details["stab_fusion_id"],
-                        "enum_fusion_id": verdict_result.details["enum_fusion_id"],
-                    },
-                ))
 
         report = GenerationReport(
             gen=gen,

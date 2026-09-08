@@ -785,3 +785,51 @@ def test_mine_prompt_no_nudge_for_family_that_only_has_refuted_artifacts(
     run(mine(client, small_dataset_rows, k=1, ledger=lg))
     _role, prompt = client.calls[0]
     assert "Already-conjectured" not in prompt
+
+
+# -- settled families (M23b Task 3) -----------------------------------------
+
+
+def _formalized_claim(repo, cid, level="FORMALIZED"):
+    from empiricist.claims.lock import read_lock, refresh_lock_entries, write_lock
+    from empiricist.claims.model import ClaimFile, EvidenceEntry, save_claim
+
+    (repo / "ev").mkdir(parents=True, exist_ok=True)
+    (repo / "ev" / f"{cid}.lean").write_text("theorem t : 1 = 1 := rfl")
+    c = ClaimFile(
+        id=cid, problem="P5", formulation_version="v1", kind="statement",
+        statement=f"theorem {cid}", level=level, updated="2026-09-07",
+        evidence=[EvidenceEntry(path=f"ev/{cid}.lean", verifier="lean", version="3.3",
+                                verdict="PASS", stamped="2026-09-07T00:00:00Z",
+                                binary_hash="ab" * 32)],
+    )
+    save_claim(repo, c)
+    lock = read_lock(repo)
+    write_lock(repo, refresh_lock_entries(repo, c, lock))
+    return c
+
+
+def test_settled_families_reads_the_claims_ledger(tmp_path):
+    from empiricist.claims.check import refresh_repo
+    from empiricist.domain.p5.settled import SETTLED_FAMILIES, settled_families
+
+    assert settled_families(None) == {}
+    assert settled_families(tmp_path / "missing") == {}
+    repo = tmp_path / "repo"
+    _formalized_claim(repo, SETTLED_FAMILIES["path"])
+    _formalized_claim(repo, SETTLED_FAMILIES["star"], level="CONJECTURED")
+    refresh_repo(repo)
+    assert settled_families(repo) == {"path": SETTLED_FAMILIES["path"]}
+
+
+def test_mine_prompt_names_settled_families(env, small_dataset_rows):
+    lg, st = env
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg,
+             settled={"path": "P5.Empiricist.pathGraph_min_fusions"}))
+    _role, prompt = client.calls[0]
+    assert "Settled by a FORMALIZED theorem" in prompt
+    assert "path (P5.Empiricist.pathGraph_min_fusions)" in prompt
+    client = FakeLLMClient([])
+    run(mine(client, small_dataset_rows, k=1, ledger=lg))
+    assert "Settled by" not in client.calls[0][1]

@@ -25,6 +25,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from empiricist.claims.materialize import claims_repo_from_env
 from empiricist.ledger.db import Ledger
 from empiricist.ledger.gates import Gates
 from empiricist.ledger.migrations import LATEST_SCHEMA_VERSION, SchemaVersionError
@@ -41,9 +42,14 @@ class CampaignState:
     registry: Registry
     population: Population
     gates: Gates
+    # The claims repository the batch hook projects promotions into (charter section
+    # 4); None = no projection. From `--claims-repo`, else EMPIRICIST_CLAIMS_REPO.
+    claims_repo: Path | None = None
 
     @classmethod
-    def _from_ledger(cls, run_dir: Path, ledger: Ledger) -> CampaignState:
+    def _from_ledger(
+        cls, run_dir: Path, ledger: Ledger, *, claims_repo: Path | None = None
+    ) -> CampaignState:
         """Build the shared facades around an already-open ledger."""
         return cls(
             run_dir=run_dir,
@@ -52,10 +58,11 @@ class CampaignState:
             registry=Registry(ledger),
             population=Population(ledger),
             gates=Gates(ledger),
+            claims_repo=claims_repo,
         )
 
     @classmethod
-    def load(cls, run_dir: Path) -> CampaignState:
+    def load(cls, run_dir: Path, *, claims_repo: Path | None = None) -> CampaignState:
         """Create-or-resume: mkdir -p the run directory, open the Ledger/
         Store/Registry/Population/Gates handles, reconcile orphaned runs,
         and log the session-boundary `search_events` marker.
@@ -91,7 +98,8 @@ class CampaignState:
             -1, "resume" if existed else "created", {"orphans": orphans}
         )
 
-        return cls._from_ledger(run_dir, ledger)
+        repo = claims_repo if claims_repo is not None else claims_repo_from_env()
+        return cls._from_ledger(run_dir, ledger, claims_repo=repo)
 
     @classmethod
     def open_readonly(cls, run_dir: Path) -> CampaignState:

@@ -70,8 +70,10 @@ class CampaignSummary:
     f3_alarm: bool = False
 
 
-async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> CampaignSummary:
-    state = CampaignState.load(run_dir)
+async def run_campaign(
+    run_dir: Path, cfg: RunConfig, client: LLMClient, *, claims_repo: Path | None = None
+) -> CampaignSummary:
+    state = CampaignState.load(run_dir, claims_repo=claims_repo)
     summary = CampaignSummary()
     try:
         dataset_art = ensure_enumerate(state, cfg)  # heavy step, idempotent across resume
@@ -203,6 +205,24 @@ async def run_campaign(run_dir: Path, cfg: RunConfig, client: LLMClient) -> Camp
                 file=sys.stderr,
             )
         finally:
+            _catch_up_claims(state)
             state.close()
 
     return summary
+
+
+def _catch_up_claims(state: CampaignState) -> None:
+    """End-of-campaign projection of every promoted artifact into the configured claims
+    repository (idempotent; covers a hook that failed mid-run). Never masks the
+    campaign's own outcome."""
+    if state.claims_repo is None:
+        return
+    try:
+        from empiricist.claims.importer import materialize_artifacts
+
+        materialize_artifacts(state.ledger, state.store, state.claims_repo)
+    except Exception as exc:  # noqa: BLE001 - the ledger is the record; the projection can be redone
+        print(
+            f"empiricist: claims catch-up into {state.claims_repo} failed: {exc!r}",
+            file=sys.stderr,
+        )

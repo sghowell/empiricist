@@ -111,3 +111,40 @@ def test_registry_follows_the_latest_certification_of_a_version(tmp_path):
     rep = check(repo)
     assert rep.standings == {"P3.Empiricist.a": "STALE", "P3.Empiricist.b": "CURRENT"}
     lg.close()
+
+
+def test_conjecture_submit_and_dataset_ingest_materialize_when_configured(tmp_path):
+    """The campaign's own ingest paths call the batch hook (M23b Task 2): a surviving
+    conjecture lands as a CONJECTURED claim file and the tablebase as VERIFIED_N."""
+    from empiricist.campaign.moves import ensure_certified
+    from empiricist.campaign.state import CampaignState
+    from empiricist.domain.p5.dataset import build_dataset, ingest_dataset
+    from empiricist.domain.p5.tablebase import tier0_search, tier1_search
+    from empiricist.llm.schemas import ConjectureOut
+    from empiricist.search.conjecture import AttackReport, submit
+
+    repo = tmp_path / "repo"
+    state = CampaignState.load(tmp_path / "run", claims_repo=repo)
+    try:
+        conj = ConjectureOut(family="path", closed_form="N-3",
+                             predicted_values={"3": 0, "4": 1, "5": 2}, confidence=0.9)
+        art = submit(state.ledger, state.store, conj,
+                     AttackReport(survived=True, checks=3, counterexample=None),
+                     claims_repo=repo)
+        claims = load_all(repo)
+        (cid,) = claims
+        assert claims[cid].level == "CONJECTURED" and claims[cid].source.ref == art.id
+        assert claims[cid].evidence[0].verifier == "auto_attack"
+        ensure_certified(state)
+        ds = ingest_dataset(state.ledger, state.store,
+                            build_dataset(tier0_search(5), tier1_search(4)),
+                            state.registry, claims_repo=repo)
+        claims = load_all(repo)
+        assert len(claims) == 2
+        dataset_claim = next(c for c in claims.values() if c.source.ref == ds.id)
+        assert dataset_claim.level == "VERIFIED_N" and dataset_claim.n == 5
+        assert dataset_claim.coverage == "exhaustive"
+        rep = check(repo)
+        assert rep.ok, rep.issues
+    finally:
+        state.close()

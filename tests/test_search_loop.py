@@ -199,12 +199,22 @@ def test_run_generation_full_wave_counts_population_events_and_upgrade(env):
     art = lg.get_artifact(cert_hash)
     assert art.kind == "construction"
     assert art.problem_version == "p5-ghz3-v1"
-    assert art.status == Status.HEURISTIC
+    # an exact upgrade is a two-engine-certified witness meeting the proven lower bound:
+    # CERTIFIED, with a canonical claim row (M23b)
+    assert art.status == Status.CERTIFIED
+    assert "orbit 000000000000" not in art.title      # the old title sliced the zero-run head
+    assert "F=1" in art.title and "n=4" in art.title and P4_KEY[-12:] in art.title
+    claims = lg.claims_for(cert_hash)
+    assert len(claims) == 1 and claims[0].metric == "min_fusions"
+    assert claims[0].scope["f"] == 1 and claims[0].scope["lc_orbit_key"] == P4_KEY
+    assert "F(G) = 1" in claims[0].statement
+    assert "both certified fusion engines" in claims[0].statement
 
     evidence = lg.evidence_for(cert_hash)
     assert len(evidence) == 1
     ev = evidence[0]
-    assert ev.verifier == "verify_agreed"
+    assert ev.verifier == "verify_agreed" and ev.claim_id == claims[0].id
+    assert ev.golden_suite_hash is not None
     assert ev.verdict == Verdict.PASS
     assert ev.details["achieved_key"] == P4_KEY
     assert ev.details["f"] == 1
@@ -387,3 +397,14 @@ def test_run_generation_rejects_empty_targets(env):
     loop = make_loop(FakeLLMClient([]), env)
     with pytest.raises(ValueError):
         run(loop.run_generation(1, []))
+
+
+def test_witness_above_the_lower_bound_is_an_elite_not_a_claim(env):
+    """A PASS witness whose fusion count is above the target's achievable rung is an
+    upper bound: it enters the population but is not an artifact and not a claim."""
+    lg, st, reg, pop = env
+    loop = make_loop(FakeLLMClient([make_result(dict(P4_DICT))]), env)
+    report = run(loop.run_generation(1, [p4_target(target_f=4)], k=1))
+    assert report.inserted == 1 and report.exact_upgrades == ()
+    assert pop.get(P4_KEY) is not None
+    assert lg.find_artifacts(kind="construction") == []

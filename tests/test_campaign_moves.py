@@ -483,9 +483,9 @@ def test_conjecture_move_passes_state_ledger_to_mine(campaign, monkeypatch):
     calls: list[dict] = []
     original_mine = moves_mod.mine
 
-    async def spy_mine(client, rows, *, k=None, ledger=None):
-        calls.append({"ledger": ledger})
-        return await original_mine(client, rows, k=k, ledger=ledger)
+    async def spy_mine(client, rows, *, k=None, ledger=None, settled=None):
+        calls.append({"ledger": ledger, "settled": settled})
+        return await original_mine(client, rows, k=k, ledger=ledger, settled=settled)
 
     monkeypatch.setattr(moves_mod, "mine", spy_mine)
 
@@ -494,6 +494,7 @@ def test_conjecture_move_passes_state_ledger_to_mine(campaign, monkeypatch):
 
     assert len(calls) == 1
     assert calls[0]["ledger"] is state.ledger
+    assert calls[0]["settled"] == {}   # no claims repository configured: nothing is settled
 
 
 # -- open_targets: solved-orbit filtering (I3) ---------------------------------
@@ -527,3 +528,27 @@ def test_open_targets_keeps_orbit_whose_witness_is_above_target_f(campaign):
     filtered = open_targets(rows, 5, 8, population=state.population)
     assert len(filtered) == 1
     assert filtered[0].lc_orbit_key == target.lc_orbit_key
+
+
+def test_ensure_certified_stamps_verify_agreed_after_both_engines(campaign):
+    from empiricist.verifiers.goldens import suite_hash
+    from empiricist.verifiers.registry import AGREED_NAME, AGREED_VERSION, agreed_binary_hash
+
+    state, _cfg = campaign
+    assert not state.ledger.is_certified(AGREED_NAME, AGREED_VERSION, agreed_binary_hash())
+    ensure_certified(state)
+    cert = state.ledger.get_certification(AGREED_NAME, AGREED_VERSION, agreed_binary_hash())
+    assert cert is not None and cert.verdict is Verdict.PASS
+    assert cert.golden_suite_hash == suite_hash()
+
+
+def test_certify_agreed_refuses_without_both_engines(tmp_path):
+    from empiricist.ledger.db import Ledger
+    from empiricist.verifiers.registry import UncertifiedVerifierError, certify_agreed
+
+    lg = Ledger(tmp_path / "ledger.db")
+    try:
+        with pytest.raises(UncertifiedVerifierError):
+            certify_agreed(lg)
+    finally:
+        lg.close()

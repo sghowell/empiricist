@@ -38,6 +38,7 @@ from empiricist.domain.p5.canonical import lc_orbit_key
 from empiricist.domain.p5.dataset import build_dataset, ingest_dataset
 from empiricist.domain.p5.graphstate import GraphState
 from empiricist.domain.p5.localcomp import OrbitTooLarge
+from empiricist.domain.p5.settled import settled_families
 from empiricist.domain.p5.tablebase import tier0_search, tier1_search
 from empiricist.ledger.models import Artifact, Status, Verdict
 from empiricist.llm.client import LLMClient
@@ -46,6 +47,7 @@ from empiricist.search.database import Population
 from empiricist.search.loop import GenerationReport, SearchLoop, TargetSpec
 from empiricist.verifiers.enum_fusion import EnumFusionVerifier
 from empiricist.verifiers.goldens import suite_hash
+from empiricist.verifiers.registry import agreed_is_certified, certify_agreed
 from empiricist.verifiers.stab_fusion import StabFusionVerifier
 
 logger = logging.getLogger(__name__)
@@ -78,6 +80,11 @@ def ensure_certified(state: CampaignState) -> None:
             or cert.golden_suite_hash != current_suite_hash
         ):
             state.registry.certify(verifier)
+    # The agreement logic is certified after both engines (it runs them): a
+    # two-engine-agreed exact witness is recorded through the certification-gated
+    # claimed-artifact path, which needs this stamp (M23b).
+    if not agreed_is_certified(state.ledger):
+        certify_agreed(state.ledger)
 
 
 def ensure_enumerate(state: CampaignState, cfg: RunConfig) -> Artifact:
@@ -102,7 +109,9 @@ def ensure_enumerate(state: CampaignState, cfg: RunConfig) -> Artifact:
     tier1 = tier1_search(cfg.tier1_n)
     dataset = build_dataset(tier0, tier1)
 
-    return ingest_dataset(state.ledger, state.store, dataset, state.registry)
+    return ingest_dataset(
+        state.ledger, state.store, dataset, state.registry, claims_repo=state.claims_repo
+    )
 
 
 def dataset_rows(state: CampaignState, artifact: Artifact) -> list[dict]:
@@ -186,6 +195,7 @@ def open_targets(
                 representative_edges=tuple(tuple(e) for e in row["representative_edges"]),
                 known_bound=f"F >= {row['lower_bound']}",
                 target_f=row["lower_bound"],
+                orbit_id=row["orbit_id"],
             )
         )
     return targets
@@ -211,7 +221,10 @@ async def search_move(
             "population-solved), or every open orbit there exceeded the "
             "LC-orbit cap (see open_targets)"
         )
-    loop = SearchLoop(client, state.ledger, state.store, state.registry, state.population)
+    loop = SearchLoop(
+        client, state.ledger, state.store, state.registry, state.population,
+        claims_repo=state.claims_repo,
+    )
     return await loop.run_generation(gen, targets)
 
 
@@ -245,7 +258,9 @@ async def conjecture_move(
     (see `mine`'s docstring)."""
     artifact = ensure_enumerate(state, cfg)
     rows = dataset_rows(state, artifact)
-    conjectures = await mine(client, rows, ledger=state.ledger)
+    conjectures = await mine(
+        client, rows, ledger=state.ledger, settled=settled_families(state.claims_repo)
+    )
     artifacts: list[Artifact] = []
     for conj in conjectures:
         art_id = conjecture_artifact_id(conj)
@@ -260,5 +275,7 @@ async def conjecture_move(
             )
             continue
         report = attack(conj, rows)
-        artifacts.append(submit(state.ledger, state.store, conj, report))
+        artifacts.append(
+            submit(state.ledger, state.store, conj, report, claims_repo=state.claims_repo)
+        )
     return artifacts
