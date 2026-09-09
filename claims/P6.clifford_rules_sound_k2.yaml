@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: zx_rule_sound
   version: '1'
+- binary_hash: eee177b6d342718bdb1440597baf151ff1f06f5ab06e800f0942d6f5a51f8390
+  golden_suite_hash: 5fba4469b3b24e3e330770a0eebbd72cdcd9734d3395aef4c9c7af33f17f355d
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/clifford_rules_sound_k2.json
+  stamped: '2026-09-09T09:58:30+00:00'
+  verdict: PASS
+  verifier: zx_rule_sound
+  version: '1'
 formulation_version: p6-zx-v1
 id: P6.clifford_rules_sound_k2
 kind: statement

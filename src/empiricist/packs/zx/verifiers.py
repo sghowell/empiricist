@@ -27,11 +27,18 @@ Each judges the bytes of one committed evidence file, a JSON object:
   has no judged instance (all over the semantic budget).
 * `zx_completeness`  {"rules": [...], "fragment"?: "clifford" (only), "max_wires"?: 0..3
   (default 2), "max_vertices"?: 0..4 (default 3), "max_edges"? (default 6), "max_steps"?
-  (default 200), "max_diagrams"? (default 20000)}
-  PASS iff every semantic class (matrix up to scalar per wire signature; zero matrices
-  one class) of the enumerated class C(max_wires, max_vertices, max_edges) has exactly
-  one normal form under the rules applied first-applicable in payload order; FAIL is a
-  witness pair with both normal forms; ERROR past `max_diagrams` or `max_steps`.
+  (default 200), "max_diagrams"? (default 20000), "zero"?: "class" | "recognised"
+  (default "class")}
+  Under "class" (formulation p6-zx-v1): PASS iff every semantic class (matrix up to
+  scalar per wire signature; zero matrices one class) of the enumerated class
+  C(max_wires, max_vertices, max_edges) has exactly one normal form under the rules
+  applied first-applicable in payload order; FAIL is a witness pair (`kind` "pair")
+  with both normal forms. Under "recognised" (formulation p6-zx-v2): PASS iff every
+  non-zero class has exactly one normal form and a diagram's normal form is
+  syntactically zero (a legless spider of phase pi) iff the diagram denotes zero; FAIL
+  is a pair on a non-zero class or one diagram (`kind` "zero_unrecognised" or
+  "nonzero_syntactic_zero", `a` and `normal_form_a` only). ERROR past `max_diagrams`
+  or `max_steps`. Details always carry `zero`, `zero_diagrams`, `nonzero_classes`.
 
 `verify_bytes` is total: a malformed payload, an ill-formed diagram, an unknown rule
 or component, or an exhausted budget is an ERROR verdict with the reason, never a
@@ -114,6 +121,8 @@ GOLDENS: dict[str, tuple[tuple[str, Verdict], ...]] = {
         ("zx_completeness__one_spider_two_wires", Verdict.PASS),
         ("zx_completeness__one_spider_two_wires_no_identity_z_hh", Verdict.FAIL),
         ("zx_completeness__one_spider_two_wires_no_scalar_rules", Verdict.FAIL),
+        ("zx_completeness__one_spider_two_wires_zero_recognised", Verdict.PASS),
+        ("zx_completeness__one_spider_two_wires_zero_unrecognised", Verdict.FAIL),
     ),
 }
 
@@ -408,36 +417,60 @@ class ZXCompletenessVerifier(_ZXVerifier):
         max_edges = _int(obj, "max_edges", completeness.DEFAULT_MAX_EDGES, 0, MAX_CLASS_EDGES)
         max_steps = _int(obj, "max_steps", completeness.DEFAULT_MAX_STEPS, 1, 10 ** 5)
         max_diagrams = _int(obj, "max_diagrams", completeness.DEFAULT_MAX_DIAGRAMS, 1, 10 ** 6)
+        zero = obj.get("zero", "class")
+        if zero not in completeness.ZERO_MODES:
+            raise PayloadError(f"zero must be one of {list(completeness.ZERO_MODES)}, "
+                               f"not {zero!r}")
         try:
             rep = completeness.check(rulebook, phases=FRAGMENTS[fragment], max_wires=max_wires,
                                      max_vertices=max_vertices, max_edges=max_edges,
-                                     max_steps=max_steps, max_diagrams=max_diagrams)
+                                     max_steps=max_steps, max_diagrams=max_diagrams, zero=zero)
         except completeness.CompletenessError as exc:
             raise PayloadError(f"undecided: {exc}") from None
         common = {"fragment": fragment, "max_wires": max_wires, "max_vertices": max_vertices,
                   "max_edges": max_edges, "max_steps": max_steps, "max_diagrams": max_diagrams,
-                  "diagrams": rep.diagrams, "skipped": rep.skipped, "classes": rep.classes,
-                  "reduced": rep.reduced, "normal_forms": rep.normal_forms,
-                  "steps_max": rep.steps_max, "rules": sorted(rulebook)}
+                  "zero": zero, "diagrams": rep.diagrams, "skipped": rep.skipped,
+                  "classes": rep.classes, "nonzero_classes": rep.nonzero_classes,
+                  "zero_diagrams": rep.zero_diagrams, "reduced": rep.reduced,
+                  "normal_forms": rep.normal_forms, "steps_max": rep.steps_max,
+                  "rules": sorted(rulebook)}
         cls = f"C({max_wires}, {max_vertices}, {max_edges})"
+        judged = rep.diagrams - rep.skipped
+        if isinstance(rep.failure, completeness.ZeroWitness):
+            w = rep.failure
+            what = ("denotes the zero map but its normal form is not syntactically zero"
+                    if w.kind == "zero_unrecognised" else
+                    "does not denote the zero map but its normal form is syntactically zero")
+            return VerifierResult(Verdict.FAIL, {
+                "detail": f"a diagram of {cls} on {w.inputs} inputs and {w.outputs} outputs "
+                          f"{what} (found after reducing {rep.reduced} of {judged} diagrams)",
+                "kind": w.kind, "a": w.diagram.to_json(),
+                "normal_form_a": w.normal_form.to_json(),
+                "inputs": w.inputs, "outputs": w.outputs, **common,
+            })
         if rep.failure is not None:
             w = rep.failure
             return VerifierResult(Verdict.FAIL, {
                 "detail": f"two semantically equal diagrams of {cls} on {w.inputs} inputs and "
                           f"{w.outputs} outputs have different normal forms (found after "
-                          f"reducing {rep.reduced} of {rep.diagrams - rep.skipped} diagrams)",
-                "a": w.a.to_json(), "b": w.b.to_json(),
+                          f"reducing {rep.reduced} of {judged} diagrams)",
+                "kind": "pair", "a": w.a.to_json(), "b": w.b.to_json(),
                 "normal_form_a": w.normal_form_a.to_json(),
                 "normal_form_b": w.normal_form_b.to_json(),
                 "inputs": w.inputs, "outputs": w.outputs, **common,
             })
-        return VerifierResult(Verdict.PASS, {
-            "detail": f"every one of {rep.classes} semantic classes of the {rep.diagrams} "
+        if zero == "recognised":
+            detail = (f"every one of {rep.nonzero_classes} non-zero semantic classes of the "
+                      f"{rep.diagrams} diagrams of {cls} has one normal form and each of the "
+                      f"{rep.zero_diagrams} zero diagrams reduces to a syntactically zero "
+                      f"normal form under {len(rulebook)} rules ({rep.skipped} skipped over "
+                      f"the semantic budget; at most {rep.steps_max} steps)")
+        else:
+            detail = (f"every one of {rep.classes} semantic classes of the {rep.diagrams} "
                       f"diagrams of {cls} has one normal form under {len(rulebook)} rules "
                       f"({rep.skipped} skipped over the semantic budget; at most "
-                      f"{rep.steps_max} steps)",
-            **common,
-        })
+                      f"{rep.steps_max} steps)")
+        return VerifierResult(Verdict.PASS, {"detail": detail, **common})
 
 
 VERIFIERS: dict[str, type[_ZXVerifier]] = {

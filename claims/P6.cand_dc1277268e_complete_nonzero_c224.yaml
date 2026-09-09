@@ -1,0 +1,45 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 93962274cb0100a515194d6f1f39f6a735056b27f45734d68657aa7082f08f87
+  golden_suite_hash: e5f06d11acb5dbd469e35f995fbd1307ec01f7593a7fb1ddd1b2e719aa592586
+  note: argv=None cwd=None exit=None env_sha256=None reason='two semantically equal
+    diagrams of C(2, 2, 4) on 0 inputs and 2 outputs have different normal forms (found
+    after reducing 29256 of 89367 diagrams)'
+  path: claims/evidence/p6/cand_dc1277268e/completeness_nonzero_c224.json
+  stamped: '2026-09-09T10:01:57+00:00'
+  verdict: FAIL
+  verifier: zx_completeness
+  version: '1'
+formulation_version: p6-zx-v2
+id: P6.cand_dc1277268e_complete_nonzero_c224
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: 'Minted by the P6 completion campaign (formulation p6-zx-v2) for candidate
+  cand_dc1277268e. Verifier: two semantically equal diagrams of C(2, 2, 4) on 0 inputs
+  and 2 outputs have different normal forms (found after reducing 29256 of 89367 diagrams)
+  Witness: {"kind":"pair","inputs":0,"outputs":2,"a":{"vertices":[[0,"B","0"],[1,"B","0"],[2,"Z","0"],[3,"Z","0"]],"edges":[[0,2,false],[1,3,true]],"inputs":[],"outputs":[0,1]},"b":{"vertices":[[0,"B","0"],[1,"B","0"],[2,"Z","0"],[3,"Z","0"]],"edges":[[0,3,true],[1,3,false],[2,3,true]],"inputs":[],"outputs":[0,1]},"normal_form_a":{"vertices":[[0,"B","0"],[1,"B","0"],[2,"Z","0"],[3,"Z","0"]],"edges":[[0,2,false],[1,3,true]],"inputs":[],"outputs":[0,1]},"normal_form_b":{"vertices":[[0,"B","0"],[1,"B","0"],[2,"Z","0"],[3,"Z","0"]],"edges":[[0,3,true],[1,3,false],[2,3,true]],"inputs":[],"outputs":[0,1]}}'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 35-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, colour_change, hopf_h, loop_z, loop_z_h,
+  loop_x, loop_x_h, h_state_q, h_state_t, plugone_pi, plugone_q, plugone_t, plugzero_pi,
+  plugzero_q, plugzero_t, scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0,
+  scalar_z_1_2, scalar_z_3_2, zero_fuse, zz_h_a0, zz_h_api, zz_h_qq, zz_h_tt, zz_h_zero}
+  (library rules oriented left-to-right; the inline rules h_state_q, h_state_t, plugone_pi,
+  plugone_q, plugone_t, plugzero_pi, plugzero_q, plugzero_t, scalar_x_0, scalar_x_1_2,
+  scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2, zero_fuse, zz_h_a0,
+  zz_h_api, zz_h_qq, zz_h_tt, zz_h_zero are given by their JSON in claims/evidence/p6/cand_dc1277268e/completeness_nonzero_c224.json),
+  applied first-applicable in the listed order, is complete for the class C(2, 2,
+  4) of stabilizer diagrams with zero recognised (at most 2 boundary wires, 2 interior
+  spiders, 4 edges; formulation p6-zx-v2, section 3) within max_steps = 200 and max_diagrams
+  = 1000000: every diagram of the class reduces to a normal form, a normal form is
+  syntactically zero (a legless spider of phase pi) exactly when the diagram denotes
+  the zero map, and semantically equal non-zero diagrams share one normal form.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

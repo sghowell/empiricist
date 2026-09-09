@@ -5,7 +5,8 @@ against a temporary claims repository and a scripted `FakeLLMClient`.
 Measured facts these tests rest on (M25a groundwork plus the M25b probes): the seed
 (R0core + the six scalar eliminations) is sound at arity 2, terminates under (vertices,
 edges), is locally confluent within depth 4 at arity 2 and is incomplete for C(2, 1, 2)
-(Z(0) and X(0) with a Hadamard self-loop both become a zero scalar); the seed plus
+with zero recognised (the Z(1/2) state with a Hadamard leg is the Z(3/2) state with a plain
+leg, and the seed has no rule for it); the seed plus
 colour_change and the two Hadamard-on-a-state rules of R1 passes all four checks on
 C(1, 1, 1) at depth 2 and has a non-joinable pair at depth 1 (colour_change against
 fusion_x)."""
@@ -229,8 +230,8 @@ def test_parse_classes():
 def test_write_payloads_shapes_and_canonical_order(repo):
     cid = cp.candidate_id(system_a())
     paths = cp.write_payloads(repo, cid, system_a(), [(1, 1, 1), (2, 1, 2)])
-    assert set(paths) == {"sound", "terminates", "locally_confluent_d2_k2", "complete_c111",
-                          "complete_c212"}
+    assert set(paths) == {"sound", "terminates", "locally_confluent_d2_k2",
+                          "complete_nonzero_c111", "complete_nonzero_c212"}
     assert all(p.startswith(f"claims/evidence/p6/cand_{cid}/") for p in paths.values())
     sound = json.loads((repo / paths["sound"]).read_text())
     assert sound["fragment"] == "clifford" and sound["star_legs"] == 2
@@ -245,8 +246,10 @@ def test_write_payloads_shapes_and_canonical_order(repo):
     assert term["measure"] == MEASURE_A and term["rules"] == sound["rules"]
     cps = json.loads((repo / paths["locally_confluent_d2_k2"]).read_text())
     assert cps["depth"] == 2 and cps["star_legs"] == 2 and cps["max_nodes"] == 20000
-    comp = json.loads((repo / paths["complete_c212"]).read_text())
+    comp = json.loads((repo / paths["complete_nonzero_c212"]).read_text())
     assert (comp["max_wires"], comp["max_vertices"], comp["max_edges"]) == (2, 1, 2)
+    assert comp["zero"] == "recognised" and paths["complete_nonzero_c212"].endswith(
+        "/completeness_nonzero_c212.json")
     assert comp["max_steps"] == cp.DEFAULT_MAX_STEPS and comp["max_diagrams"] == 1_000_000
     # the same candidate again reuses the files a claim may lock
     before = (repo / paths["sound"]).read_bytes()
@@ -310,7 +313,7 @@ def test_non_joinable_pair_mints_two_verified_and_one_refuted(repo):
     sound = claims[f"P6.cand_{cid}_sound"]
     assert sound["level"] == "VERIFIED_N" and sound["coverage"] == "exhaustive"
     assert sound["n"] == ev.steps[0].n > 1000 and sound["updated"] == "2026-09-09"
-    assert sound["problem"] == "P6" and sound["formulation_version"] == "p6-zx-v1"
+    assert sound["problem"] == "P6" and sound["formulation_version"] == "p6-zx-v2"
     assert "up to 2 residual legs" in sound["statement"]
     assert "state_h_z_1_2" in sound["statement"] and "colour_change" in sound["statement"]
     assert sound["evidence"][0]["verifier"] == "zx_rule_sound"
@@ -341,23 +344,27 @@ def test_seed_on_c212_mints_a_completeness_claim(repo):
     assert ev.serious and not ev.success
     assert [(s.name, s.verdict) for s in ev.steps] == [
         ("sound", "PASS"), ("terminates", "PASS"), ("locally_confluent_d4_k2", "PASS"),
-        ("complete_c212", "FAIL"),
+        ("complete_nonzero_c212", "FAIL"),
     ]
     claims = claim_files(repo)
     assert set(claims) == set(ev.claims) == {
         f"P6.cand_{cid}_sound", f"P6.cand_{cid}_terminates",
-        f"P6.cand_{cid}_locally_confluent_d4_k2", f"P6.cand_{cid}_complete_c212",
+        f"P6.cand_{cid}_locally_confluent_d4_k2", f"P6.cand_{cid}_complete_nonzero_c212",
     }
     lc = claims[f"P6.cand_{cid}_locally_confluent_d4_k2"]
     assert lc["level"] == "VERIFIED_N" and lc["n"] == 2388
     assert "2388 critical pairs" in lc["statement"]
-    comp = claims[f"P6.cand_{cid}_complete_c212"]
-    assert comp["level"] == "REFUTED"
-    assert "complete for the class C(2, 1, 2)" in comp["statement"]
+    comp = claims[f"P6.cand_{cid}_complete_nonzero_c212"]
+    assert comp["level"] == "REFUTED" and "formulation p6-zx-v2" in comp["statement"]
+    assert "complete for the class C(2, 1, 2) of stabilizer diagrams with zero recognised" \
+        in comp["statement"]
     assert "max_steps = 200" in comp["statement"]
+    # the witness is a non-zero pair: the Z(1/2) state with a Hadamard leg against the same
+    # state with a plain leg and a Hadamard self-loop (which reduces to the Z(3/2) state)
     w = ev.steps[3].witness
-    assert (w["inputs"], w["outputs"]) == (0, 0)
-    assert w["a"]["vertices"] == [[0, "Z", "0"]] and w["b"]["vertices"] == [[0, "X", "0"]]
+    assert w["kind"] == "pair" and (w["inputs"], w["outputs"]) == (0, 1)
+    assert w["a"]["vertices"] == w["b"]["vertices"] == [[0, "B", "0"], [1, "Z", "1/2"]]
+    assert [1, 1, True] in w["a"]["edges"] and w["b"]["edges"] == [[0, 1, True]]
     assert check(repo).ok
 
 
@@ -367,8 +374,9 @@ def test_success_on_c111_mints_four_verified_claims(repo):
     assert [s.verdict for s in ev.steps] == ["PASS"] * 4
     claims = claim_files(repo)
     assert len(claims) == 4 and all(c["level"] == "VERIFIED_N" for c in claims.values())
-    comp = claims[f"P6.cand_{ev.cid}_complete_c111"]
+    comp = claims[f"P6.cand_{ev.cid}_complete_nonzero_c111"]
     assert comp["n"] == 57 and "57 diagrams" in comp["statement"]
+    assert "6 zero diagrams recognised" in comp["statement"]
     assert "applied first-applicable in the listed order" in comp["statement"]
     assert check(repo).ok
     # round trip through JSON, as the campaign log stores it
@@ -412,6 +420,8 @@ def test_build_prompt_is_the_playbook(monkeypatch):
     for v in ("zx_rule_sound", "zx_termination", "zx_critical_pairs", "zx_completeness"):
         assert v in text
     assert "max_nodes = 20000" in text and "max_instances = 40000" in text
+    assert "formulation p6-zx-v2, sections 1-2" in text and "syntactically zero" in text
+    assert "zero is recognised, not normalised" in text
     assert "## The seed" in text and "scalar_z_0: {" in text
     assert "measured outcome" in text and "complete_c224: FAIL" in text
     assert "### round 1 slot 0 -- cand_deadbeef00" in text
@@ -485,13 +495,14 @@ def test_campaign_stops_on_success(repo, tmp_path):
     win = cp.candidate_id(system_a())
     assert report.claims == [
         f"P6.cand_{seed_cid}_sound", f"P6.cand_{seed_cid}_terminates",
-        f"P6.cand_{seed_cid}_locally_confluent_d4_k2", f"P6.cand_{seed_cid}_complete_c111",
+        f"P6.cand_{seed_cid}_locally_confluent_d4_k2",
+        f"P6.cand_{seed_cid}_complete_nonzero_c111",
         f"P6.cand_{win}_sound", f"P6.cand_{win}_terminates",
-        f"P6.cand_{win}_locally_confluent_d2_k2", f"P6.cand_{win}_complete_c111",
+        f"P6.cand_{win}_locally_confluent_d2_k2", f"P6.cand_{win}_complete_nonzero_c111",
     ]
     claims = claim_files(repo)
     assert set(claims) == set(report.claims)
-    assert claims[f"P6.cand_{seed_cid}_complete_c111"]["level"] == "REFUTED"
+    assert claims[f"P6.cand_{seed_cid}_complete_nonzero_c111"]["level"] == "REFUTED"
     assert all(claims[c]["level"] == "VERIFIED_N" for c in report.claims if win in c)
     assert check(repo).ok
     # three fresh prompts, each the whole playbook, each carrying the history so far
@@ -606,3 +617,83 @@ def test_driver_exit_code_and_proposer_timeout_flag(repo, tmp_path, capsys):
                "--fake", str(fake)])
     out = capsys.readouterr().out
     assert rc == 3 and "stop: transport_stall" in out
+
+
+# -- rebaseline (M26a) -----------------------------------------------------------------------
+
+
+def test_load_history_lets_a_rebaseline_event_supersede_by_cid(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    old = cp.Evaluation(cid="abc", system={}, serious=True, round=1, slot=0,
+                        steps=[cp.Step("complete_c111", "zx_completeness", "FAIL", "old", "e")])
+    other = cp.Evaluation(cid="def", system={}, round=1, slot=1, skipped="invalid schema")
+    new = cp.Evaluation(cid="abc", system={}, serious=True, success=True, round=1, slot=0,
+                        steps=[cp.Step("complete_nonzero_c111", "zx_completeness", "PASS",
+                                       "new", "e")])
+    for event, ev in (("candidate", old), ("candidate", other), ("rebaseline", new)):
+        cp._log(run_dir, event, round=ev.round, slot=ev.slot, evaluation=ev.to_json())
+    history = cp.load_history(run_dir)
+    assert [e.cid for e in history] == ["abc", "def"]
+    assert history[0] == new and history[1] == other
+
+
+def stale_log(run_dir: Path) -> None:
+    """Make a run's log look like one judged under the earlier completeness bar."""
+    log = run_dir / cp.LOG_NAME
+    log.write_text(log.read_text().replace("complete_nonzero_c111", "complete_c111"))
+
+
+def test_rebaseline_reevaluates_candidates_judged_under_an_earlier_bar(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    client = scripted(unsound_system().model_dump(), system_a().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=1, max_cost=10.0, k=2,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "success" and len(report.claims) == 8
+    stale_log(run_dir)
+    assert all(not s.name.startswith("complete_nonzero")
+               for e in cp.load_history(run_dir) for s in e.steps)
+    evs = cp.rebaseline(repo, run_dir, classes=[(1, 1, 1), (2, 1, 2)])
+    seed_cid, win = cp.candidate_id(cp.SEED), cp.candidate_id(system_a())
+    # the seed and the winner reached completeness; the unsound candidate is left alone
+    assert [(e.cid, e.round, e.slot) for e in evs] == [(seed_cid, 0, 0), (win, 1, 1)]
+    seed_ev, win_ev = evs
+    assert seed_ev.steps[-1].name == "complete_nonzero_c111" and not seed_ev.success
+    assert [s.name for s in win_ev.steps[3:]] == ["complete_nonzero_c111",
+                                                  "complete_nonzero_c212"]
+    assert win_ev.success and all(s.problem == "already minted" for s in win_ev.steps[:4])
+    assert win_ev.steps[4].problem is None and win_ev.steps[4].level == "VERIFIED_N"
+    claims = claim_files(repo)
+    assert len(claims) == 9
+    assert claims[f"P6.cand_{win}_complete_nonzero_c212"]["level"] == "VERIFIED_N"
+    assert check(repo).ok
+    history = cp.load_history(run_dir)
+    assert [e.cid for e in history] == [seed_cid, cp.candidate_id(unsound_system()), win]
+    assert history[0] == seed_ev and history[2] == win_ev
+    # nothing is stale any more, and a resumed campaign starts from the new outcome
+    assert cp.rebaseline(repo, run_dir, classes=[(1, 1, 1), (2, 1, 2)]) == []
+    client2 = scripted(system_a().model_dump())
+    report2 = run(cp.run_campaign(client2, repo, run_dir, max_rounds=3, max_cost=10.0, k=1,
+                                  classes=[(1, 1, 1), (2, 1, 2)]))
+    assert report2.stop_reason == "success" and report2.success.cid == win
+    assert client2.calls == []
+
+
+def test_driver_rebaseline_subcommand(repo, tmp_path, capsys):
+    script = tmp_path / "fake.json"
+    script.write_text(json.dumps([system_a().model_dump()]))
+    run_dir = tmp_path / "run"
+    assert main(["campaign", "--repo", str(repo), "--run-dir", str(run_dir), "--max-cost", "1",
+                 "--max-rounds", "2", "--k", "1", "--classes", "1,1,1", "--fake",
+                 str(script)]) == 0
+    stale_log(run_dir)
+    capsys.readouterr()
+    rc = main(["rebaseline", "--repo", str(repo), "--run-dir", str(run_dir), "--classes",
+               "1,1,1;2,1,2"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "rebaseline: 2 candidate(s) re-evaluated under p6-zx-v2" in out
+    assert "round 0 slot 0" in out and "SUCCESS" in out
+    assert len(claim_files(repo)) == 9 and check(repo).ok
+    rc = main(["rebaseline", "--repo", str(repo), "--run-dir", str(run_dir), "--classes",
+               "9,9,9"])
+    assert rc == 2 and "outside the verifier's limits" in capsys.readouterr().err

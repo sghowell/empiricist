@@ -371,9 +371,125 @@ def test_zx_completeness_goldens_are_the_stated_classes(tmp_path):
     for label, c in cases.items():
         if c.expected is Verdict.FAIL:
             d = verdicts[label].details
-            assert sem.equal_up_to_scalar(sem.matrix(Diagram.from_json(d["a"])),
-                                          sem.matrix(Diagram.from_json(d["b"])))
+            if d["kind"] == "pair":
+                assert sem.equal_up_to_scalar(sem.matrix(Diagram.from_json(d["a"])),
+                                              sem.matrix(Diagram.from_json(d["b"])))
+            else:
+                assert d["kind"] == "zero_unrecognised" and "b" not in d
+                assert cm.semantic_key(sem.matrix(Diagram.from_json(d["a"]))) == ("zero",)
 # ----------------------------------------------------------------------------- Task 3: per-arity
+
+# ----------------------------------------------------------------------------- M26a: zero mode
+
+from empiricist.packs.zx.verifiers import GOLDEN_DIR  # noqa: E402
+
+
+def r1_rules(*, without: tuple[str, ...] = ()) -> dict[str, Rule]:
+    """The 20-rule R1 of the PASS golden, by name, minus `without`."""
+    obj = json.loads((GOLDEN_DIR / "zx_completeness__one_spider_two_wires.json").read_bytes())
+    out: dict[str, Rule] = {}
+    for item in obj["rules"]:
+        r = RULES[item] if isinstance(item, str) else Rule.from_json(item)
+        if r.name not in without:
+            out[r.name] = r
+    return out
+
+
+def test_is_syntactically_zero():
+    for kind in ("Z", "X"):
+        for phase in (F(0), F(1, 2), F(1), F(3, 2)):
+            assert cm.is_syntactically_zero(pattern({0: (kind, phase)}, [])) is (phase == 1)
+    z1_loop = pattern({0: ("Z", F(1))}, [(0, 0, False)])
+    z0_hloop = pattern({0: ("Z", F(0))}, [(0, 0, True)])
+    for d in (z1_loop, z0_hloop):
+        assert not cm.is_syntactically_zero(d)
+        assert cm.semantic_key(sem.matrix(d)) == ("zero",)      # zero, but not syntactically
+    beside = Diagram.build({0: ("B", 0), 1: ("B", 0), 2: ("X", F(1))}, [(0, 1, True)],
+                           inputs=[0], outputs=[1])
+    assert cm.is_syntactically_zero(beside)
+    assert not cm.is_syntactically_zero(Diagram((), ()))
+
+
+def test_check_zero_recognised_mode_on_scalars():
+    kw = dict(phases=PHASES_CLIFFORD, max_wires=0, max_vertices=1, max_edges=1, max_steps=20,
+              max_diagrams=1000)
+    complete = subset(*LOOP_RULES, "colour_change") | scalar_rules()
+    for mode in cm.ZERO_MODES:
+        rep = cm.check(complete, zero=mode, **kw)
+        assert rep.ok and rep.zero == mode and rep.diagrams == 25 and rep.classes == 2
+        assert rep.zero_diagrams == 6 and rep.nonzero_classes == 1
+    # without the Hadamard-loop rules Z(0) with a Hadamard self-loop is a normal form that
+    # denotes zero without showing it
+    no_hloop = subset("loop_z", "loop_x", "colour_change") | scalar_rules()
+    rep = cm.check(no_hloop, zero="recognised", **kw)
+    assert not rep.ok and isinstance(rep.failure, cm.ZeroWitness)
+    assert rep.failure.kind == "zero_unrecognised"
+    z0_hloop = pattern({0: ("Z", F(0))}, [(0, 0, True)]).relabel_canonical()
+    assert rep.failure.diagram == z0_hloop and rep.failure.normal_form == z0_hloop
+    assert rep.failure.inputs == rep.failure.outputs == 0
+    # the v1 check trips first on a non-zero pair (the empty diagram against Z(1/2) with a
+    # Hadamard self-loop, a non-zero scalar this system cannot remove)
+    rep_v1 = cm.check(no_hloop, zero="class", **kw)
+    assert not rep_v1.ok and isinstance(rep_v1.failure, cm.Witness)
+    assert sem.equal_up_to_scalar(sem.matrix(rep_v1.failure.a), sem.matrix(rep_v1.failure.b))
+    assert Diagram((), ()) in (rep_v1.failure.a, rep_v1.failure.b)
+    with pytest.raises(ValueError, match="zero"):
+        cm.check(complete, zero="nope", **kw)
+
+
+def test_check_zero_recognised_passes_where_the_zero_class_is_not_local():
+    kw = dict(phases=PHASES_CLIFFORD, max_wires=2, max_vertices=1, max_edges=1, max_steps=20,
+              max_diagrams=5000)
+    rules = r1_rules(without=("zero_absorbs_hadamard_wire",))
+    rep_v1 = cm.check(rules, zero="class", **kw)
+    assert not rep_v1.ok and isinstance(rep_v1.failure, cm.Witness)
+    w = rep_v1.failure
+    assert cm.is_syntactically_zero(w.normal_form_a) and cm.is_syntactically_zero(w.normal_form_b)
+    assert w.inputs + w.outputs == 2                        # a wire beside a zero scalar
+    rep_v2 = cm.check(rules, zero="recognised", **kw)
+    assert rep_v2.ok and rep_v2.zero_diagrams > 0
+    assert rep_v2.normal_forms > rep_v2.classes    # zero diagrams keep distinct normal forms
+
+
+def test_zx_completeness_verifier_zero_modes(tmp_path):
+    v = MANIFEST.verifiers["zx_completeness"](tmp_path)
+    obj = json.loads((GOLDEN_DIR / "zx_completeness__one_spider_two_wires.json").read_bytes())
+    rules = [x for x in obj["rules"]
+             if (x if isinstance(x, str) else x["name"]) != "zero_absorbs_hadamard_wire"]
+    base = {**obj, "rules": rules}
+    r = v.verify_bytes(payload(base))
+    assert r.verdict is Verdict.FAIL and r.details["zero"] == "class"
+    assert r.details["kind"] == "pair" and "b" in r.details
+    r = v.verify_bytes(payload({**base, "zero": "recognised"}))
+    assert r.verdict is Verdict.PASS and r.details["zero"] == "recognised"
+    assert r.details["zero_diagrams"] > 0 and r.details["nonzero_classes"] > 0
+    assert "syntactically zero" in r.details["detail"]
+    no_hloop = {**base, "zero": "recognised",
+                "rules": [x for x in rules if x not in ("loop_z_h", "loop_x_h")]}
+    r = v.verify_bytes(payload(no_hloop))
+    assert r.verdict is Verdict.FAIL and r.details["kind"] == "zero_unrecognised"
+    assert "b" not in r.details and "normal_form_b" not in r.details
+    a = Diagram.from_json(r.details["a"])
+    assert a.is_well_formed() and cm.semantic_key(sem.matrix(a)) == ("zero",)
+    assert not cm.is_syntactically_zero(Diagram.from_json(r.details["normal_form_a"]))
+    assert "not syntactically zero" in r.details["detail"]
+    r = v.verify_bytes(payload({**base, "zero": "sometimes"}))
+    assert r.verdict is Verdict.ERROR and "zero" in r.details["error"]
+
+
+def test_zx_completeness_zero_goldens(tmp_path):
+    v = MANIFEST.verifiers["zx_completeness"](tmp_path)
+    cases = {c.label: c for c in v.golden_suite()}
+    ok = cases["zx_completeness__one_spider_two_wires_zero_recognised"]
+    bad = cases["zx_completeness__one_spider_two_wires_zero_unrecognised"]
+    assert json.loads(ok.payload)["zero"] == json.loads(bad.payload)["zero"] == "recognised"
+    assert ok.expected is Verdict.PASS and bad.expected is Verdict.FAIL
+    # the PASS golden fails the v1 check: its zero diagrams keep distinct normal forms
+    r = v.verify_bytes(payload({**json.loads(ok.payload), "zero": "class"}))
+    assert r.verdict is Verdict.FAIL and r.details["kind"] == "pair"
+    r = v.verify_bytes(bad.payload)
+    assert r.verdict is Verdict.FAIL and r.details["kind"] == "zero_unrecognised"
+
 
 from empiricist.packs.zx import critical_pairs as cp  # noqa: E402
 

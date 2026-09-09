@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: zx_critical_pairs
   version: '1'
+- binary_hash: 4f7da695e7951a5bc3a5aca1c4e71faedc37e5413adac66bd20c293b1e14db6c
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_4a10138ea8/cp_depth5_arity2.json
+  stamped: '2026-09-09T09:57:52+00:00'
+  verdict: PASS
+  verifier: zx_critical_pairs
+  version: '1'
 formulation_version: p6-zx-v1
 id: P6.cand_4a10138ea8_locally_confluent_d5_k2
 kind: statement

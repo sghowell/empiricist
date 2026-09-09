@@ -25,6 +25,13 @@ every round, never a transcript. `run_campaign` drives rounds of `k` nonce-diver
 proposals through the model client, stops on a system passing every check on every class
 or on a budget, and logs every round to `run_dir/campaign.jsonl` (from which a resumed run
 rebuilds its history).
+
+Under formulation `p6-zx-v2` (M26a) the completeness step is `complete_nonzero_<class>`
+(verifier payload `"zero": "recognised"`: unique normal forms on the non-zero classes, zero
+recognised by a legless pi spider in the normal form). `rebaseline` re-runs `evaluate` on
+every serious candidate of a run whose completeness verdict was given under an earlier bar
+and logs a `rebaseline` event that supersedes the candidate's earlier evaluation when the
+history is loaded, so a resumed run prompts from the current outcomes and witnesses.
 """
 from __future__ import annotations
 
@@ -58,7 +65,8 @@ from empiricist.packs.zx.verifiers import (
 from empiricist.verifiers.base import VerifierResult
 
 PROBLEM = "P6"
-FORMULATION = "p6-zx-v1"
+FORMULATION = "p6-zx-v2"
+ZERO_MODE = "recognised"
 FRAGMENT = "clifford"
 EVIDENCE_ROOT = "claims/evidence/p6"
 ROLE = "proposer"
@@ -321,11 +329,11 @@ def payload_specs(
           "max_nodes": max_nodes, "rules": rules}),
     ]
     for cls in classes:
-        specs.append((f"complete_{class_tag(cls)}", "zx_completeness", cls,
-                      f"{base}/completeness_{class_tag(cls)}.json",
+        specs.append((f"complete_nonzero_{class_tag(cls)}", "zx_completeness", cls,
+                      f"{base}/completeness_nonzero_{class_tag(cls)}.json",
                       {"fragment": FRAGMENT, "max_wires": cls[0], "max_vertices": cls[1],
                        "max_edges": cls[2], "max_steps": max_steps, "max_diagrams": max_diagrams,
-                       "rules": rules}))
+                       "zero": ZERO_MODE, "rules": rules}))
     return specs
 
 
@@ -407,8 +415,8 @@ def _witness(verifier: str, r: VerifierResult) -> dict[str, Any] | None:
         return {"rule1": d.get("rule1"), "rule2": d.get("rule2"), "reason": d.get("reason"),
                 "host": o.get("host"), "result1": o.get("result1"), "result2": o.get("result2")}
     if verifier == "zx_completeness":
-        return {k: d.get(k) for k in ("inputs", "outputs", "a", "b", "normal_form_a",
-                                      "normal_form_b")}
+        keys = ("kind", "inputs", "outputs", "a", "b", "normal_form_a", "normal_form_b")
+        return {k: d[k] for k in keys if d.get(k) is not None}
     return {"detail": str(d.get("detail") or "")}
 
 
@@ -471,14 +479,17 @@ def _statement(step: str, rules: Sequence[Rule], payload: dict[str, Any], eviden
     assert cls is not None
     w, v, e = cls
     text = (f"{sysd[0].upper()}{sysd[1:]}, applied first-applicable in the listed order, is "
-            f"complete for the class {class_name(cls)} of stabilizer diagrams (at most {w} "
-            f"boundary wires, {v} interior spiders, {e} edges; formulation {FORMULATION}, "
-            f"section 3) within max_steps = {payload['max_steps']} and max_diagrams = "
-            f"{payload['max_diagrams']}: every diagram of the class reduces to a normal form "
-            "and semantically equal diagrams share one")
+            f"complete for the class {class_name(cls)} of stabilizer diagrams with zero "
+            f"recognised (at most {w} boundary wires, {v} interior spiders, {e} edges; "
+            f"formulation {FORMULATION}, section 3) within max_steps = {payload['max_steps']} "
+            f"and max_diagrams = {payload['max_diagrams']}: every diagram of the class reduces "
+            "to a normal form, a normal form is syntactically zero (a legless spider of phase "
+            "pi) exactly when the diagram denotes the zero map, and semantically equal non-zero "
+            "diagrams share one normal form")
     if passed:
         text += (f": {d.get('diagrams')} diagrams ({d.get('skipped')} skipped over the semantic "
-                 f"budget), {d.get('classes')} semantic classes, one normal form each, at most "
+                 f"budget), {d.get('nonzero_classes')} non-zero semantic classes with one "
+                 f"normal form each, {d.get('zero_diagrams')} zero diagrams recognised, at most "
                  f"{d.get('steps_max')} steps")
     return text + "."
 
@@ -563,8 +574,8 @@ def evaluate(
                 step_cls = next(c for n, _, c, _, _ in plan if n == s.name)
                 statement = _statement(s.name, rules, on_disk[s.name], s.evidence,
                                        results[s.name], cls=step_cls)
-                notes = (f"Minted by the P6 completion campaign (M25b) for candidate "
-                         f"cand_{cid}. Verifier: {s.detail}")
+                notes = (f"Minted by the P6 completion campaign (formulation {FORMULATION}) "
+                         f"for candidate cand_{cid}. Verifier: {s.detail}")
                 if s.witness and s.verdict == Verdict.FAIL.value:
                     notes += " Witness: " + json.dumps(s.witness, separators=(",", ":"))
                 _mint(repo, cid, s, statement, notes, now)
@@ -615,10 +626,13 @@ SEMANTICS = (
     "distinct host edges of the same type, requires a non-star spider's host image to have "
     "exactly the pattern degree, and solves LHS phases for variables with unit coefficient. "
     "A step applies one rule of the system, forward, at one matching. Scalars count: a "
-    "zero-leg spider is a scalar (Z(0), Z(1/2), Z(3/2) and the X twins are non-zero; Z(1) and "
-    "X(1) are the zero scalar, so any diagram containing one is the zero map) and completeness "
-    "needs the non-zero ones removed and every zero diagram of a wire signature reduced to one "
-    "normal form."
+    "zero-leg spider is a scalar (Z(0), Z(1/2), Z(3/2) and the X twins are non-zero and must "
+    "be removed; Z(1) and X(1) are the zero scalar, and a diagram containing one is "
+    "syntactically zero). Completeness (formulation p6-zx-v2) asks that semantically equal "
+    "non-zero diagrams share one normal form and that a diagram reduces to a syntactically "
+    "zero normal form exactly when it denotes the zero map: zero is recognised, not "
+    "normalised, because no system of local rules can give every zero diagram of a wire "
+    "signature one normal form (every diagram containing a zero scalar is the zero map)."
 )
 
 
@@ -681,8 +695,9 @@ def _render_seed(seed: SystemOut, seed_eval: Evaluation | None, seed_names: list
     else:
         lines.append("ledger facts: sound at arity <= 2, terminating under (vertices, edges), "
                      "locally confluent within depth 4 at arity <= 2 (2388 critical pairs), "
-                     "incomplete for C(2, 1, 2): Z(0) and X(0) with a Hadamard self-loop both "
-                     "reduce to a zero scalar (Z(1), X(1)) and stay distinct normal forms.")
+                     "incomplete for C(2, 1, 2): the Z(1/2) state with a Hadamard leg equals "
+                     "the Z(3/2) state with a plain leg and the seed has no rule for it (the "
+                     "Hadamard-on-a-state rules of R1 do).")
     lines.append("also in the ledger: the 24 JPV Clifford rules oriented left-to-right are not "
                  "locally confluent (bialgebra against colour_change, depth 5); adding hopf_h "
                  "to R0core breaks local confluence (hopf_h against identity_z_hh at b=0, depths "
@@ -733,7 +748,7 @@ def build_prompt(
         f"all four checks on every class in {cls_text}; every pass becomes a VERIFIED_N claim, "
         "every non-joinable pair or incompleteness witness a REFUTED claim, and the first "
         "failure of each candidate comes back to you as an exact witness.",
-        "## The model (formulation p6-zx-v1, sections 1-2)\n" + SEMANTICS,
+        f"## The model (formulation {FORMULATION}, sections 1-2)\n" + SEMANTICS,
         "## The library: the 24 Clifford rules, each used left-to-right as written\n" + library
         + "\n\nTo use a library rule turned around write {\"reverse\": \"<name>\"}: the harness "
         "swaps the sides, inverts the residual map and names it <name>_rev. To add a rule give "
@@ -766,9 +781,11 @@ def build_prompt(
         "pair -> REFUTED with the overlap and both results; over budget -> undecided.\n"
         f"4. zx_completeness, for each class in order ({cls_text}): every diagram of the class "
         "reduces (first applicable rule, canonical rule order: library order then inline rules "
-        f"by name) within max_steps = {max_steps} and semantically equal diagrams share one "
-        f"normal form (max_diagrams = {max_diagrams}). PASS -> VERIFIED_N; a witness pair -> "
-        "REFUTED; over budget -> undecided.\n"
+        f"by name) within max_steps = {max_steps}, semantically equal non-zero diagrams share "
+        "one normal form, and a normal form contains a legless Z(1) or X(1) exactly when the "
+        f"diagram denotes the zero map (max_diagrams = {max_diagrams}). PASS -> VERIFIED_N; a "
+        "witness (a non-zero pair with two normal forms, or a zero diagram whose normal form "
+        "shows no zero scalar) -> REFUTED; over budget -> undecided.\n"
         "Claims are minted only for a serious candidate (all rules sound, every rule oriented). "
         "Nothing you write changes a level: only the verifiers do.",
     ]
@@ -837,6 +854,8 @@ def parse_proposal(result: LLMResult | None) -> SystemOut | str:
 
 
 def load_history(run_dir: Path | str) -> list[Evaluation]:
+    """The evaluations a run has logged, in order; a `rebaseline` event replaces the
+    earlier evaluation of the same candidate in place."""
     path = Path(run_dir) / LOG_NAME
     if not path.is_file():
         return []
@@ -845,8 +864,16 @@ def load_history(run_dir: Path | str) -> list[Evaluation]:
         if not line.strip():
             continue
         obj = json.loads(line)
-        if obj.get("event") in ("seed", "candidate"):
+        event = obj.get("event")
+        if event in ("seed", "candidate"):
             out.append(Evaluation.from_json(obj["evaluation"]))
+        elif event == "rebaseline":
+            ev = Evaluation.from_json(obj["evaluation"])
+            idx = next((i for i, e in enumerate(out) if e.cid and e.cid == ev.cid), None)
+            if idx is None:
+                out.append(ev)
+            else:
+                out[idx] = ev
     return out
 
 
@@ -854,6 +881,47 @@ def _log(run_dir: Path, event: str, **fields: Any) -> None:
     with (Path(run_dir) / LOG_NAME).open("a", encoding="utf-8") as f:
         f.write(json.dumps({"ts": now_iso(), "event": event, **fields}, sort_keys=True,
                            separators=(",", ":")) + "\n")
+
+
+def rebaseline(
+    repo: Path | str, run_dir: Path | str, *, classes: Sequence[Class] = DEFAULT_CLASSES,
+    seed: SystemOut = SEED, star_legs: int = DEFAULT_STAR_LEGS,
+    max_nodes: int = DEFAULT_MAX_NODES, max_instances: int = DEFAULT_MAX_INSTANCES,
+    max_diagrams: int = DEFAULT_MAX_DIAGRAMS, max_steps: int = DEFAULT_MAX_STEPS,
+    now: str | None = None,
+) -> list[Evaluation]:
+    """Re-evaluate every serious candidate in the run's history that reached a completeness
+    step not among the current ones (`complete_nonzero_<class>` for `classes`): the same
+    candidate id, round and slot; its earlier claims are read, not re-minted; each new
+    evaluation is logged as a `rebaseline` event. Returns the new evaluations."""
+    repo, run_dir = Path(repo), Path(run_dir)
+    budgets = dict(star_legs=star_legs, max_nodes=max_nodes, max_instances=max_instances,
+                   max_diagrams=max_diagrams, max_steps=max_steps)
+    history = load_history(run_dir)
+    registry: dict[str, Rule] = {}
+    keys: dict[str, str] = {}
+    register(registry, keys, resolve_rules(seed))
+    for e in history:
+        if e.system is not None and not e.skipped:
+            try:
+                register(registry, keys, resolve_rules(SystemOut.model_validate(e.system),
+                                                       registry))
+            except (InvalidSystem, ValidationError):
+                continue
+    current = {f"complete_nonzero_{class_tag(c)}" for c in classes}
+    out: list[Evaluation] = []
+    for e in history:
+        if not e.serious or e.system is None or e.skipped:
+            continue
+        stale = [s for s in e.steps if s.name.startswith("complete") and s.name not in current]
+        if not stale:
+            continue
+        ev = evaluate(repo, SystemOut.model_validate(e.system), classes=classes,
+                      registry=registry, keys=keys, now=now, **budgets)
+        ev.round, ev.slot = e.round, e.slot
+        _log(run_dir, "rebaseline", round=e.round, slot=e.slot, evaluation=ev.to_json())
+        out.append(ev)
+    return out
 
 
 async def run_campaign(
@@ -974,10 +1042,10 @@ async def run_campaign(
 __all__ = [
     "DEFAULT_CLASSES", "DEFAULT_MAX_DIAGRAMS", "DEFAULT_MAX_INSTANCES", "DEFAULT_MAX_NODES",
     "DEFAULT_MAX_STEPS", "DEFAULT_STAR_LEGS", "EVIDENCE_ROOT", "FORMULATION", "LOG_NAME",
-    "MAX_PROPOSED_DEPTH", "PROBLEM", "PROMPT_BUDGET", "R0CORE", "ROLE", "SEED",
+    "MAX_PROPOSED_DEPTH", "PROBLEM", "PROMPT_BUDGET", "R0CORE", "ROLE", "SEED", "ZERO_MODE",
     "SEED_INLINE_RULES", "CampaignReport", "Class", "Evaluation", "InvalidSystem", "Step",
     "SystemOut", "build_prompt", "candidate_id", "canonical_order", "canonical_rule_json",
     "class_name", "class_tag", "describe_system", "evaluate", "is_library", "load_history",
-    "parse_classes", "parse_proposal", "payload_specs", "register", "resolve_rules",
-    "reversed_rule", "rules_payload", "run_campaign", "write_payloads",
+    "parse_classes", "parse_proposal", "payload_specs", "rebaseline", "register",
+    "resolve_rules", "reversed_rule", "rules_payload", "run_campaign", "write_payloads",
 ]

@@ -719,7 +719,7 @@ def payload(obj) -> bytes:
 def test_manifest_declares_the_verifiers_for_p6(tmp_path):
     assert load_pack("zx") is MANIFEST
     assert MANIFEST.name == "zx" and set(MANIFEST.verifiers) == set(VERIFIER_NAMES)
-    assert MANIFEST.problems == {"P6": "p6-zx-v1"}
+    assert MANIFEST.problems == {"P6": "p6-zx-v2"} and MANIFEST.version == "0.2"
     hashes = set()
     for name, factory in MANIFEST.verifiers.items():
         v = factory(tmp_path)
