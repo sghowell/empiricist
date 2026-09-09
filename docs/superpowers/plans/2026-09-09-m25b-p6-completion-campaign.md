@@ -23,7 +23,7 @@
 
 ### Task 0: the classes (measured)
 
-- [ ] Record in this plan the enumeration size and time of C(3, 2, 4), C(2, 2, 5), C(2, 2, 6), C(3, 3, 4) (`completeness.enumerate_diagrams`, budget 2,000,000). The campaign's second class is the largest that enumerates in under 60 s.
+- [x] Measured (enumeration only, budget 2,000,000): C(3, 2, 4) 235,799 diagrams in 10.2 s; C(2, 2, 5) 241,143 in 9.8 s; C(2, 2, 6) 563,975 in 23.7 s; C(3, 3, 4) exceeds 2,000,000 (107 s). The campaign checks C(2, 2, 4) first, then C(3, 2, 4) (three wires: the first class with two-qubit maps), then C(2, 2, 6); the full check costs roughly three times the enumeration.
 
 ### Task 1: a phase-aware termination component
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from fractions import Fraction
 
 from empiricist.packs.zx.diagram import Diagram
 from empiricist.packs.zx.rules import Rule
@@ -37,6 +38,21 @@ def _vertex_weight(name: str, kind: str) -> int:
     return 0
 
 
+def _phase_weight_bounds(name: str, phase) -> tuple[int, int]:
+    """Contribution of a spider's phase to a phase-aware component, as an interval: exact
+    on a ground phase, [0, 1] on a symbolic one (the rule must decrease for every grounding,
+    so the LHS is credited with the lower bound and the RHS charged with the upper)."""
+    if name not in PHASE_COMPONENTS:
+        return (0, 0)
+    if isinstance(phase, Fraction):
+        if name == "phase_vertices":
+            w = int(phase != 0)
+        else:  # pi_vertices
+            w = int(phase == 1)
+        return (w, w)
+    return (0, 1)
+
+
 def _edge_weight(name: str, hadamard: bool, loop: bool) -> int:
     if name == "edges":
         return 1
@@ -49,9 +65,10 @@ def _edge_weight(name: str, hadamard: bool, loop: bool) -> int:
     return 0
 
 
+PHASE_COMPONENTS: tuple[str, ...] = ("phase_vertices", "pi_vertices")
 COMPONENTS: tuple[str, ...] = (
     "vertices", "z_vertices", "x_vertices", "edges", "hadamard_edges", "plain_edges",
-    "self_loops",
+    "self_loops", *PHASE_COMPONENTS,
 )
 
 
@@ -65,14 +82,38 @@ def validate_components(components: Sequence[str]) -> list[str]:
     return comps
 
 
-def measure(d: Diagram, components: Sequence[str]) -> tuple[int, ...]:
+def measure_bounds(
+    d: Diagram, components: Sequence[str]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """(lower, upper) bounds of the measure over every grounding of `d`'s symbolic phases;
+    equal for structural components and for ground diagrams."""
     comps = validate_components(components)
-    out = []
+    lo: list[int] = []
+    hi: list[int] = []
     for c in comps:
-        total = sum(_vertex_weight(c, k) for _, k, _ in d.vertices if k != "B")
-        total += sum(_edge_weight(c, h, u == v) for u, v, h in d.edges)
-        out.append(total)
-    return tuple(out)
+        total_lo = total_hi = 0
+        for _, k, phase in d.vertices:
+            if k == "B":
+                continue
+            w = _vertex_weight(c, k)
+            p_lo, p_hi = _phase_weight_bounds(c, phase)
+            total_lo += w + p_lo
+            total_hi += w + p_hi
+        e = sum(_edge_weight(c, h, u == v) for u, v, h in d.edges)
+        lo.append(total_lo + e)
+        hi.append(total_hi + e)
+    return tuple(lo), tuple(hi)
+
+
+def measure(d: Diagram, components: Sequence[str]) -> tuple[int, ...]:
+    """The exact measure of a diagram; a phase-aware component on a symbolic phase has no
+    exact value (use `measure_bounds`)."""
+    lo, hi = measure_bounds(d, components)
+    if lo != hi:
+        raise TerminationError(
+            "the measure is not exact on a symbolic phase; use measure_bounds"
+        )
+    return lo
 
 
 @dataclass(frozen=True)
@@ -119,14 +160,18 @@ def _leg_diffs(rule: Rule, c: str) -> list[tuple[int, str]]:
 
 def check_rule(rule: Rule, components: Sequence[str]) -> RuleDecrease:
     comps = validate_components(components)
-    lhs = measure(rule.lhs, comps)
-    rhs = measure(rule.rhs, comps)
-    for c, l_val, r_val in zip(comps, lhs, rhs, strict=True):
+    lhs_lo, lhs_hi = measure_bounds(rule.lhs, comps)
+    rhs_lo, rhs_hi = measure_bounds(rule.rhs, comps)
+    lhs, rhs = lhs_lo, rhs_hi   # the conservative pair: credit the LHS least, charge the RHS most
+    for c, l_val, r_val, l_hi, r_lo in zip(comps, lhs, rhs, lhs_hi, rhs_lo, strict=True):
         base = l_val - r_val
         bad_leg = next(((d, why) for d, why in _leg_diffs(rule, c) if d < 0), None)
         if base < 0:
-            return RuleDecrease(rule.name, False, c,
-                                f"{c} increases on the pattern ({l_val} -> {r_val})", lhs, rhs)
+            symbolic = (l_hi != l_val) or (r_lo != r_val)
+            why = (f"{c} may increase for some grounding of the symbolic phases "
+                   f"(LHS in [{l_val}, {l_hi}], RHS in [{r_lo}, {r_val}])"
+                   if symbolic else f"{c} increases on the pattern ({l_val} -> {r_val})")
+            return RuleDecrease(rule.name, False, c, why, lhs, rhs)
         if bad_leg is not None:
             return RuleDecrease(rule.name, False, c,
                                 f"{c} increases on a residual {bad_leg[1]}", lhs, rhs)
