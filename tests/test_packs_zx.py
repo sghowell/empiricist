@@ -535,3 +535,167 @@ def test_derivation_json_round_trip_and_reverse_steps():
         dv.Derivation.from_json({"start": start.to_json()})
     with pytest.raises(ValueError):
         dv.Step.from_json({"rule": "euler", "direction": "->", "matching": {"vertices": {"x": 0}}})
+
+
+# ----------------------------------------------------------------------------- Task 3a: overlaps
+
+from empiricist.packs.zx import critical_pairs as cp  # noqa: E402
+
+
+def subset(*names: str) -> dict[str, Rule]:
+    return {n: RULES[n] for n in names}
+
+
+def erase(d: Diagram) -> Diagram:
+    """Symbolic phases set to 0: the shape of a symbolic diagram."""
+    return d.substitute({v: 0 for v in d.variables()})
+
+
+def test_fusion_overlaps_itself_on_chains_and_parallel_edges_and_joins_in_one_step():
+    ovs = cp.overlaps(RULES["fusion"], RULES["fusion"], star_legs=0)
+    shapes = [erase(o.host) for o in ovs]
+    chain = Diagram.build({0: ("Z", 0), 1: ("Z", 0), 2: ("Z", 0)}, [(0, 1, False), (1, 2, False)])
+    parallel = Diagram.build({0: ("Z", 0), 1: ("Z", 0)}, [(0, 1, False), (0, 1, False)])
+    assert any(dg.isomorphic(s, chain) for s in shapes)
+    assert any(dg.isomorphic(s, parallel) for s in shapes)
+    assert all(o.host.variables() for o in ovs)          # phases stay symbolic
+    for o in ovs:
+        assert o.rule1 == o.rule2 == "fusion"
+        assert cp.joinable(o.result1, o.result2, subset("fusion"), depth=1).joinable
+    # with context legs on the stars there are more overlaps, all still joinable
+    more = cp.overlaps(RULES["fusion"], RULES["fusion"], star_legs=1)
+    assert len(more) > len(ovs)
+    assert all(cp.joinable(o.result1, o.result2, subset("fusion"), depth=1).joinable for o in more)
+
+
+def test_fusion_and_identity_overlap_by_binding_the_phase_to_zero():
+    ovs = cp.overlaps(RULES["fusion"], RULES["identity_z"], star_legs=0)
+    assert ovs
+    for o in ovs:
+        z0 = [v for v in o.host.interior if o.host.phase(v) == 0]
+        assert z0, o.host.to_json()
+        assert cp.joinable(o.result1, o.result2, subset("fusion", "identity_z"), depth=1).joinable
+
+
+def test_check_reports_the_first_non_joinable_pair_and_a_fix_makes_it_pass():
+    broken = cp.check(subset("fusion_x", "colour_change"), depth=2)
+    assert not broken.ok and broken.failure is not None
+    o, j = broken.failure
+    assert {o.rule1, o.rule2} == {"fusion_x", "colour_change"} and not j.joinable
+    fixed = cp.check(subset("fusion", "fusion_x", "colour_change"), depth=2)
+    assert fixed.ok and fixed.overlaps >= broken.overlaps and fixed.failure is None
+    assert cp.check(subset("fusion", "fusion_x", "colour_change"), depth=1).ok is False
+
+
+def absorb(k: int) -> Rule:
+    """X(0) state through a Z(k/4) wire is the X(0) state (Z(phi)|0> = |0>)."""
+    lhs = Diagram.build({0: ("X", 0), 1: ("Z", F(k, 4)), 2: ("B", 0)},
+                        [(0, 1, False), (1, 2, False)], outputs=[2])
+    rhs = Diagram.build({3: ("X", 0), 2: ("B", 0)}, [(3, 2, False)], outputs=[2])
+    return Rule(f"absorb_{k}", lhs, rhs, (), "test: <0| Z(k/4)")
+
+
+def scalar(k: int) -> Rule:
+    """The scalar X(0)-Z(k/4) is 1 for every k: removable."""
+    lhs = Diagram.build({0: ("X", 0), 1: ("Z", F(k, 4))}, [(0, 1, False)])
+    return Rule(f"scalar_{k}", lhs, Diagram.build({}, []), (), "test: <0|Z(k/4)> = 1")
+
+
+def test_symbolic_failure_falls_back_to_a_ground_case_split():
+    for k in range(8):
+        for r in (absorb(k), scalar(k)):
+            host = instance(r, {})
+            assert sem.equal_up_to_scalar(sem.matrix(host),
+                                          sem.matrix(rw.apply(host, r, identity_matching(r, {}))))
+    # fusion/absorb_k overlap: X(0)-Z(k/4)-Z(b) rewrites to X(0)-Z(b+k/4) or X(0)-Z(b);
+    # no constant-phase rule matches the symbolic b, every ground instance joins
+    rules = subset("fusion") | {f"absorb_{k}": absorb(k) for k in range(8)}
+    rules |= {f"scalar_{k}": scalar(k) for k in range(8)}
+    rep = cp.check(rules, depth=1, star_legs=0)
+    assert rep.ok, rep.failure
+    assert rep.case_splits > 0 and rep.overlaps > 0
+    # with a single scalar rule the pair fails at a concrete instance
+    rep2 = cp.check({"fusion": RULES["fusion"], "absorb_1": absorb(1), "scalar_1": scalar(1)},
+                    depth=1, star_legs=0)
+    assert not rep2.ok
+    _, j = rep2.failure
+    assert not j.joinable and j.instances > 0 and "instance" in j.reason
+
+
+def test_joinability_budget_is_an_error_not_a_verdict():
+    with pytest.raises(cp.CriticalPairError):
+        cp.joinable(two_spiders(F(1, 4), F(1, 4)), wire(), subset("fusion", "euler"), depth=3,
+                    max_nodes=1)
+
+
+# ----------------------------------------------------------------------------- Task 3b: termination
+
+from empiricist.packs.zx import termination as tm  # noqa: E402
+
+
+def test_measure_counts_interior_vertices_and_edges():
+    d = Diagram.build({0: ("B", 0), 1: ("Z", F(1, 4)), 2: ("X", 0), 3: ("B", 0)},
+                      [(0, 1, False), (1, 2, True), (1, 2, True), (2, 3, False), (2, 2, False)],
+                      inputs=[0], outputs=[3])
+    comps = ["vertices", "z_vertices", "x_vertices", "edges", "hadamard_edges", "plain_edges",
+             "self_loops"]
+    assert tm.measure(d, comps) == (2, 1, 1, 5, 2, 3, 1)
+    with pytest.raises(tm.TerminationError):
+        tm.measure(d, ["phase_sum"])
+
+
+def test_symbolic_decrease_per_rule():
+    ok = tm.check_rule(RULES["fusion"], ["vertices", "edges"])
+    assert ok.decreases and ok.component == "vertices"
+    tie = tm.check_rule(RULES["colour_change"], ["vertices", "edges", "hadamard_edges"])
+    assert not tie.decreases and tie.component == "hadamard_edges" and "leg" in tie.detail
+    assert tm.check_rule(RULES["colour_change"], ["x_vertices"]).decreases
+    assert not tm.check_rule(RULES["hopf"], ["vertices"]).decreases
+    assert tm.check_rule(RULES["hopf"], ["vertices", "edges"]).component == "edges"
+    assert tm.check_rule(RULES["euler"], ["hadamard_edges"]).decreases
+    assert not tm.check_rule(RULES["euler"].reversed(), ["hadamard_edges"]).decreases
+    assert not tm.check_rule(RULES["fusion"].reversed(), ["vertices", "edges"]).decreases
+    assert tm.check_rule(RULES["loop_z"], ["self_loops"]).decreases
+    assert tm.check_rule(RULES["loop_z_h"], ["edges"]).decreases
+    # fusion under edges-first: the pattern edge goes, star-star residual edges become
+    # self-loops (still edges), so edges strictly decrease
+    assert tm.check_rule(RULES["fusion"], ["edges"]).decreases
+
+
+def test_symbolic_decrease_implies_decrease_on_every_instance():
+    comps = ["vertices", "edges", "hadamard_edges"]
+    for name in ("fusion", "identity_z_hh", "hopf", "euler", "bialgebra", "copy", "loop_x_h",
+                 "supp", "bw", "commute_controls"):
+        rule = RULES[name]
+        verdict = tm.check_rule(rule, comps)
+        if not verdict.decreases:
+            continue
+        for b in bindings_for(rule, seed=3)[:4]:
+            for legs in ({}, {s: [True, False, True] for s in rule.stars}):
+                host = instance(rule, b, legs)
+                out = rw.apply(host, rule, identity_matching(rule, b))
+                assert tm.measure(host, comps) > tm.measure(out, comps), (name, b, legs)
+
+
+def test_check_names_the_first_rule_that_does_not_decrease():
+    rules = subset("fusion", "identity_z", "hopf", "euler")
+    rep = tm.check(rules, ["hadamard_edges", "vertices", "edges"])
+    assert rep.ok and [(r.rule, r.component) for r in rep.rules] == [
+        ("euler", "hadamard_edges"), ("fusion", "vertices"), ("hopf", "edges"),
+        ("identity_z", "vertices")]
+    rep2 = tm.check(rules | subset("colour_change"), ["hadamard_edges", "vertices", "edges"])
+    assert not rep2.ok and rep2.failure.rule == "colour_change"
+    with pytest.raises(tm.TerminationError):
+        tm.check(rules, ["vertices", "nope"])
+    with pytest.raises(tm.TerminationError):
+        tm.check(rules, [])
+
+
+def test_rename_apart_and_overlap_dedup_are_deterministic():
+    r = cp.rename_apart(RULES["fusion"], "_1")
+    assert r.variables() == {"a_1", "b_1"} and r.name == "fusion"
+    a = cp.overlaps(RULES["fusion"], RULES["hopf"], star_legs=1)
+    b = cp.overlaps(RULES["fusion"], RULES["hopf"], star_legs=1)
+    assert [o.host for o in a] == [o.host for o in b]
+    keys = [o.key for o in a]
+    assert len(keys) == len(set(keys))
