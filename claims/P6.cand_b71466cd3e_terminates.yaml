@@ -1,0 +1,43 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: 56de78f8980de169a176ac13acef328be5062b27fb1e145003f213ecdcc48a62
+  golden_suite_hash: 4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_b71466cd3e/termination_vertices_x_vertices_hadamard_edges_edges_phase_vertices.json
+  stamped: '2026-09-09T08:46:19+00:00'
+  verdict: PASS
+  verifier: zx_termination
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_b71466cd3e_terminates
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 41
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_b71466cd3e.
+  Verifier: every one of 41 rules strictly decreases the lexicographic measure (vertices,
+  x_vertices, hadamard_edges, edges, phase_vertices) on every instance'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 41-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, colour_change, hopf_h, loop_z, loop_z_h,
+  loop_x, loop_x_h, h_state_q, h_state_t, plugone_pi, plugone_q, plugone_t, plugzero_pi,
+  plugzero_q, plugzero_t, scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0,
+  scalar_z_1_2, scalar_z_3_2, zero_bb_h, zero_boundary_h, zero_fuse, zero_phase_pi,
+  zero_phase_q, zero_phase_t, zero_unlink_h, zz_h_a0, zz_h_api, zz_h_qq, zz_h_tt,
+  zz_h_zero} (library rules oriented left-to-right; the inline rules h_state_q, h_state_t,
+  plugone_pi, plugone_q, plugone_t, plugzero_pi, plugzero_q, plugzero_t, scalar_x_0,
+  scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2,
+  zero_bb_h, zero_boundary_h, zero_fuse, zero_phase_pi, zero_phase_q, zero_phase_t,
+  zero_unlink_h, zz_h_a0, zz_h_api, zz_h_qq, zz_h_tt, zz_h_zero are given by their
+  JSON in claims/evidence/p6/cand_b71466cd3e/termination_vertices_x_vertices_hadamard_edges_edges_phase_vertices.json)
+  is terminating under the lexicographic measure (vertices, x_vertices, hadamard_edges,
+  edges, phase_vertices) (formulation p6-zx-v1, section 3): every one of its 41 rules
+  strictly decreases the measure on every instance, checked symbolically over every
+  residual-leg category.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

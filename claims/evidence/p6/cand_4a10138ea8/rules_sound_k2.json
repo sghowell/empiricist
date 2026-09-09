@@ -1,0 +1,1086 @@
+{
+  "fragment": "clifford",
+  "max_instances": 40000,
+  "rules": [
+    "fusion",
+    "fusion_x",
+    "identity_z",
+    "identity_z_h",
+    "identity_z_hh",
+    "identity_x",
+    "identity_x_h",
+    "identity_x_hh",
+    "colour_change",
+    "hopf_h",
+    "loop_z",
+    "loop_z_h",
+    "loop_x",
+    "loop_x_h",
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          0
+        ],
+        "vertices": [
+          [
+            0,
+            "B",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "h_state_q",
+      "reference": "H applied to the 1-leg Z(pi/2) state: H(|0>+i|1>) = (1+i)/sqrt2 (|0>-i|1>), i.e. the Z(3pi/2) state up to the non-zero scalar (1+i)/sqrt2",
+      "residual": [],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            false
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          0
+        ],
+        "vertices": [
+          [
+            0,
+            "B",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          0
+        ],
+        "vertices": [
+          [
+            0,
+            "B",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "h_state_t",
+      "reference": "H applied to the 1-leg Z(3pi/2) state: H(|0>-i|1>) = (1-i)/sqrt2 (|0>+i|1>), i.e. the Z(pi/2) state up to the non-zero scalar (1-i)/sqrt2",
+      "residual": [],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            false
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          0
+        ],
+        "vertices": [
+          [
+            0,
+            "B",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "1"
+          ]
+        ]
+      },
+      "name": "plugone_pi",
+      "reference": "degree-1 Z(pi) = |->, through the Hadamard edge it plugs |1> into spider 1, selecting e^{i pi}|1...1> = -|1...1>; equal to the phase-0 result up to the non-zero scalar -1; scalar case: sqrt(2) e^{i pi} vs sqrt(2), both non-zero.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "plugone_q",
+      "reference": "degree-1 Z(pi) = |->, through the Hadamard edge it plugs |1> into spider 1, selecting e^{ia}|1...1>; the result equals |1...1> up to the non-zero scalar e^{ia}, independent of the phase, so replacing pi/2 by 0 is an equation up to non-zero scalar; scalar case: (1,-1)H(1,e^{ia})^T = sqrt(2) e^{ia}, non-zero.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "plugone_t",
+      "reference": "degree-1 Z(pi) = |->, through the Hadamard edge it plugs |1> into spider 1, selecting e^{i 3pi/2}|1...1>; equal to the phase-0 result up to the non-zero scalar e^{i 3pi/2}; scalar case: sqrt(2) e^{i 3pi/2} vs sqrt(2), both non-zero.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "1"
+          ]
+        ]
+      },
+      "name": "plugzero_pi",
+      "reference": "degree-1 Z(0) = |+>, through the Hadamard edge it plugs |0> into spider 1; contracting |0> kills the e^{i pi}|1...1> term, leaving |0...0> independent of the phase, so replacing pi by 0 is exact; scalar case gives sqrt(2) on both sides, non-zero.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "plugzero_q",
+      "reference": "vertex 0 is a degree-1 Z(0) state |+>; through its Hadamard edge it plugs |0> into spider 1, contracting away the |1...1> term, so the result |0...0> on the residual legs is independent of spider 1's phase; setting that phase to 0 is exact. Scalar case (no residual legs): (1,1)H(1,e^{ia})^T = sqrt(2) for every a, non-zero on both sides.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "plugzero_t",
+      "reference": "degree-1 Z(0) = |+>, through the Hadamard edge it plugs |0> into spider 1; contracting |0> kills the e^{i 3pi/2}|1...1> term, leaving |0...0> independent of the phase, so replacing 3pi/2 by 0 is exact; scalar case gives sqrt(2) on both sides, non-zero.",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "0"
+          ]
+        ]
+      },
+      "name": "scalar_x_0",
+      "reference": "a non-zero 0-leg spider (X(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "scalar_x_1_2",
+      "reference": "a non-zero 0-leg spider (X(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "scalar_x_3_2",
+      "reference": "a non-zero 0-leg spider (X(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "1"
+          ]
+        ]
+      },
+      "name": "scalar_x_pi",
+      "reference": "0-leg X(1) denotes 1+e^{i pi}=0, the same zero matrix as 0-leg Z(1); zero equals only zero, so this is an exact equation canonicalizing the zero scalar to its Z form",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ]
+        ]
+      },
+      "name": "scalar_z_0",
+      "reference": "a non-zero 0-leg spider (Z(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "scalar_z_1_2",
+      "reference": "a non-zero 0-leg spider (Z(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "scalar_z_3_2",
+      "reference": "a non-zero 0-leg spider (Z(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "1"
+          ]
+        ]
+      },
+      "name": "zero_fuse",
+      "reference": "each 0-leg Z(1) is the zero scalar; 0*0 = 0, so two zero scalars equal one (zero matrix equals only the zero matrix)",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            1,
+            2,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          1
+        ],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "B",
+            "0"
+          ],
+          [
+            2,
+            "Z",
+            "0"
+          ]
+        ]
+      },
+      "name": "zero_state_h",
+      "reference": "vertex 0 is the 0-leg Z(pi) = 1+e^{i pi} = 0 zero scalar present on both sides, so both sides denote the zero matrix on the one-wire interface; the zero matrix equals only the zero matrix, so turning the single Hadamard leg of an exact-degree-1 Z(0) spider into a plain leg beside a zero scalar is an exact equation. The non-star degree-1 endpoint means it can never match a spider of hopf_h (those carry two parallel H edges), unlike the starred/wildcard zero rules of rounds 5.",
+      "residual": [],
+      "rhs": {
+        "edges": [
+          [
+            1,
+            2,
+            false
+          ]
+        ],
+        "inputs": [],
+        "outputs": [
+          1
+        ],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "B",
+            "0"
+          ],
+          [
+            2,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "1"
+          ]
+        ]
+      },
+      "name": "zp_pi",
+      "reference": "vertex 0 is the 0-leg Z(pi) = 1+e^{i pi} = 0 zero scalar, so both sides denote the zero matrix of the same signature; zero equals only zero, hence resetting the other spider's pi phase to 0 inside a zero diagram is an exact equation",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "zp_q",
+      "reference": "vertex 0 is the 0-leg Z(pi) = 0 zero scalar, so both sides denote the zero matrix of the same signature; zero equals only zero, hence resetting the other spider's pi/2 phase to 0 inside a zero diagram is an exact equation",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "zp_t",
+      "reference": "vertex 0 is the 0-leg Z(pi) = 0 zero scalar, so both sides denote the zero matrix of the same signature; zero equals only zero, hence resetting the other spider's 3pi/2 phase to 0 inside a zero diagram is an exact equation",
+      "residual": [
+        [
+          1,
+          [
+            [
+              1,
+              false
+            ]
+          ]
+        ]
+      ],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ],
+          [
+            1,
+            "Z",
+            "b"
+          ]
+        ]
+      },
+      "name": "zz_h_a0",
+      "reference": "closed pair Z(0)-H-Z(b) is the scalar 1+e^{ib}+1-e^{ib}=2, non-zero for every b, hence the empty diagram up to a non-zero scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ],
+          [
+            1,
+            "Z",
+            "b"
+          ]
+        ]
+      },
+      "name": "zz_h_api",
+      "reference": "closed pair Z(pi)-H-Z(b) is the scalar 1+e^{ib}-1+e^{ib}=2e^{ib}, non-zero for every b, hence the empty diagram up to a non-zero scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1/2"
+          ],
+          [
+            1,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "zz_h_qq",
+      "reference": "closed pair Z(pi/2)-H-Z(pi/2) is the scalar 1+i+i-i*i=2+2i, non-zero, hence the empty diagram up to a non-zero scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "3/2"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "zz_h_tt",
+      "reference": "closed pair Z(3pi/2)-H-Z(3pi/2) is the scalar 1-i-i+i*i... = 1-2i+1 = 2-2i, non-zero, hence the empty diagram up to a non-zero scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [
+          [
+            0,
+            1,
+            true
+          ]
+        ],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1/2"
+          ],
+          [
+            1,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "zz_h_zero",
+      "reference": "closed pair Z(pi/2)-H-Z(3pi/2) is the scalar 1+e^{i3pi/2}+e^{ipi/2}-e^{i2pi}=1-i+i-1=0, the zero matrix; 0-leg Z(pi)=1+e^{ipi}=0 is the canonical zero scalar, and zero equals only zero",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1"
+          ]
+        ]
+      }
+    }
+  ],
+  "star_legs": 2
+}

@@ -3,8 +3,7 @@
 **Date:** 2026-09-09 · **Problem:** P6 (ii)(a), a terminating confluent system for the stabilizer
 fragment, formulation `p6-zx-v1` · **Milestone:** M25b
 (`docs/superpowers/plans/2026-09-09-m25b-p6-completion-campaign.md`) · **Run:** `runs/p6-completion`
-(local, gitignored; resumable from `campaign.jsonl`) · **Spend:** $6.64 over rounds 1–3, then
-paused.
+(local, gitignored; resumable from `campaign.jsonl`) · **Spend:** $16.24 over two runs (rounds 1–3, then 4–9 with the stall detector).
 
 ## The move
 
@@ -45,6 +44,32 @@ return cost $1.6–3.1 each. The loop has no stall detector beyond the per-call 
 that keeps hitting the provider's usage limit spends an hour per round on nothing. The run is
 resumable: `python -m empiricist.packs.zx campaign --repo . --run-dir runs/p6-completion …`
 rebuilds the history from `campaign.jsonl` and continues at round 4.
+
+## Run 2 (with the stall detector): rounds 4–9, $9.60, thirteen more claims
+
+| round | candidate | rules | certified | outcome |
+|---|---|---|---|---|
+| 4 | `cand_dc1277268e` | 35 (adds six "plug" state rules) | sound 1911, terminating (phase-aware measure), locally confluent d4 over 5,679 pairs | **REFUTED** for C(2,2,4): the same one-output state pair as round 2 |
+| 5 | `cand_dda1f96c55` | 41 (adds `zero_merge`, `zero_cup_h`, `zero_unh`, three `zp_*`) | sound 2530, terminating | **REFUTED**: `identity_z` vs `zero_merge` not joinable within depth 4 |
+| 5 | `cand_b71466cd3e` | 41 (adds `zero_bb_h`, `zero_boundary_h`, `zero_unlink_h`, three `zero_phase_*`) | sound 2530, terminating | **REFUTED**: `hopf_h` vs `zero_bb_h` not joinable within depth 5 |
+| 6 | — | — | two empty calls | — |
+| 7 | `cand_4a10138ea8` | 39 (adds `zero_state_h`, three `zp_*`) | sound 1930, terminating, **locally confluent d5 over 6,521 pairs of 780 rule pairs** | **REFUTED** for C(2,2,4): a two-output pair, both the zero map — a plain wire beside a zero-scalar spider vs a Hadamard wire beside it (found after 28,824 diagrams) |
+| 8, 9 | — | — | four empty calls | `transport_stall` |
+
+`cand_4a10138ea8` is the largest system the pack has certified locally confluent, and its
+witness is the campaign's second structural finding. **The zero class is not local.** Under
+"up to non-zero scalar" semantics every diagram containing a zero-scalar component (a Z(0)
+with a Hadamard self-loop, a Z(π) with no legs, …) denotes the zero map, so all of them are
+one semantic class — and a system of local rules cannot give that class one normal form, since
+the rest of the diagram is untouched by any rule that fires on the scalar. Completeness on
+C(w, v, e) as `p6-zx-v1` defines it therefore needs either a global absorption rule
+("zero ⊗ D → zero", which is not a diagram rewrite in this model) or a formulation that treats
+the zero class separately: check unique normal forms on the non-zero classes and detect zero
+by a separate certified criterion. That is a formulation decision for the author, recorded here
+and in the loop note; the campaign as run is measuring against a bar no local system can pass.
+
+The stall detector did its job: rounds 8 and 9 returned nothing at zero cost and the run
+stopped itself after twenty minutes instead of two hours.
 
 ## Two process notes
 
