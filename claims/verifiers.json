@@ -64,12 +64,12 @@
       "version": "1"
     },
     "zx_termination": {
-      "binary_hash": "d736625c7d8f534aca37ce762a723b5b140fb46fea27b58cbc90a389497286c7",
+      "binary_hash": "56de78f8980de169a176ac13acef328be5062b27fb1e145003f213ecdcc48a62",
       "declaration": null,
       "golden_suite_hash": "4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023",
       "name": "zx_termination",
       "pack": "zx",
-      "stamped": "2026-09-09T04:20:10+00:00",
+      "stamped": "2026-09-09T06:53:07+00:00",
       "version": "1"
     }
   },

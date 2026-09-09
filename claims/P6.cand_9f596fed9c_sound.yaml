@@ -1,0 +1,38 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: 713ca3fa90504f8546638f5ee3fcc70219fada49f59f4e38ee232c5af417333e
+  golden_suite_hash: 5fba4469b3b24e3e330770a0eebbd72cdcd9734d3395aef4c9c7af33f17f355d
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_9f596fed9c/rules_sound_k2.json
+  stamped: '2026-09-09T06:54:03+00:00'
+  verdict: PASS
+  verifier: zx_rule_sound
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_9f596fed9c_sound
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 1262
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_9f596fed9c.
+  Verifier: every one of 1262 judged instances of 20 rules is an equation up to scalar
+  (clifford phases, up to 2 residual legs per star vertex; 0 skipped over the semantic
+  budget)'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'Each rule of the 20-rule system {fusion, fusion_x, identity_z, identity_z_h,
+  identity_z_hh, identity_x, identity_x_h, identity_x_hh, loop_z, loop_z_h, loop_x,
+  loop_x_h, scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2,
+  scalar_z_3_2, zero_fuse} (library rules oriented left-to-right; the inline rules
+  scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2,
+  zero_fuse are given by their JSON in claims/evidence/p6/cand_9f596fed9c/rules_sound_k2.json)
+  is a semantic equation up to a non-zero scalar on every stabilizer instance with
+  up to 2 residual legs of each type per star vertex (formulation p6-zx-v1, section
+  3), checked exhaustively within max_instances = 40000: 1262 instances judged, 0
+  skipped.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

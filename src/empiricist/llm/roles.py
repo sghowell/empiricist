@@ -151,6 +151,16 @@ ROLES: dict[str, Role] = {
         ),
         effort=Effort.HIGH, k=1, active=True,
     ),
+    "proposer": Role(
+        name="proposer",
+        system_prompt=(
+            "You are the Proposer. Given a problem statement, a formal object schema, the "
+            "verified facts so far and the exact witnesses of earlier failures, propose ONE "
+            "candidate object that addresses the last failure without breaking earlier "
+            "passes. Emit only the schema."
+        ),
+        effort=Effort.HIGH, k=2, active=True,
+    ),
 }
 
 

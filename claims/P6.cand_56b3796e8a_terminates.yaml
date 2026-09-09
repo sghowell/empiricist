@@ -1,0 +1,36 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: 56de78f8980de169a176ac13acef328be5062b27fb1e145003f213ecdcc48a62
+  golden_suite_hash: 4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_56b3796e8a/termination_vertices_edges_x_vertices.json
+  stamped: '2026-09-09T06:54:36+00:00'
+  verdict: PASS
+  verifier: zx_termination
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_56b3796e8a_terminates
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 19
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_56b3796e8a.
+  Verifier: every one of 19 rules strictly decreases the lexicographic measure (vertices,
+  edges, x_vertices) on every instance'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 19-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, loop_z, loop_z_h, loop_x, loop_x_h, scalar_x_0,
+  scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2}
+  (library rules oriented left-to-right; the inline rules scalar_x_0, scalar_x_1_2,
+  scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2 are given by their
+  JSON in claims/evidence/p6/cand_56b3796e8a/termination_vertices_edges_x_vertices.json)
+  is terminating under the lexicographic measure (vertices, edges, x_vertices) (formulation
+  p6-zx-v1, section 3): every one of its 19 rules strictly decreases the measure on
+  every instance, checked symbolically over every residual-leg category.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'
