@@ -709,7 +709,7 @@ from empiricist.packs.zx import MANIFEST  # noqa: E402
 from empiricist.packs.zx import verifiers as vf  # noqa: E402
 
 VERIFIER_NAMES = ("zx_derivation", "zx_semantic_equal", "zx_critical_pairs", "zx_termination",
-                  "zx_rule_sound")
+                  "zx_rule_sound", "zx_completeness")
 
 
 def payload(obj) -> bytes:

@@ -1,0 +1,334 @@
+{
+ "fragment": "clifford",
+ "max_edges": 2,
+ "max_vertices": 1,
+ "max_wires": 2,
+ "rules": [
+  "identity_z",
+  "identity_x",
+  "identity_z_h",
+  "identity_x_h",
+  "identity_z_hh",
+  "identity_x_hh",
+  "loop_z",
+  "loop_x",
+  "loop_z_h",
+  "loop_x_h",
+  "colour_change",
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "0"
+     ]
+    ]
+   },
+   "name": "scalar_z_0",
+   "reference": "a non-zero 0-leg spider (Z(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "1/2"
+     ]
+    ]
+   },
+   "name": "scalar_z_1_2",
+   "reference": "a non-zero 0-leg spider (Z(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "3/2"
+     ]
+    ]
+   },
+   "name": "scalar_z_3_2",
+   "reference": "a non-zero 0-leg spider (Z(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "X",
+      "0"
+     ]
+    ]
+   },
+   "name": "scalar_x_0",
+   "reference": "a non-zero 0-leg spider (X(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "X",
+      "1/2"
+     ]
+    ]
+   },
+   "name": "scalar_x_1_2",
+   "reference": "a non-zero 0-leg spider (X(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "X",
+      "3/2"
+     ]
+    ]
+   },
+   "name": "scalar_x_3_2",
+   "reference": "a non-zero 0-leg spider (X(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+   "residual": [],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": []
+   }
+  },
+  {
+   "lhs": {
+    "edges": [
+     [
+      0,
+      1,
+      true
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      1,
+      "Z",
+      "1/2"
+     ]
+    ]
+   },
+   "name": "state_h_z_1_2",
+   "reference": "a Hadamard on the single-leg state Z(1/2 pi) is the state Z(3/2 pi) up to scalar (H maps the equator's stabilizer states onto each other)",
+   "residual": [],
+   "rhs": {
+    "edges": [
+     [
+      0,
+      2,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      2,
+      "Z",
+      "3/2"
+     ]
+    ]
+   }
+  },
+  {
+   "lhs": {
+    "edges": [
+     [
+      0,
+      1,
+      true
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      1,
+      "Z",
+      "3/2"
+     ]
+    ]
+   },
+   "name": "state_h_z_3_2",
+   "reference": "a Hadamard on the single-leg state Z(3/2 pi) is the state Z(1/2 pi) up to scalar (H maps the equator's stabilizer states onto each other)",
+   "residual": [],
+   "rhs": {
+    "edges": [
+     [
+      0,
+      2,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      2,
+      "Z",
+      "1/2"
+     ]
+    ]
+   }
+  },
+  {
+   "lhs": {
+    "edges": [
+     [
+      1,
+      2,
+      true
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     1,
+     2
+    ],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "1"
+     ],
+     [
+      1,
+      "B",
+      "0"
+     ],
+     [
+      2,
+      "B",
+      "0"
+     ]
+    ]
+   },
+   "name": "zero_absorbs_hadamard_wire",
+   "reference": "next to the zero scalar Z(pi) a Hadamard wire is a plain wire (both sides are the zero map)",
+   "residual": [],
+   "rhs": {
+    "edges": [
+     [
+      1,
+      2,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     1,
+     2
+    ],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "1"
+     ],
+     [
+      1,
+      "B",
+      "0"
+     ],
+     [
+      2,
+      "B",
+      "0"
+     ]
+    ]
+   }
+  }
+ ]
+}
