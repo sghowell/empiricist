@@ -59,3 +59,7 @@
 ## Honest ceiling
 
 A system passing all four is sound, terminating, locally confluent at residual arity ≤ 2 within the stated depth, and complete for two bounded classes. It is not proven confluent on all hosts (the critical-pair lemma for star rules is not established) and not proven complete for the fragment. Those are the next milestones, not this one.
+
+## Outcome (2026-09-09, first run)
+
+Tasks 0–3 done (Task 1 by the coordinator; Tasks 2–3 by a subagent on `feat/m25b-p6-loop`, rebased in): `phase_vertices`/`pi_vertices` with conservative symbolic bounds; `campaign.py` (`SystemOut`, the playbook prompt, `evaluate` with claim minting, `run_campaign`), the `proposer` role, the `python -m empiricist.packs.zx campaign` driver; 21 loop tests. Task 4, the live run: rounds 1–2 produced three serious candidates (sound, terminating, locally confluent at depth 4 / arity ≤ 2; each incomplete for C(2, 2, 4) with a certified witness — the zero-scalar class, then the two-spider scalar, then a one-output state with a Hadamard self-loop), 16 claim files, $6.64; from round 2 on the proposer calls hung to the 1800 s timeout (usage-limit stalls) and the run was paused after round 3 (resumable from `campaign.jsonl`). Process: editing `termination.py` mid-milestone moved `zx_termination`'s identity; the loop refused the `terminates` promotion until the stamp was renewed. Follow-ups: a transport stall detector in the loop; resume the run when the provider is responsive. Ledger: 108 claims, `check` green. Narrative: `docs/science/2026-09-09-p6-completion-campaign.md`.
