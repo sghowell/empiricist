@@ -38,14 +38,15 @@ requires_lake = pytest.mark.skipif(
 )
 
 
-# No import at all -- `True`/`trivial` are core Lean builtins. Mirrors
-# `verifiers/lean_goldens.py`'s `_TRUE_STATEMENT_SOURCE` golden case
-# deliberately: pulling in `import Mathlib` for a statement that doesn't need
-# it would load the full pinned mathlib olean set, multiplying this smoke
-# test's RSS footprint for no reason.
+# No import at all -- `1 + 1 = 2` over core `Nat` is `rfl`. Pulling in
+# `import Mathlib` for a statement that doesn't need it would load the full
+# pinned mathlib olean set, multiplying this smoke test's RSS footprint for no
+# reason. (The statement used to be the placeholder `True`; since M23a the
+# loop refuses to record a vacuous headline, so the smoke test proves a real,
+# if tiny, statement.)
 _CANNED_MODULE = (
     "namespace Empiricist\n"
-    "theorem loop_smoke : True := trivial\n"
+    "theorem loop_smoke : 1 + 1 = 2 := rfl\n"
     "end Empiricist\n"
 )
 _CANNED_DECL = "Empiricist.loop_smoke"
@@ -97,14 +98,15 @@ def test_real_verifier_end_to_end_pass_ingests_formalized(tmp_path):
 
     report = asyncio.run(
         loop.run(FormalizeTask(
-            name="loop-smoke", goal="Prove 1 + 1 = 2.", context="No dependencies needed.",
+            problem="P5", name="loop-smoke", goal="Prove 1 + 1 = 2.",
+            context="No dependencies needed.",
         ))
     )
 
     assert report.ok is True, report.history
     assert report.rounds == 1
     assert report.final_verdict == "PASS"
-    assert report.recorded_statement == "True"
+    assert report.recorded_statement == "1 + 1 = 2"
     assert report.artifact_id is not None
 
     art = lg.get_artifact(report.artifact_id)
@@ -184,7 +186,7 @@ def test_real_loop_hole_round_then_filled_round_ingests_via_real_verifier(tmp_pa
 
     report = asyncio.run(
         loop.run(FormalizeTask(
-            name="loop-holes", goal="Prove n + 0 = n and n = n.",
+            problem="P5", name="loop-holes", goal="Prove n + 0 = n and n = n.",
             context="No dependencies needed.",
         ))
     )
