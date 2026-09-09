@@ -63,6 +63,11 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--max-steps", type=int, default=DEFAULT_MAX_STEPS, dest="max_steps")
     c.add_argument("--fake", type=Path, default=None,
                    help="a JSON list of scripted proposals (offline, no model calls)")
+    c.add_argument("--proposer-timeout", type=float, default=600.0, dest="proposer_timeout",
+                   help="seconds per proposer call before the transport gives up on it")
+    c.add_argument("--max-empty-rounds", type=int, default=2, dest="max_empty_rounds",
+                   help="consecutive rounds with no artifact from any call before the run "
+                        "stops with transport_stall")
     return p
 
 
@@ -75,7 +80,7 @@ def _client(args: argparse.Namespace) -> LLMClient:
     from empiricist.llm.client import ClaudeCodeClient
     from empiricist.store import Store
 
-    return ClaudeCodeClient(store=Store(args.run_dir / "store"), timeout_s=1800.0)
+    return ClaudeCodeClient(store=Store(args.run_dir / "store"), timeout_s=args.proposer_timeout)
 
 
 def _line(ev: Evaluation) -> str:
@@ -113,10 +118,12 @@ def _cmd_campaign(args: argparse.Namespace) -> int:
         client, args.repo, args.run_dir, max_rounds=args.max_rounds, max_cost=args.max_cost,
         k=args.k, classes=classes, star_legs=args.star_legs, max_nodes=args.max_nodes,
         max_instances=args.max_instances, max_diagrams=args.max_diagrams,
-        max_steps=args.max_steps,
+        max_steps=args.max_steps, max_empty_rounds=args.max_empty_rounds,
     ))
     _print_report(report, classes)
-    return 0 if report.success is not None else 1
+    if report.success is not None:
+        return 0
+    return 3 if report.stop_reason == "transport_stall" else 1
 
 
 def main(argv: list[str] | None = None) -> int:

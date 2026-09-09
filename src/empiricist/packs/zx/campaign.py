@@ -817,7 +817,7 @@ def build_prompt(
 @dataclass
 class CampaignReport:
     rounds: int
-    stop_reason: str                # success | budget | rounds
+    stop_reason: str                # success | budget | rounds | transport_stall
     spent_usd: float
     claims: list[str]
     success: Evaluation | None
@@ -862,12 +862,15 @@ async def run_campaign(
     seed: SystemOut = SEED, star_legs: int = DEFAULT_STAR_LEGS,
     max_nodes: int = DEFAULT_MAX_NODES, max_instances: int = DEFAULT_MAX_INSTANCES,
     max_diagrams: int = DEFAULT_MAX_DIAGRAMS, max_steps: int = DEFAULT_MAX_STEPS,
-    now: str | None = None,
+    max_empty_rounds: int = 2, now: str | None = None,
 ) -> CampaignReport:
     """Rounds of `k` proposals until a candidate passes every check on every class, the
     recorded spend in the run directory's ledger reaches `max_cost`, or `max_rounds` rounds
     have run. The seed is evaluated first (no model call) unless the log already has it;
-    a duplicate rule set is fed back as such, never re-evaluated."""
+    a duplicate rule set is fed back as such, never re-evaluated. A transport that returns
+    no artifact from every call of `max_empty_rounds` consecutive rounds (hung or
+    rate-limited calls) stops the run with `transport_stall` rather than spending the round
+    budget on nothing."""
     repo, run_dir = Path(repo), Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     role = ROLES[ROLE]
@@ -890,6 +893,7 @@ async def run_campaign(
     ledger = Ledger(run_dir / "ledger.db")
     rounds = max((e.round for e in history), default=0)
     stop = "rounds"
+    empty_rounds = 0
     winner: Evaluation | None = next((e for e in history if e.success), None)
     try:
         if winner is not None:
@@ -913,9 +917,12 @@ async def run_campaign(
             prompts = [build_prompt(history, seed, classes, uuid.uuid4().hex, round_no=rounds,
                                     **budgets) for _ in range(k)]
             results = await client.complete_many(role, prompts, schema=SystemOut, ledger=ledger)
+            artifacts = 0
             for slot in range(k):
                 result = results[slot] if slot < len(results) else None
                 proposal = parse_proposal(result)
+                if not (isinstance(proposal, str) and proposal.startswith("no artifact")):
+                    artifacts += 1
                 if isinstance(proposal, str):
                     ev = Evaluation(cid=None, system=None, skipped=proposal)
                 else:
@@ -951,9 +958,13 @@ async def run_campaign(
                  claims_total=len(claims), success=winner is not None)
             if winner is not None:
                 stop = "success"
+            empty_rounds = empty_rounds + 1 if artifacts == 0 else 0
+            if winner is None and empty_rounds >= max_empty_rounds:
+                stop = "transport_stall"
+                break
         spent = ledger.spent().cost_usd
         _log(run_dir, "stop", reason=stop, rounds=rounds, spent_usd=spent, claims=len(claims),
-             winner=winner.cid if winner else None)
+             winner=winner.cid if winner else None, empty_rounds=empty_rounds)
     finally:
         ledger.close()
     return CampaignReport(rounds=rounds, stop_reason=stop, spent_usd=spent, claims=claims,
