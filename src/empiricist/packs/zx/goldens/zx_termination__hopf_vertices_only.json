@@ -1,0 +1,9 @@
+{
+ "measure": [
+  "vertices"
+ ],
+ "rules": [
+  "fusion",
+  "hopf"
+ ]
+}

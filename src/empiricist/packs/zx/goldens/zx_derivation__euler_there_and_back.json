@@ -1,0 +1,85 @@
+{
+ "end": {
+  "edges": [
+   [
+    0,
+    1,
+    true
+   ]
+  ],
+  "inputs": [
+   0
+  ],
+  "outputs": [
+   1
+  ],
+  "vertices": [
+   [
+    0,
+    "B",
+    "0"
+   ],
+   [
+    1,
+    "B",
+    "0"
+   ]
+  ]
+ },
+ "start": {
+  "edges": [
+   [
+    0,
+    1,
+    true
+   ]
+  ],
+  "inputs": [
+   0
+  ],
+  "outputs": [
+   1
+  ],
+  "vertices": [
+   [
+    0,
+    "B",
+    "0"
+   ],
+   [
+    1,
+    "B",
+    "0"
+   ]
+  ]
+ },
+ "steps": [
+  {
+   "direction": "->",
+   "matching": {
+    "phases": {},
+    "split": [],
+    "vertices": {
+     "0": 0,
+     "1": 1
+    }
+   },
+   "rule": "euler"
+  },
+  {
+   "direction": "<-",
+   "matching": {
+    "phases": {},
+    "split": [],
+    "vertices": {
+     "0": 0,
+     "1": 1,
+     "2": 2,
+     "3": 3,
+     "4": 4
+    }
+   },
+   "rule": "euler"
+  }
+ ]
+}
