@@ -1,0 +1,47 @@
+{
+ "fragment": "clifford",
+ "rules": [
+  "fusion",
+  "colour_change",
+  {
+   "lhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "X",
+      "a"
+     ]
+    ]
+   },
+   "name": "colour_change_no_flip",
+   "reference": "near miss: (H) colour change without toggling the residual legs",
+   "residual": [
+    [
+     0,
+     [
+      [
+       0,
+       false
+      ]
+     ]
+    ]
+   ],
+   "rhs": {
+    "edges": [],
+    "inputs": [],
+    "outputs": [],
+    "vertices": [
+     [
+      0,
+      "Z",
+      "a"
+     ]
+    ]
+   }
+  }
+ ],
+ "star_legs": 1
+}

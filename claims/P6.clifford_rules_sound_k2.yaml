@@ -1,0 +1,33 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: 713ca3fa90504f8546638f5ee3fcc70219fada49f59f4e38ee232c5af417333e
+  golden_suite_hash: 5fba4469b3b24e3e330770a0eebbd72cdcd9734d3395aef4c9c7af33f17f355d
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/clifford_rules_sound_k2.json
+  stamped: '2026-09-09T04:20:53+00:00'
+  verdict: PASS
+  verifier: zx_rule_sound
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.clifford_rules_sound_k2
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 2451
+notes: Checked exhaustively by zx_rule_sound on claims/evidence/p6/clifford_rules_sound_k2.json
+  (0.5 s).
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'Each of the 24 Clifford rules of the zx pack''s JPV library (fusion, fusion_x,
+  identity_z, identity_x, identity_z_h, identity_x_h, identity_z_hh, identity_x_hh,
+  colour_change, copy, copy_x, bialgebra, pi_commute, pi_commute_x, pi_copy, pi_copy_x,
+  hopf, hopf_h, euler, euler_x, loop_z, loop_x, loop_z_h, loop_x_h) is a semantic
+  equation up to a non-zero scalar on every stabilizer instance with up to 2 residual
+  legs of each type per star vertex (formulation p6-zx-v1, section 3): 2451 instances,
+  none skipped.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

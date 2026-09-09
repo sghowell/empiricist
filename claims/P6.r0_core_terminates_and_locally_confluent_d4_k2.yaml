@@ -1,0 +1,60 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: bdc6384c1dd3c3814a45eb0c0aa9c7901a032f2f9c4de897729d4679c9cf51b7
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r0core_cp_depth4_arity2.json
+  stamped: '2026-09-09T03:48:34+00:00'
+  verdict: PASS
+  verifier: zx_critical_pairs
+  version: '1'
+- binary_hash: bb2527017cdb64dc912c259b4b5258576ecf33cc59d9136fc859c419e64ca5f1
+  golden_suite_hash: 4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r0core_termination_vertices_edges.json
+  stamped: '2026-09-09T03:48:35+00:00'
+  verdict: PASS
+  verifier: zx_termination
+  version: '1'
+- binary_hash: c10fddd2a6aaac4b7f29888b7176b48b339f04a42fd987516eabb3942bd343b6
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r0core_cp_depth4_arity2.json
+  stamped: '2026-09-09T04:20:14+00:00'
+  verdict: PASS
+  verifier: zx_critical_pairs
+  version: '1'
+- binary_hash: d736625c7d8f534aca37ce762a723b5b140fb46fea27b58cbc90a389497286c7
+  golden_suite_hash: 4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r0core_termination_vertices_edges.json
+  stamped: '2026-09-09T04:20:14+00:00'
+  verdict: PASS
+  verifier: zx_termination
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.r0_core_terminates_and_locally_confluent_d4_k2
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 2388
+notes: 'The graph-like normalisation core: spider fusion, identity removal with 0/1/2
+  Hadamard legs, self-loop removal. Adding hopf_h breaks local confluence at depth
+  4 and 6 (see P6.r0_with_hopf_h_locally_confluent_d4_k2 and claims/evidence/p6/r0_cp_depth6_arity2.json).
+  Local confluence at bounded residual arity is not local confluence on all hosts:
+  the critical-pair lemma for star rules is not established (p6-zx-v1 section 3).'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 12-rule system R0core = {fusion, fusion_x, identity_z, identity_x,
+  identity_z_h, identity_x_h, identity_z_hh, identity_x_hh, loop_z, loop_x, loop_z_h,
+  loop_x_h}, oriented left-to-right, is terminating under the lexicographic measure
+  (vertices, edges) and locally confluent within depth 4 at residual arity <= 2 over
+  the stabilizer phases (formulation p6-zx-v1, section 3): every one of its 2388 critical
+  pairs over 78 rule pairs, with star vertices carrying up to 2 context legs of each
+  type, is joinable within 4 forward steps on each side.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

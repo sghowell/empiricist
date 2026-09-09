@@ -1,0 +1,21 @@
+{
+  "measure": [
+    "vertices",
+    "edges"
+  ],
+  "rules": [
+    "fusion",
+    "fusion_x",
+    "identity_z",
+    "identity_x",
+    "identity_z_h",
+    "identity_x_h",
+    "identity_z_hh",
+    "identity_x_hh",
+    "loop_z",
+    "loop_x",
+    "loop_z_h",
+    "loop_x_h",
+    "hopf_h"
+  ]
+}

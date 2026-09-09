@@ -708,14 +708,15 @@ from empiricist.packs import certify_pack_verifier, load_pack  # noqa: E402
 from empiricist.packs.zx import MANIFEST  # noqa: E402
 from empiricist.packs.zx import verifiers as vf  # noqa: E402
 
-VERIFIER_NAMES = ("zx_derivation", "zx_semantic_equal", "zx_critical_pairs", "zx_termination")
+VERIFIER_NAMES = ("zx_derivation", "zx_semantic_equal", "zx_critical_pairs", "zx_termination",
+                  "zx_rule_sound", "zx_completeness")
 
 
 def payload(obj) -> bytes:
     return json.dumps(obj).encode()
 
 
-def test_manifest_declares_the_four_verifiers_for_p6(tmp_path):
+def test_manifest_declares_the_verifiers_for_p6(tmp_path):
     assert load_pack("zx") is MANIFEST
     assert MANIFEST.name == "zx" and set(MANIFEST.verifiers) == set(VERIFIER_NAMES)
     assert MANIFEST.problems == {"P6": "p6-zx-v1"}
@@ -725,7 +726,7 @@ def test_manifest_declares_the_four_verifiers_for_p6(tmp_path):
         assert v.name == name and v.version
         assert len(v.binary_hash) == 64 and int(v.binary_hash, 16) >= 0
         hashes.add(v.binary_hash)
-    assert len(hashes) == 4                 # each hash covers its own engines
+    assert len(hashes) == len(VERIFIER_NAMES)      # each hash covers its own engines
 
 
 @pytest.mark.parametrize("name", VERIFIER_NAMES)

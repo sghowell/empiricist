@@ -1,0 +1,34 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: bdc6384c1dd3c3814a45eb0c0aa9c7901a032f2f9c4de897729d4679c9cf51b7
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: 'argv=None cwd=None exit=None env_sha256=None reason=''a critical pair of
+    bialgebra and colour_change is not joinable within depth 5: no common diagram
+    within depth 5'''
+  path: claims/evidence/p6/jpv_clifford_oriented_cp_depth5_arity1.json
+  stamped: '2026-09-09T03:47:48+00:00'
+  verdict: FAIL
+  verifier: zx_critical_pairs
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.jpv_clifford_oriented_locally_confluent_d5_k1
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: Formulated to be tested by zx_critical_pairs on claims/evidence/p6/jpv_clifford_oriented_cp_depth5_arity1.json;
+  the raw JPV equations are not expected to orient into a confluent system.
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: The 24 Clifford rules of the zx pack's JPV library (fusion, fusion_x, identity_z,
+  identity_x, identity_z_h, identity_x_h, identity_z_hh, identity_x_hh, colour_change,
+  copy, copy_x, bialgebra, pi_commute, pi_commute_x, pi_copy, pi_copy_x, hopf, hopf_h,
+  euler, euler_x, loop_z, loop_x, loop_z_h, loop_x_h), each oriented left-to-right,
+  form a system that is locally confluent within depth 5 at residual arity <= 1 over
+  the stabilizer phases (formulation p6-zx-v1, section 3).
+substatus: null
+supersedes: []
+updated: '2026-09-09'
