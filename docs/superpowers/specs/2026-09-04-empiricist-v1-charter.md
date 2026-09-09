@@ -151,6 +151,19 @@ proven when a second pack lands without touching core. v1 packs: `ftfbqc`
 Krawczyk, and conic-dual checkers ported from `death_and_gravity`). No plugin
 system.
 
+*Status 2026-09-07 (M24a):* `empiricist.packs` exists — a fixed namespace
+(`ftfbqc`, `cosmology`, `zx`), one `PackManifest` per pack declaring verifiers
+and golden suites, and the claim ledger resolving a verifier by name from the
+repository's own declarations first and installed packs second
+(`certify-verifier`, `promote`, `reverify`, `check` drift, `claims packs`).
+`ftfbqc` is a manifest with v1 evidence adapters over the existing P3/P5
+verifiers; the physical move of `domain/`, `certificates/`, `search/` and
+`campaign/` under the pack, and the P3/P5 CLI verbs (`run P5`, `p3-optimize`,
+`p3-ingest-results`, `certify`), are deferred as recorded debt: the cosmology
+port did not demand them. `cosmology` (M24b) and `zx` (M24c) are being built
+against this API in parallel; either landing without a core change is the
+boundary's proof.
+
 ## 6. Human gates
 
 v0's four: REDUCE, PROOF_CAMPAIGN, ACCEPT_DRAFT, RELEASE. Written down from
