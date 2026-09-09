@@ -259,3 +259,279 @@ def test_semantics_rejects_non_ground_ill_formed_and_over_budget_diagrams():
     with pytest.raises(sem.SemanticsError):
         sem.matrix(big)
     assert sem.boundary_wires(big) == 7 > sem.MAX_BOUNDARY_WIRES
+
+
+# ----------------------------------------------------------------------------- Task 2: rules
+
+from empiricist.packs.zx import derivation as dv  # noqa: E402
+from empiricist.packs.zx import rewrite as rw  # noqa: E402
+from empiricist.packs.zx import rules as rl  # noqa: E402
+from empiricist.packs.zx.rewrite import Matching  # noqa: E402
+from empiricist.packs.zx.rules import RULES, Rule  # noqa: E402
+
+PHASES = [F(k, 4) for k in range(8)]
+
+
+def instance(rule: Rule, bindings: dict, star_legs: dict[int, list[bool]] | None = None):
+    """The LHS pattern as a concrete host: variables bound, every star vertex given the
+    extra boundary legs in `star_legs` (a list of Hadamard flags per star vertex)."""
+    lhs = rule.lhs.substitute(bindings)
+    verts = {v: lhs.vertex_data(v) for v in lhs.vertex_ids}
+    edges = list(lhs.edges)
+    nxt = lhs.max_id + 1
+    for star, flags in (star_legs or {}).items():
+        for h in flags:
+            verts[nxt] = ("B", 0)
+            edges.append((star, nxt, h))
+            nxt += 1
+    outs = sorted(v for v, (k, _) in verts.items() if k == "B")
+    return Diagram.build(verts, edges, inputs=[], outputs=outs)
+
+
+def identity_matching(rule: Rule, bindings: dict) -> Matching:
+    return Matching(vertices={v: v for v in rule.lhs.vertex_ids},
+                    phases={k: str(v) for k, v in bindings.items()})
+
+
+def bindings_for(rule: Rule, seed: int) -> list[dict[str, Fraction]]:
+    """A deterministic spread of phase bindings for the rule's variables."""
+    names = sorted(rule.lhs.variables() | rule.rhs.variables())
+    rng = np.random.default_rng(seed)
+    out = []
+    for _ in range(12 if names else 1):
+        out.append({n: PHASES[int(rng.integers(8))] for n in names})
+    return out
+
+
+@pytest.mark.parametrize("name", sorted(RULES))
+def test_every_library_rule_is_sound_on_concrete_instances(name):
+    rule = RULES[name]
+    star_configs: list[dict[int, list[bool]]] = [{}]
+    if rule.stars:
+        star_configs += [
+            {s: [False] for s in rule.stars},
+            {s: [True, False] for s in rule.stars},
+            {s: [True] for s in rule.stars},
+        ]
+    checked = 0
+    for b in bindings_for(rule, seed=7):
+        for legs in star_configs:
+            host = instance(rule, b, legs)
+            if sem.boundary_wires(host) > sem.MAX_BOUNDARY_WIRES:
+                continue
+            result = rw.apply(host, rule, identity_matching(rule, b))
+            assert result.is_well_formed(), result.well_formedness_problems()
+            assert sem.equal_up_to_scalar(sem.matrix(host), sem.matrix(result)), (name, b, legs)
+            checked += 1
+    assert checked > 0
+
+
+@pytest.mark.parametrize("name", sorted(RULES))
+def test_every_library_rule_round_trips_through_json_and_reverses(name):
+    rule = RULES[name]
+    assert Rule.from_json(rule.to_json()) == rule
+    rev = rule.reversed()
+    assert rev.lhs == rule.rhs and rev.rhs == rule.lhs
+    assert rev.reversed() == rule
+    assert rule.reference
+
+
+def test_rule_table_lists_every_rule_with_its_reference():
+    table = rl.rule_table()
+    assert set(r["name"] for r in table) == set(RULES)
+    assert all(r["reference"] for r in table)
+    assert "S1" in RULES["fusion"].reference and "JPV" in RULES["fusion"].reference
+    assert set(rl.CLIFFORD_RULES) <= set(RULES) and set(rl.CLIFFORD_T_RULES) <= set(RULES)
+    assert "supp" in rl.CLIFFORD_T_RULES and "supp" not in rl.CLIFFORD_RULES
+
+
+def test_rule_validation_rejects_bad_interfaces_and_targets():
+    z = Diagram.build({0: ("B", 0), 1: ("Z", 0)}, [(0, 1, False)], outputs=[0])
+    other = Diagram.build({5: ("B", 0), 1: ("Z", 0)}, [(5, 1, False)], outputs=[5])
+    with pytest.raises(ValueError):
+        Rule("bad", z, other, residual=())
+    with pytest.raises(ValueError):            # star must be an LHS interior vertex
+        Rule("bad", z, z, residual=((0, ((1, False),)),))
+    with pytest.raises(ValueError):            # target must be an RHS interior vertex
+        Rule("bad", z, z, residual=((1, ((7, False),)),))
+    # a variable that occurs only on the RHS (legal: the reverse of a phase-dropping rule)
+    # must be bound by the matching at apply time
+    free_rhs = Diagram.build({0: ("B", 0), 1: ("Z", "a")}, [(0, 1, False)], outputs=[0])
+    free = Rule("free", z, free_rhs, residual=())
+    host = Diagram.build({0: ("B", 0), 1: ("Z", 0)}, [(0, 1, False)], inputs=[0])
+    with pytest.raises(rw.RewriteError, match="unbound"):
+        rw.apply(host, free, Matching(vertices={0: 0, 1: 1}))
+    out = rw.apply(host, free, Matching(vertices={0: 0, 1: 1}, phases={"a": "1/4"}))
+    assert [out.phase(v) for v in out.interior] == [F(1, 4)]
+
+
+# ----------------------------------------------------------------------------- Task 2: rewriting
+
+
+def two_spiders(p1, p2, *, mid_hadamard=False) -> Diagram:
+    return Diagram.build(
+        {0: ("B", 0), 1: ("Z", p1), 2: ("Z", p2), 3: ("B", 0)},
+        [(0, 1, False), (1, 2, mid_hadamard), (2, 3, False)], inputs=[0], outputs=[3],
+    )
+
+
+def test_fusion_matches_binds_phases_and_carries_residual_legs():
+    host = two_spiders(F(1, 4), F(3, 4))
+    ms = rw.find_matchings(host, RULES["fusion"])
+    assert len(ms) == 2                      # the two spiders in either role
+    m = next(m for m in ms if m.vertices[0] == 1)
+    info = rw.check_matching(host, RULES["fusion"], m)
+    assert info.bindings == {"a": F(1, 4), "b": F(3, 4)}
+    assert set(info.residual[0]) == {0} and set(info.residual[1]) == {2}
+    out = rw.apply(host, RULES["fusion"], m)
+    assert dg.isomorphic(out, spider_1_1("Z", F(1)))
+    # a Hadamard edge between the spiders is not a fusion
+    h_between = two_spiders(F(1, 4), F(3, 4), mid_hadamard=True)
+    assert rw.find_matchings(h_between, RULES["fusion"]) == []
+    # explicit phases that contradict the host are rejected
+    with pytest.raises(rw.RewriteError):
+        rw.check_matching(host, RULES["fusion"], Matching(vertices=m.vertices, phases={"a": "1/2"}))
+
+
+def test_matching_conditions_are_enforced():
+    host = two_spiders(F(1, 4), F(3, 4))
+    fusion = RULES["fusion"]
+    with pytest.raises(rw.RewriteError, match="injective"):
+        rw.check_matching(host, fusion, Matching(vertices={0: 1, 1: 1}))
+    with pytest.raises(rw.RewriteError, match="kind"):
+        rw.check_matching(host, RULES["fusion_x"], Matching(vertices={0: 1, 1: 2}))
+    with pytest.raises(rw.RewriteError, match="missing"):
+        rw.check_matching(host, fusion, Matching(vertices={0: 1}))
+    with pytest.raises(rw.RewriteError, match="no host vertex"):
+        rw.check_matching(host, fusion, Matching(vertices={0: 1, 1: 42}))
+    # identity needs a degree-2 zero spider: a spider with a third leg is not one
+    ident = RULES["identity_z"]
+    three = Diagram.build({0: ("B", 0), 1: ("Z", 0), 2: ("B", 0), 3: ("B", 0)},
+                          [(0, 1, False), (1, 2, False), (1, 3, False)], inputs=[0], outputs=[2, 3])
+    with pytest.raises(rw.RewriteError, match="extra"):
+        rw.check_matching(three, ident, Matching(vertices={0: 0, 1: 1, 2: 2}))
+    assert rw.find_matchings(three, ident) == []
+    # a boundary pattern vertex may not land on a matched interior vertex
+    zx_host = Diagram.build({0: ("B", 0), 1: ("Z", F(1, 4)), 2: ("X", 1), 3: ("B", 0)},
+                            [(0, 1, False), (1, 2, False), (2, 3, False)], inputs=[0], outputs=[3])
+    with pytest.raises(rw.RewriteError, match="identification"):
+        rw.check_matching(zx_host, RULES["pi_commute"], Matching(vertices={0: 1, 1: 1, 2: 2, 3: 3}))
+    assert len(rw.find_matchings(zx_host, RULES["pi_commute"])) == 1
+
+
+def test_identity_removal_and_hadamard_cancellation():
+    d = Diagram.build({0: ("B", 0), 1: ("Z", 0), 2: ("B", 0)}, [(0, 1, True), (1, 2, True)],
+                      inputs=[0], outputs=[2])
+    assert rw.find_matchings(d, RULES["identity_z"]) == []
+    ms = rw.find_matchings(d, RULES["identity_z_hh"])
+    assert len(ms) == 2
+    assert dg.isomorphic(rw.apply(d, RULES["identity_z_hh"], ms[0]), wire())
+    # boundary images may coincide: Z(0) with both legs on one spider leaves a self-loop
+    loopy = Diagram.build({0: ("B", 0), 1: ("Z", F(1, 4)), 2: ("Z", 0)},
+                          [(0, 1, False), (1, 2, False), (1, 2, False)], inputs=[0], outputs=[])
+    ms = rw.find_matchings(loopy, RULES["identity_z"])
+    assert len(ms) == 1 and ms[0].vertices == {0: 1, 1: 2, 2: 1}
+    out = rw.apply(loopy, RULES["identity_z"], ms[0])
+    assert out.edges == ((0, 1, False), (1, 1, False))
+
+
+def test_colour_change_flips_residual_legs_but_not_self_loops():
+    host = Diagram.build({0: ("B", 0), 1: ("X", F(1, 4)), 2: ("B", 0), 3: ("Z", 0)},
+                         [(0, 1, False), (1, 2, True), (1, 3, False), (1, 1, True), (3, 3, False)],
+                         inputs=[0], outputs=[2])
+    (m,) = rw.find_matchings(host, RULES["colour_change"])
+    out = rw.apply(host, RULES["colour_change"], m)
+    new = next(v for v in out.interior if out.kind(v) == "Z" and out.phase(v) == F(1, 4))
+    flags = sorted((out.other_end(e, new), out.edges[e][2]) for e in set(out.incident(new)))
+    assert flags == [(0, True), (2, False), (3, True), (new, True)]
+    assert sem.equal_up_to_scalar(sem.matrix(host), sem.matrix(out))
+
+
+def test_reverse_direction_and_explicit_splits():
+    fused = spider_1_1("Z", F(1, 2))
+    unfuse = RULES["fusion"].reversed()
+    # unfusing needs the phase split given explicitly; legs default to the first target
+    m = Matching(vertices={0: 1}, phases={"a": "1/4"})
+    out = rw.apply(fused, unfuse, m)
+    assert dg.isomorphic(out, Diagram.build(
+        {0: ("B", 0), 1: ("Z", F(1, 4)), 2: ("Z", F(1, 4)), 3: ("B", 0)},
+        [(0, 1, False), (1, 2, False), (1, 3, False)], inputs=[0], outputs=[3]))
+    with pytest.raises(rw.RewriteError, match="unbound"):
+        rw.apply(fused, unfuse, Matching(vertices={0: 1}))
+    # a split sends the output leg (host edge 1) to the second spider
+    m2 = Matching(vertices={0: 1}, phases={"a": "1/4"}, split={(1, 0): 1})
+    out2 = rw.apply(fused, unfuse, m2)
+    assert dg.isomorphic(out2, two_spiders(F(1, 4), F(1, 4)))
+    with pytest.raises(rw.RewriteError, match="split"):
+        rw.apply(fused, unfuse, Matching(vertices={0: 1}, phases={"a": "1/4"}, split={(1, 0): 9}))
+
+
+def test_euler_matches_a_hadamard_edge_between_any_two_vertices():
+    ms = rw.find_matchings(wire(hadamard=True), RULES["euler"])
+    assert len(ms) == 2
+    out = rw.apply(wire(hadamard=True), RULES["euler"], ms[0])
+    assert len(out.interior) == 3 and sem.equal_up_to_scalar(sem.matrix(out), H)
+    back = rw.find_matchings(out, RULES["euler"].reversed())
+    assert len(back) == 2                    # the Z-X-Z chain is symmetric
+    for m in back:
+        assert dg.isomorphic(rw.apply(out, RULES["euler"].reversed(), m), wire(hadamard=True))
+
+
+def test_symbolic_hosts_match_syntactically():
+    host = Diagram.build({0: ("B", 0), 1: ("Z", "a"), 2: ("Z", "b+1/2"), 3: ("B", 0)},
+                         [(0, 1, False), (1, 2, False), (2, 3, False)], inputs=[0], outputs=[3])
+    (m,) = [m for m in rw.find_matchings(host, RULES["fusion"]) if m.vertices[0] == 1]
+    out = rw.apply(host, RULES["fusion"], m)
+    assert str(out.phase(out.interior[0])) == "1/2+a+b"
+    assert rw.find_matchings(host, RULES["identity_z"]) == []     # `a` is not syntactically 0
+
+
+# ----------------------------------------------------------------------------- Task 2: derivations
+
+
+def test_replay_reports_the_reached_diagram_and_the_first_bad_step():
+    start = two_spiders(F(1, 4), F(7, 4))
+    steps = [
+        dv.Step("fusion", Matching(vertices={0: 1, 1: 2}), "->"),
+        dv.Step("identity_z", Matching(vertices={0: 0, 1: 4, 2: 3}), "->"),
+    ]
+    good = dv.Derivation(start, tuple(steps), wire())
+    r = dv.replay(good, RULES)
+    assert r.ok and r.failed_step is None and r.steps_applied == 2
+    assert dg.isomorphic(r.reached, wire())
+    # the claimed end is not what the steps reach
+    r2 = dv.replay(dv.Derivation(start, tuple(steps), wire(hadamard=True)), RULES)
+    assert not r2.ok and r2.failed_step is None and not r2.end_matches
+    # a step whose matching does not fit
+    misfit = dv.Step("identity_z", Matching(vertices={0: 0, 1: 1, 2: 2}), "->")
+    r3 = dv.replay(dv.Derivation(start, (misfit,), wire()), RULES)
+    assert not r3.ok and r3.failed_step == 0 and "phase" in r3.reason
+    # an unknown rule, a bad direction
+    unknown = dv.Step("nope", Matching(vertices={}), "->")
+    r4 = dv.replay(dv.Derivation(start, (unknown,), wire()), RULES)
+    assert r4.failed_step == 0 and "unknown rule" in r4.reason
+    sideways = dv.Step("fusion", steps[0].matching, "up")
+    r5 = dv.replay(dv.Derivation(start, (sideways,), wire()), RULES)
+    assert r5.failed_step == 0 and "direction" in r5.reason
+
+
+def test_derivation_json_round_trip_and_reverse_steps():
+    start = wire(hadamard=True)
+    step = dv.Step("euler", Matching(vertices={0: 0, 1: 1}), "->")
+    d = dv.Derivation(start, (step,), start)
+    obj = d.to_json()
+    assert obj["steps"][0] == {
+        "rule": "euler", "direction": "->",
+        "matching": {"vertices": {"0": 0, "1": 1}, "phases": {}, "split": []},
+    }
+    assert dv.Derivation.from_json(obj) == d
+    r = dv.replay(d, RULES)
+    assert r.failed_step is None and not r.end_matches
+    # go there and back with a reverse step
+    mid = r.reached
+    back = dv.Step("euler", rw.find_matchings(mid, RULES["euler"].reversed())[0], "<-")
+    assert dv.replay(dv.Derivation(start, (step, back), start), RULES).ok
+    with pytest.raises(ValueError):
+        dv.Derivation.from_json({"start": start.to_json()})
+    with pytest.raises(ValueError):
+        dv.Step.from_json({"rule": "euler", "direction": "->", "matching": {"vertices": {"x": 0}}})

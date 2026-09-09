@@ -94,15 +94,45 @@ class PhaseExpr:
     def variables(self) -> frozenset[str]:
         return frozenset(v for v, _ in self.terms)
 
-    def substitute(self, bindings: Mapping[str, Fraction | int]) -> PhaseExpr | Fraction:
-        const = self.const
+    def substitute(self, bindings: Mapping[str, Any]) -> PhaseExpr | Fraction:
+        """Simultaneous substitution; bound values may themselves be expressions."""
+        acc: PhaseExpr | Fraction = self.const
         rest: dict[str, int] = {}
         for v, k in self.terms:
             if v in bindings:
-                const += k * Fraction(bindings[v])
+                acc = acc + k * as_phase(bindings[v])
             else:
                 rest[v] = k
-        return PhaseExpr.make(const, rest)
+        result = acc + PhaseExpr.make(0, rest) if rest else acc
+        return result % 2 if isinstance(result, Fraction) else result
+
+    # -- linear arithmetic (results are normalised through `make`) -----------------------
+
+    def __add__(self, other: Any) -> PhaseExpr | Fraction:
+        coeffs = dict(self.terms)
+        if isinstance(other, PhaseExpr):
+            for v, k in other.terms:
+                coeffs[v] = coeffs.get(v, 0) + k
+            return PhaseExpr.make(self.const + other.const, coeffs)
+        return PhaseExpr.make(self.const + Fraction(other), coeffs)
+
+    __radd__ = __add__
+
+    def __neg__(self) -> PhaseExpr | Fraction:
+        return PhaseExpr.make(-self.const, {v: -k for v, k in self.terms})
+
+    def __sub__(self, other: Any) -> PhaseExpr | Fraction:
+        return self + (-other)
+
+    def __rsub__(self, other: Any) -> PhaseExpr | Fraction:
+        return (-self) + other
+
+    def __mul__(self, k: Any) -> PhaseExpr | Fraction:
+        if isinstance(k, bool) or not isinstance(k, int):
+            return NotImplemented
+        return PhaseExpr.make(k * self.const, {v: k * c for v, c in self.terms})
+
+    __rmul__ = __mul__
 
     def __str__(self) -> str:
         parts: list[str] = []
@@ -269,7 +299,7 @@ class Diagram:
 
     # -- derived diagrams ---------------------------------------------------------------
 
-    def substitute(self, bindings: Mapping[str, Fraction | int]) -> Diagram:
+    def substitute(self, bindings: Mapping[str, Any]) -> Diagram:
         verts = tuple(
             (v, k, p.substitute(bindings) if isinstance(p, PhaseExpr) else p)
             for v, k, p in self.vertices
