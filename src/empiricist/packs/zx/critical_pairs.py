@@ -31,10 +31,8 @@ from fractions import Fraction
 
 from empiricist.packs.zx.diagram import Diagram, Phase, PhaseExpr
 from empiricist.packs.zx.rewrite import Matching, RewriteError, apply, check_matching, successors
-from empiricist.packs.zx.rules import Rule
+from empiricist.packs.zx.rules import PHASES_CLIFFORD, PHASES_CLIFFORD_T, Rule
 
-PHASES_CLIFFORD_T: tuple[Fraction, ...] = tuple(Fraction(k, 4) for k in range(8))
-PHASES_CLIFFORD: tuple[Fraction, ...] = tuple(Fraction(k, 2) for k in range(4))
 DEFAULT_MAX_NODES = 4000
 DEFAULT_MAX_INSTANCES = 4096
 

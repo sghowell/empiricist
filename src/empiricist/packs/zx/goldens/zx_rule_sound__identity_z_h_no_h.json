@@ -1,0 +1,74 @@
+{
+ "fragment": "clifford",
+ "rules": [
+  "identity_z_h",
+  {
+   "lhs": {
+    "edges": [
+     [
+      0,
+      1,
+      true
+     ],
+     [
+      1,
+      2,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0,
+     2
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      1,
+      "Z",
+      "0"
+     ],
+     [
+      2,
+      "B",
+      "0"
+     ]
+    ]
+   },
+   "name": "identity_z_h_no_h",
+   "reference": "near miss: (S2) with one Hadamard leg whose RHS edge lost its Hadamard flag",
+   "residual": [],
+   "rhs": {
+    "edges": [
+     [
+      0,
+      2,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0,
+     2
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      2,
+      "B",
+      "0"
+     ]
+    ]
+   }
+  }
+ ],
+ "star_legs": 1
+}

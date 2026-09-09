@@ -1,0 +1,11 @@
+{
+ "fragment": "clifford+t",
+ "rules": [
+  "supp",
+  "supp_x",
+  "e_scalar",
+  "commute_controls",
+  "bw"
+ ],
+ "star_legs": 0
+}

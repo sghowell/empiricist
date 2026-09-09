@@ -1,0 +1,104 @@
+{
+ "fragment": "clifford",
+ "rules": [
+  "pi_commute",
+  {
+   "lhs": {
+    "edges": [
+     [
+      0,
+      1,
+      false
+     ],
+     [
+      1,
+      2,
+      false
+     ],
+     [
+      2,
+      3,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0,
+     3
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      1,
+      "Z",
+      "a"
+     ],
+     [
+      2,
+      "X",
+      "1"
+     ],
+     [
+      3,
+      "B",
+      "0"
+     ]
+    ]
+   },
+   "name": "pi_commute_wrong_sign",
+   "reference": "near miss: (K) with -a replaced by a on the RHS",
+   "residual": [],
+   "rhs": {
+    "edges": [
+     [
+      0,
+      4,
+      false
+     ],
+     [
+      3,
+      5,
+      false
+     ],
+     [
+      4,
+      5,
+      false
+     ]
+    ],
+    "inputs": [],
+    "outputs": [
+     0,
+     3
+    ],
+    "vertices": [
+     [
+      0,
+      "B",
+      "0"
+     ],
+     [
+      3,
+      "B",
+      "0"
+     ],
+     [
+      4,
+      "X",
+      "1"
+     ],
+     [
+      5,
+      "Z",
+      "a"
+     ]
+    ]
+   }
+  }
+ ],
+ "star_legs": 1
+}

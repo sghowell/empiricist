@@ -1,4 +1,4 @@
-"""The four `zx` pack verifiers (M24c Task 3).
+"""The `zx` pack verifiers (M24c Task 3; `zx_rule_sound` from M25a).
 
 Each judges the bytes of one committed evidence file, a JSON object:
 
@@ -17,6 +17,13 @@ Each judges the bytes of one committed evidence file, a JSON object:
 * `zx_termination`  {"rules": [...], "measure": [components]}
   PASS iff every rule strictly decreases the lexicographic measure for every instance
   (symbolic check over residual legs); FAIL names the first rule that does not.
+* `zx_rule_sound`  {"rules": [names or inline rules], "fragment"? (default clifford+t),
+  "star_legs"?: 0..2 (default 1), "max_instances"? (default 4096)}
+  PASS iff every judged instance of every rule -- variables grounded over the fragment's
+  phases, every star vertex with up to `star_legs` residual legs of either type -- is an
+  equation up to a non-zero scalar; FAIL names the rule, the bindings, the legs and the
+  first differing matrix entry; ERROR when the class exceeds `max_instances` or a rule
+  has no judged instance (all over the semantic budget).
 
 `verify_bytes` is total: a malformed payload, an ill-formed diagram, an unknown rule
 or component, or an exhausted budget is an ERROR verdict with the reason, never a
@@ -41,17 +48,18 @@ from empiricist.packs.zx import (
     rewrite,
     rules,
     semantics,
+    soundness,
     termination,
 )
 from empiricist.packs.zx.diagram import Diagram
-from empiricist.packs.zx.rules import RULES, Rule
+from empiricist.packs.zx.rules import PHASES_CLIFFORD, PHASES_CLIFFORD_T, RULES, Rule
 from empiricist.verifiers.base import VerifierResult, module_source_hash
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "goldens"
 MAX_DEPTH = 12
 MAX_STAR_LEGS = 3
-FRAGMENTS = {"clifford+t": critical_pairs.PHASES_CLIFFORD_T,
-             "clifford": critical_pairs.PHASES_CLIFFORD}
+MAX_SOUND_STAR_LEGS = 2
+FRAGMENTS = {"clifford+t": PHASES_CLIFFORD_T, "clifford": PHASES_CLIFFORD}
 
 GOLDENS: dict[str, tuple[tuple[str, Verdict], ...]] = {
     "zx_derivation": (
@@ -81,6 +89,13 @@ GOLDENS: dict[str, tuple[tuple[str, Verdict], ...]] = {
         ("zx_termination__hadamard_first", Verdict.PASS),
         ("zx_termination__colour_change_ties", Verdict.FAIL),
         ("zx_termination__hopf_vertices_only", Verdict.FAIL),
+    ),
+    "zx_rule_sound": (
+        ("zx_rule_sound__clifford_rules_star_legs_1", Verdict.PASS),
+        ("zx_rule_sound__clifford_t_rules_star_legs_0", Verdict.PASS),
+        ("zx_rule_sound__colour_change_no_flip", Verdict.FAIL),
+        ("zx_rule_sound__pi_commute_wrong_sign", Verdict.FAIL),
+        ("zx_rule_sound__identity_z_h_no_h", Verdict.FAIL),
     ),
 }
 
@@ -151,6 +166,18 @@ def _int(obj: dict[str, Any], key: str, default: int | None, lo: int, hi: int) -
     if not lo <= val <= hi:
         raise PayloadError(f"{key!r} must be between {lo} and {hi}, got {val}")
     return val
+
+
+def _fragment(obj: dict[str, Any], default: str = "clifford+t",
+              allowed: tuple[str, ...] = ("clifford+t", "clifford")) -> str:
+    fragment = obj.get("fragment", default)
+    if fragment not in allowed:
+        raise PayloadError(f"'fragment' must be one of {sorted(allowed)}")
+    return fragment
+
+
+def _complex_json(z: complex) -> list[float]:
+    return [float(z.real), float(z.imag)]
 
 
 class _ZXVerifier(BytesFileVerifier):
@@ -251,9 +278,7 @@ class ZXCriticalPairsVerifier(_ZXVerifier):
         max_nodes = _int(obj, "max_nodes", critical_pairs.DEFAULT_MAX_NODES, 1, 10 ** 6)
         max_instances = _int(obj, "max_instances", critical_pairs.DEFAULT_MAX_INSTANCES, 1,
                              10 ** 6)
-        fragment = obj.get("fragment", "clifford+t")
-        if fragment not in FRAGMENTS:
-            raise PayloadError(f"'fragment' must be one of {sorted(FRAGMENTS)}")
+        fragment = _fragment(obj)
         try:
             rep = critical_pairs.check(rulebook, depth, star_legs=star_legs,
                                        phases=FRAGMENTS[fragment], max_nodes=max_nodes,
@@ -307,9 +332,49 @@ class ZXTerminationVerifier(_ZXVerifier):
         })
 
 
+class ZXRuleSoundVerifier(_ZXVerifier):
+    name = "zx_rule_sound"
+    engines = (diagram, rules, rewrite, semantics, soundness)
+
+    def _verify(self, obj: dict[str, Any]) -> VerifierResult:
+        rulebook = _rulebook(obj.get("rules"), extend_library=False)
+        fragment = _fragment(obj)
+        star_legs = _int(obj, "star_legs", 1, 0, MAX_SOUND_STAR_LEGS)
+        max_instances = _int(obj, "max_instances", soundness.DEFAULT_MAX_INSTANCES, 1, 10 ** 6)
+        try:
+            rep = soundness.check(rulebook, phases=FRAGMENTS[fragment], star_legs=star_legs,
+                                  max_instances=max_instances)
+        except soundness.SoundnessError as exc:
+            raise PayloadError(f"undecided: {exc}") from None
+        common = {"fragment": fragment, "star_legs": star_legs, "instances": rep.instances,
+                  "skipped": rep.skipped, "per_rule": rep.per_rule, "rules": sorted(rulebook)}
+        if rep.failure is not None:
+            f = rep.failure
+            legs = ", ".join(f"{s}: [{'/'.join('H' if h else 'plain' for h in hs) or '-'}]"
+                             for s, hs in sorted(f.legs.items()))
+            bindings = ", ".join(f"{k}={v}" for k, v in sorted(f.bindings.items()))
+            return VerifierResult(Verdict.FAIL, {
+                "detail": f"rule {f.rule} is not an equation at bindings {{{bindings}}} with "
+                          f"residual legs {{{legs}}}: {f.reason}",
+                "rule": f.rule, "reason": f.reason,
+                "bindings": {k: str(v) for k, v in sorted(f.bindings.items())},
+                "legs": {str(s): list(hs) for s, hs in sorted(f.legs.items())},
+                "entry": list(f.entry) if f.entry is not None else None,
+                "lhs_value": _complex_json(f.lhs_value), "rhs_value": _complex_json(f.rhs_value),
+                "instance": f.host.to_json(), "result": f.result.to_json(), **common,
+            })
+        return VerifierResult(Verdict.PASS, {
+            "detail": f"every one of {rep.instances} judged instances of {len(rulebook)} rules "
+                      f"is an equation up to scalar ({fragment} phases, up to {star_legs} "
+                      f"residual legs per star vertex; {rep.skipped} skipped over the "
+                      "semantic budget)",
+            **common,
+        })
+
+
 VERIFIERS: dict[str, type[_ZXVerifier]] = {
     v.name: v for v in (ZXDerivationVerifier, ZXSemanticEqualVerifier, ZXCriticalPairsVerifier,
-                        ZXTerminationVerifier)
+                        ZXTerminationVerifier, ZXRuleSoundVerifier)
 }
 
 
@@ -318,7 +383,7 @@ def golden_labels(name: str) -> Sequence[str]:
 
 
 __all__ = [
-    "FRAGMENTS", "GOLDENS", "GOLDEN_DIR", "MAX_DEPTH", "MAX_STAR_LEGS", "VERIFIERS",
-    "PayloadError", "ZXCriticalPairsVerifier", "ZXDerivationVerifier",
-    "ZXSemanticEqualVerifier", "ZXTerminationVerifier", "golden_labels",
+    "FRAGMENTS", "GOLDENS", "GOLDEN_DIR", "MAX_DEPTH", "MAX_SOUND_STAR_LEGS", "MAX_STAR_LEGS",
+    "VERIFIERS", "PayloadError", "ZXCriticalPairsVerifier", "ZXDerivationVerifier",
+    "ZXRuleSoundVerifier", "ZXSemanticEqualVerifier", "ZXTerminationVerifier", "golden_labels",
 ]
