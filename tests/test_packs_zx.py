@@ -699,3 +699,130 @@ def test_rename_apart_and_overlap_dedup_are_deterministic():
     assert [o.host for o in a] == [o.host for o in b]
     keys = [o.key for o in a]
     assert len(keys) == len(set(keys))
+
+
+# ----------------------------------------------------------------------------- Task 3c: verifiers
+
+from empiricist.ledger.models import Verdict  # noqa: E402
+from empiricist.packs import certify_pack_verifier, load_pack  # noqa: E402
+from empiricist.packs.zx import MANIFEST  # noqa: E402
+from empiricist.packs.zx import verifiers as vf  # noqa: E402
+
+VERIFIER_NAMES = ("zx_derivation", "zx_semantic_equal", "zx_critical_pairs", "zx_termination")
+
+
+def payload(obj) -> bytes:
+    return json.dumps(obj).encode()
+
+
+def test_manifest_declares_the_four_verifiers_for_p6(tmp_path):
+    assert load_pack("zx") is MANIFEST
+    assert MANIFEST.name == "zx" and set(MANIFEST.verifiers) == set(VERIFIER_NAMES)
+    assert MANIFEST.problems == {"P6": "p6-zx-v1"}
+    hashes = set()
+    for name, factory in MANIFEST.verifiers.items():
+        v = factory(tmp_path)
+        assert v.name == name and v.version
+        assert len(v.binary_hash) == 64 and int(v.binary_hash, 16) >= 0
+        hashes.add(v.binary_hash)
+    assert len(hashes) == 4                 # each hash covers its own engines
+
+
+@pytest.mark.parametrize("name", VERIFIER_NAMES)
+def test_golden_suites_have_near_miss_fails_and_exact_verdicts(name, tmp_path):
+    v = MANIFEST.verifiers[name](tmp_path)
+    suite = v.golden_suite()
+    verdicts = {c.expected for c in suite}
+    assert verdicts == {Verdict.PASS, Verdict.FAIL}
+    for c in suite:
+        r = v.verify_bytes(c.payload)
+        assert r.verdict is c.expected, (c.label, r.details)
+        assert r.details.get("detail")
+
+
+@pytest.mark.parametrize("name", VERIFIER_NAMES)
+def test_certify_in_a_temporary_repository(name, tmp_path):
+    stamp, problems = certify_pack_verifier(tmp_path, name)
+    assert problems == [] and stamp is not None
+    assert stamp.name == name and stamp.pack == "zx"
+
+
+def test_verifiers_are_total_and_report_errors_not_verdicts(tmp_path):
+    for name in VERIFIER_NAMES:
+        v = MANIFEST.verifiers[name](tmp_path)
+        for bad in (b"", b"not json", b"[1, 2]", b"{}", b'{"rules": 5}', b"\xff\xfe"):
+            r = v.verify_bytes(bad)
+            assert r.verdict is Verdict.ERROR and r.details["error"], (name, bad)
+    d = MANIFEST.verifiers["zx_derivation"](tmp_path)
+    r = d.verify_bytes(payload({"start": wire().to_json(), "end": wire().to_json(),
+                                "steps": [{"rule": "nope", "matching": {"vertices": {}}}]}))
+    assert r.verdict is Verdict.ERROR and "nope" in r.details["error"]
+    r = d.verify_bytes(payload({"start": wire().to_json(), "end": wire().to_json(), "steps": [],
+                                "rules": [RULES["fusion"].to_json()]}))
+    assert r.verdict is Verdict.ERROR and "fusion" in r.details["error"]   # shadows the library
+    ill = Diagram.build({0: ("B", 0), 1: ("Z", F(1, 3)), 2: ("B", 0)},
+                        [(0, 1, False), (1, 2, False)], inputs=[0], outputs=[2])
+    r = d.verify_bytes(payload({"start": ill.to_json(), "end": ill.to_json(), "steps": []}))
+    assert r.verdict is Verdict.ERROR and "well-formed" in r.details["error"]
+    s = MANIFEST.verifiers["zx_semantic_equal"](tmp_path)
+    ids = list(range(7))
+    big = Diagram.build({**{i: ("B", 0) for i in ids}, 7: ("Z", 0)}, [(i, 7, False) for i in ids],
+                        inputs=ids)
+    r = s.verify_bytes(payload({"a": big.to_json(), "b": big.to_json()}))
+    assert r.verdict is Verdict.ERROR and "budget" in r.details["error"]
+    c = MANIFEST.verifiers["zx_critical_pairs"](tmp_path)
+    r = c.verify_bytes(payload({"rules": ["fusion", "euler"], "depth": 3, "max_nodes": 1}))
+    assert r.verdict is Verdict.ERROR and "exceeded" in r.details["error"]
+    r = c.verify_bytes(payload({"rules": ["fusion"], "depth": -1}))
+    assert r.verdict is Verdict.ERROR
+    t = MANIFEST.verifiers["zx_termination"](tmp_path)
+    r = t.verify_bytes(payload({"rules": ["fusion"], "measure": ["phase_sum"]}))
+    assert r.verdict is Verdict.ERROR and "phase_sum" in r.details["error"]
+
+
+def test_verdict_details_name_the_failure(tmp_path):
+    d = MANIFEST.verifiers["zx_derivation"](tmp_path)
+    start = two_spiders(F(1, 4), F(7, 4))
+    steps = [{"rule": "fusion", "matching": {"vertices": {"0": 1, "1": 2}}, "direction": "->"},
+             {"rule": "identity_z", "matching": {"vertices": {"0": 0, "1": 4, "2": 3}}}]
+    ok = d.verify_bytes(payload({"start": start.to_json(), "end": wire().to_json(),
+                                 "steps": steps}))
+    assert ok.verdict is Verdict.PASS and ok.details["steps"] == 2
+    bad = d.verify_bytes(payload({"start": start.to_json(), "end": wire().to_json(),
+                                  "steps": steps[:1]}))
+    assert bad.verdict is Verdict.FAIL and bad.details["failed_step"] is None
+    bad2 = d.verify_bytes(payload({"start": start.to_json(), "end": wire().to_json(),
+                                   "steps": [steps[1]]}))
+    assert bad2.verdict is Verdict.FAIL and bad2.details["failed_step"] == 0
+    # inline rules extend the library
+    inline = absorb(1).to_json()
+    host = instance(absorb(1), {})
+    out = rw.apply(host, absorb(1), identity_matching(absorb(1), {}))
+    r = d.verify_bytes(payload({
+        "start": host.to_json(), "end": out.to_json(), "rules": [inline],
+        "steps": [{"rule": "absorb_1", "matching": identity_matching(absorb(1), {}).to_json()}]}))
+    assert r.verdict is Verdict.PASS
+    s = MANIFEST.verifiers["zx_semantic_equal"](tmp_path)
+    r = s.verify_bytes(payload({"a": wire().to_json(), "b": bell().to_json()}))
+    assert r.verdict is Verdict.FAIL and "wire" in r.details["detail"]
+    c = MANIFEST.verifiers["zx_critical_pairs"](tmp_path)
+    r = c.verify_bytes(payload({"rules": ["fusion_x", "colour_change"], "depth": 2}))
+    assert r.verdict is Verdict.FAIL and {r.details["rule1"], r.details["rule2"]} == {
+        "fusion_x", "colour_change"}
+    r = c.verify_bytes(payload({"rules": ["fusion", "identity_z"], "depth": 1,
+                                "fragment": "clifford", "star_legs": 0}))
+    assert r.verdict is Verdict.PASS and r.details["overlaps"] > 0
+    t = MANIFEST.verifiers["zx_termination"](tmp_path)
+    r = t.verify_bytes(payload({"rules": ["fusion", "colour_change"], "measure": ["vertices"]}))
+    assert r.verdict is Verdict.FAIL and r.details["rule"] == "colour_change"
+
+
+def test_run_reads_the_evidence_file_from_the_repository(tmp_path):
+    v = MANIFEST.verifiers["zx_semantic_equal"](tmp_path)
+    (tmp_path / "evidence").mkdir()
+    (tmp_path / "evidence" / "hh.json").write_bytes(
+        payload({"a": wire().to_json(), "b": wire().to_json()}))
+    assert v.run("evidence/hh.json").verdict is Verdict.PASS
+    assert v.run("evidence/missing.json").verdict is Verdict.ERROR
+    assert set(vf.GOLDEN_DIR.glob("*.json")) >= {
+        vf.GOLDEN_DIR / f"{c.label}.json" for c in v.golden_suite()}

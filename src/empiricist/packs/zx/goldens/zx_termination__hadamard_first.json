@@ -1,0 +1,11 @@
+{
+ "measure": [
+  "hadamard_edges"
+ ],
+ "rules": [
+  "euler",
+  "identity_z_hh",
+  "identity_x_hh",
+  "hopf_h"
+ ]
+}
