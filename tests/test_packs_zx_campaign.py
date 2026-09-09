@@ -564,3 +564,45 @@ def test_driver_runs_a_scripted_campaign(repo, tmp_path, capsys):
     rc = main(["campaign", "--repo", str(repo), "--run-dir", str(tmp_path / "run2"),
                "--classes", "9,9,9", "--fake", str(script)])
     assert rc == 2 and "outside the verifier's limits" in capsys.readouterr().err
+
+
+# -- transport stall detector (M25c) ---------------------------------------------------------
+
+
+def test_campaign_stops_on_two_consecutive_empty_rounds(repo, tmp_path):
+    """Two rounds in a row whose every proposer call yields no artifact (a hanging or
+    rate-limited transport) stop the run with `transport_stall` instead of burning the
+    round budget; the stop record says so."""
+    run_dir = tmp_path / "run"
+    client = scripted(None, None, None, None, system_a().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=8, max_cost=10.0, k=2,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "transport_stall" and report.rounds == 2
+    assert len(client.calls) == 4                      # the fifth scripted item is never asked for
+    events = [json.loads(line) for line in (run_dir / "campaign.jsonl").read_text().splitlines()]
+    assert events[-1]["event"] == "stop" and events[-1]["reason"] == "transport_stall"
+    assert events[-1]["empty_rounds"] == 2
+
+
+def test_one_empty_round_then_a_proposal_does_not_stall(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    client = scripted(None, None, system_a().model_dump(), None)
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=3, max_cost=10.0, k=2,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "success" and report.rounds == 2
+    assert len(client.calls) == 4
+
+
+def test_driver_exit_code_and_proposer_timeout_flag(repo, tmp_path, capsys):
+    from empiricist.packs.zx.__main__ import build_parser, main
+
+    args = build_parser().parse_args(["campaign", "--run-dir", str(tmp_path / "r"),
+                                      "--proposer-timeout", "600"])
+    assert args.proposer_timeout == 600.0
+    fake = tmp_path / "fake.json"
+    fake.write_text(json.dumps([None, None, None, None]))
+    rc = main(["campaign", "--repo", str(repo), "--run-dir", str(tmp_path / "run"),
+               "--max-rounds", "8", "--max-cost", "10", "--k", "2", "--classes", "1,1,1",
+               "--fake", str(fake)])
+    out = capsys.readouterr().out
+    assert rc == 3 and "stop: transport_stall" in out
