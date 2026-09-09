@@ -1,0 +1,40 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 449e97a766d3f9e24df308c9d5733b43ac6f9c35e31ada92e2f327a7647dfac4
+  golden_suite_hash: f94994cdd0b6f689de1d69d82a39d2eb2463f199677ad572a83bb077e543d687
+  note: argv=None cwd=None exit=None env_sha256=None reason='two semantically equal
+    diagrams of C(2, 2, 4) on 0 inputs and 0 outputs have different normal forms (found
+    after reducing 64 of 89367 diagrams)'
+  path: claims/evidence/p6/cand_b51dae7256/completeness_c224.json
+  stamped: '2026-09-09T06:51:44+00:00'
+  verdict: FAIL
+  verifier: zx_completeness
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_b51dae7256_complete_c224
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_b51dae7256.
+  Verifier: two semantically equal diagrams of C(2, 2, 4) on 0 inputs and 0 outputs
+  have different normal forms (found after reducing 64 of 89367 diagrams) Witness:
+  {"inputs":0,"outputs":0,"a":{"vertices":[[0,"Z","0"]],"edges":[[0,0,true]],"inputs":[],"outputs":[]},"b":{"vertices":[[0,"X","0"]],"edges":[[0,0,true]],"inputs":[],"outputs":[]},"normal_form_a":{"vertices":[[0,"Z","1"]],"edges":[],"inputs":[],"outputs":[]},"normal_form_b":{"vertices":[[0,"X","1"]],"edges":[],"inputs":[],"outputs":[]}}'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 18-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, loop_z, loop_z_h, loop_x, loop_x_h, scalar_x_0,
+  scalar_x_1_2, scalar_x_3_2, scalar_z_0, scalar_z_1_2, scalar_z_3_2} (library rules
+  oriented left-to-right; the inline rules scalar_x_0, scalar_x_1_2, scalar_x_3_2,
+  scalar_z_0, scalar_z_1_2, scalar_z_3_2 are given by their JSON in claims/evidence/p6/cand_b51dae7256/completeness_c224.json),
+  applied first-applicable in the listed order, is complete for the class C(2, 2,
+  4) of stabilizer diagrams (at most 2 boundary wires, 2 interior spiders, 4 edges;
+  formulation p6-zx-v1, section 3) within max_steps = 200 and max_diagrams = 1000000:
+  every diagram of the class reduces to a normal form and semantically equal diagrams
+  share one.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

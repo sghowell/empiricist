@@ -1,0 +1,38 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: c10fddd2a6aaac4b7f29888b7176b48b339f04a42fd987516eabb3942bd343b6
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_56b3796e8a/cp_depth4_arity2.json
+  stamped: '2026-09-09T06:54:45+00:00'
+  verdict: PASS
+  verifier: zx_critical_pairs
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_56b3796e8a_locally_confluent_d4_k2
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 2388
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_56b3796e8a.
+  Verifier: all 2388 critical pairs of 190 rule pairs are joinable within depth 4
+  (star vertices with up to 2 context legs of each type; 0 by case split)'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 19-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, loop_z, loop_z_h, loop_x, loop_x_h, scalar_x_0,
+  scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2}
+  (library rules oriented left-to-right; the inline rules scalar_x_0, scalar_x_1_2,
+  scalar_x_3_2, scalar_x_pi, scalar_z_0, scalar_z_1_2, scalar_z_3_2 are given by their
+  JSON in claims/evidence/p6/cand_56b3796e8a/cp_depth4_arity2.json) is locally confluent
+  within depth 4 at residual arity <= 2 over the stabilizer phases (formulation p6-zx-v1,
+  section 3): every critical overlap of every pair of its rules, with star vertices
+  carrying up to 2 context legs of each type, is joinable within 4 forward steps on
+  each side (search budget max_nodes = 20000): 2388 critical pairs over 190 rule pairs,
+  0 by case split.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

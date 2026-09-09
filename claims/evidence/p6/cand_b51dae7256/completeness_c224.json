@@ -1,0 +1,160 @@
+{
+  "fragment": "clifford",
+  "max_diagrams": 1000000,
+  "max_edges": 4,
+  "max_steps": 200,
+  "max_vertices": 2,
+  "max_wires": 2,
+  "rules": [
+    "fusion",
+    "fusion_x",
+    "identity_z",
+    "identity_z_h",
+    "identity_z_hh",
+    "identity_x",
+    "identity_x_h",
+    "identity_x_hh",
+    "loop_z",
+    "loop_z_h",
+    "loop_x",
+    "loop_x_h",
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "0"
+          ]
+        ]
+      },
+      "name": "scalar_x_0",
+      "reference": "a non-zero 0-leg spider (X(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "scalar_x_1_2",
+      "reference": "a non-zero 0-leg spider (X(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "X",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "scalar_x_3_2",
+      "reference": "a non-zero 0-leg spider (X(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "0"
+          ]
+        ]
+      },
+      "name": "scalar_z_0",
+      "reference": "a non-zero 0-leg spider (Z(0 pi) = 1 + e^(i 0 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "1/2"
+          ]
+        ]
+      },
+      "name": "scalar_z_1_2",
+      "reference": "a non-zero 0-leg spider (Z(1/2 pi) = 1 + e^(i 1/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    },
+    {
+      "lhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": [
+          [
+            0,
+            "Z",
+            "3/2"
+          ]
+        ]
+      },
+      "name": "scalar_z_3_2",
+      "reference": "a non-zero 0-leg spider (Z(3/2 pi) = 1 + e^(i 3/2 pi)) is the empty diagram up to scalar",
+      "residual": [],
+      "rhs": {
+        "edges": [],
+        "inputs": [],
+        "outputs": [],
+        "vertices": []
+      }
+    }
+  ]
+}
