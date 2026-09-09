@@ -12,10 +12,22 @@ Each diagram is reduced deterministically: the first applicable rule in the give
 order, its first matching in `find_matchings` order, until no rule applies; the normal
 form is the canonical form of the result. Diagrams are grouped by semantic class --
 wire signature and matrix up to scalar, with every zero matrix of a signature in one
-class -- and the system passes iff every class has exactly one normal form. A failure
-is a *witness*: two enumerated diagrams that are semantically equal but reduce to
-different normal forms (the smallest such pair in enumeration order, found as soon as
-a class shows its second normal form, so a FAIL does not reduce the whole class).
+class. Two checks share that machinery (`zero`, M26a):
+
+* `"class"` (formulation p6-zx-v1): the system passes iff every class, the zero class
+  included, has exactly one normal form. A failure is a *witness* pair: two enumerated
+  diagrams that are semantically equal but reduce to different normal forms (the first
+  such pair in enumeration order, found as soon as a class shows its second normal
+  form, so a FAIL does not reduce the whole class).
+* `"recognised"` (formulation p6-zx-v2): every non-zero class has exactly one normal
+  form, and a diagram's normal form is *syntactically zero* -- it contains a legless
+  spider of phase pi, the scalar 0 -- iff the diagram denotes the zero map. Zero
+  diagrams are never compared with each other: under "equal up to a non-zero scalar"
+  every diagram containing a zero-scalar component is the zero map, so the zero class
+  holds diagrams of every shape and no system of local rules can give it one normal
+  form (the P6 campaign's run-2 finding). A failure is a witness pair on a non-zero
+  class or a single diagram (`ZeroWitness`) whose normal form is syntactically zero
+  when its matrix is not, or the reverse.
 
 Budgets raise `CompletenessError` -- more than `max_diagrams` diagrams in the class,
 or a reduction running past `max_steps` -- because undecided is not a verdict.
@@ -46,6 +58,7 @@ DEFAULT_MAX_STEPS = 200
 DEFAULT_MAX_DIAGRAMS = 20000
 KEY_DECIMALS = 6
 PIVOT_SLACK = 1e-6
+ZERO_MODES = ("class", "recognised")
 
 
 class CompletenessError(Exception):
@@ -68,16 +81,42 @@ class Witness:
         return len(self.a.outputs)
 
 
+@dataclass(frozen=True)
+class ZeroWitness:
+    """One diagram whose normal form is syntactically zero iff its matrix is not."""
+    diagram: Diagram
+    normal_form: Diagram
+    kind: str                       # zero_unrecognised | nonzero_syntactic_zero
+
+    @property
+    def inputs(self) -> int:
+        return len(self.diagram.inputs)
+
+    @property
+    def outputs(self) -> int:
+        return len(self.diagram.outputs)
+
+
+def is_syntactically_zero(d: Diagram) -> bool:
+    """True iff `d` contains a spider of degree 0 with phase exactly pi (a legless Z(1)
+    or X(1), the scalar 1 + e^{i pi} = 0), so that `d` visibly denotes the zero map."""
+    return any(k != "B" and isinstance(p, Fraction) and p == 1 and d.degree(v) == 0
+               for v, k, p in d.vertices)
+
+
 @dataclass
 class CompletenessReport:
     diagrams: int = 0
     skipped: int = 0
     classes: int = 0
+    nonzero_classes: int = 0
+    zero_diagrams: int = 0
     reduced: int = 0
     normal_forms: int = 0
     steps_max: int = 0
-    failure: Witness | None = None
+    failure: Witness | ZeroWitness | None = None
     seconds: float = 0.0
+    zero: str = "class"
 
     @property
     def ok(self) -> bool:
@@ -210,13 +249,17 @@ def semantic_key(m: np.ndarray, tol: float = semantics.TOLERANCE) -> tuple:
 def check(rules: Mapping[str, Rule], *, phases: tuple[Fraction, ...] = PHASES_CLIFFORD,
           max_wires: int = DEFAULT_MAX_WIRES, max_vertices: int = DEFAULT_MAX_VERTICES,
           max_edges: int = DEFAULT_MAX_EDGES, max_steps: int = DEFAULT_MAX_STEPS,
-          max_diagrams: int = DEFAULT_MAX_DIAGRAMS) -> CompletenessReport:
+          max_diagrams: int = DEFAULT_MAX_DIAGRAMS, zero: str = "class") -> CompletenessReport:
     """Enumerate the class, group it by semantic class, reduce its diagrams in order and
-    stop at the first class with two normal forms. `classes` counts every class of the
-    judged diagrams; `reduced`, `normal_forms` and `steps_max` cover the diagrams
-    reduced before the verdict (all of them on a pass)."""
+    stop at the first failure (see the module docstring for the two `zero` modes).
+    `classes` counts every class of the judged diagrams (the zero diagrams of a wire
+    signature as one), `nonzero_classes` those with a non-zero matrix, `zero_diagrams`
+    the judged diagrams denoting zero; `reduced`, `normal_forms` and `steps_max` cover
+    the diagrams reduced before the verdict (all of them on a pass)."""
+    if zero not in ZERO_MODES:
+        raise ValueError(f"zero must be one of {ZERO_MODES}, not {zero!r}")
     t0 = time.perf_counter()
-    rep = CompletenessReport()
+    rep = CompletenessReport(zero=zero)
     diagrams = enumerate_diagrams(phases, max_wires, max_vertices, max_edges, max_diagrams)
     rep.diagrams = len(diagrams)
     keys: list[tuple | None] = []
@@ -234,7 +277,10 @@ def check(rules: Mapping[str, Rule], *, phases: tuple[Fraction, ...] = PHASES_CL
             key = (*key, "#")            # a rounding collision: a fresh bucket
         representative.setdefault(key, m)
         keys.append(key)
+        if key[2] == "zero":
+            rep.zero_diagrams += 1
     rep.classes = len(representative)
+    rep.nonzero_classes = sum(1 for k in representative if k[2] != "zero")
     first_by_class: dict[tuple, dict[str, tuple[Diagram, Diagram]]] = {}
     normal_forms: set[str] = set()
     for d, key in zip(diagrams, keys, strict=True):
@@ -246,6 +292,14 @@ def check(rules: Mapping[str, Rule], *, phases: tuple[Fraction, ...] = PHASES_CL
         nf_key = nf.canonical_json()
         normal_forms.add(nf_key)
         rep.normal_forms = len(normal_forms)
+        if zero == "recognised":
+            denotes_zero = key[2] == "zero"
+            if denotes_zero != is_syntactically_zero(nf):
+                rep.failure = ZeroWitness(
+                    d, nf, "zero_unrecognised" if denotes_zero else "nonzero_syntactic_zero")
+                break
+            if denotes_zero:
+                continue            # zero diagrams are recognised, never compared
         seen = first_by_class.setdefault(key, {})
         if nf_key not in seen:
             seen[nf_key] = (d, nf)
@@ -259,6 +313,7 @@ def check(rules: Mapping[str, Rule], *, phases: tuple[Fraction, ...] = PHASES_CL
 
 __all__ = [
     "DEFAULT_MAX_DIAGRAMS", "DEFAULT_MAX_EDGES", "DEFAULT_MAX_STEPS", "DEFAULT_MAX_VERTICES",
-    "DEFAULT_MAX_WIRES", "KEY_DECIMALS", "CompletenessError", "CompletenessReport", "Witness",
-    "check", "enumerate_diagrams", "normal_form", "reduce", "semantic_key",
+    "DEFAULT_MAX_WIRES", "KEY_DECIMALS", "ZERO_MODES", "CompletenessError",
+    "CompletenessReport", "Witness", "ZeroWitness", "check", "enumerate_diagrams",
+    "is_syntactically_zero", "normal_form", "reduce", "semantic_key",
 ]
