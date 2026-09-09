@@ -32,6 +32,14 @@ certs = [
     "cvxpy>=1.4",
     "scs>=3.2",
 ]
+# The `cosmology` pack (packs/cosmology): death_and_gravity's certificate replay checkers
+# need exact symbolic algebra and ball arithmetic. Optional so the core harness never
+# requires them; without the group the pack loads as absent and its tests skip.
+#   uv sync --group cosmology
+cosmology = [
+    "sympy>=1.14",
+    "python-flint>=0.7",
+]
 
 [build-system]
 requires = ["hatchling"]
