@@ -30,11 +30,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Any
 
 from empiricist.packs.zx.diagram import Diagram
 
 Residual = tuple[tuple[int, tuple[tuple[int, bool], ...]], ...]
+
+# the ground phases of the two fragments the library speaks about (units of pi)
+PHASES_CLIFFORD_T: tuple[Fraction, ...] = tuple(Fraction(k, 4) for k in range(8))
+PHASES_CLIFFORD: tuple[Fraction, ...] = tuple(Fraction(k, 2) for k in range(4))
 
 
 @dataclass(frozen=True)
@@ -383,6 +388,6 @@ def rule_table() -> list[dict[str, Any]]:
 
 
 __all__ = [
-    "CLIFFORD_RULES", "CLIFFORD_T_RULES", "JPV", "RULES", "Residual", "Rule", "rule_table",
-    "swap_colours",
+    "CLIFFORD_RULES", "CLIFFORD_T_RULES", "JPV", "PHASES_CLIFFORD", "PHASES_CLIFFORD_T", "RULES",
+    "Residual", "Rule", "rule_table", "swap_colours",
 ]

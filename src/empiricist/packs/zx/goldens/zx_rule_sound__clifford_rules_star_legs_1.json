@@ -1,0 +1,30 @@
+{
+ "fragment": "clifford",
+ "rules": [
+  "fusion",
+  "fusion_x",
+  "identity_z",
+  "identity_x",
+  "identity_z_h",
+  "identity_x_h",
+  "identity_z_hh",
+  "identity_x_hh",
+  "colour_change",
+  "copy",
+  "copy_x",
+  "bialgebra",
+  "pi_commute",
+  "pi_commute_x",
+  "pi_copy",
+  "pi_copy_x",
+  "hopf",
+  "hopf_h",
+  "euler",
+  "euler_x",
+  "loop_z",
+  "loop_x",
+  "loop_z_h",
+  "loop_x_h"
+ ],
+ "star_legs": 1
+}
