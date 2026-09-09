@@ -235,6 +235,48 @@ def test_run_reads_a_committed_certificate_from_the_repository(tmp_path):
     assert v.run(rel).verdict is Verdict.FAIL
 
 
+# --- Task 3: the stopgap driver (core's CLI resolves no pack verifiers on this branch) --
+
+def test_driver_certifies_promotes_reverifies_and_respects_shadowing(tmp_path, capsys):
+    from empiricist.claims.check import check
+    from empiricist.claims.model import load_all
+    from empiricist.claims.promote import formulate
+    from empiricist.packs.cosmology.__main__ import main
+
+    repo = tmp_path
+    rel = "problems/P8/certificates/s0-identities.json"
+    (repo / rel).parent.mkdir(parents=True)
+    (repo / rel).write_bytes((CHECKERS / rel).read_bytes())
+    formulate(repo, claim_id="P8-0", problem="P8(b)", formulation_version="v1",
+              kind="statement", statement="S0 identities hold")
+    # promotion before certification: refused by core, not by the driver
+    promote_argv = ["promote", "--repo", str(repo), "--id", "P8-0", "--level", "CONJECTURED",
+                    "--verifier", "cosmo_p8_s0", "--evidence", rel]
+    assert main(promote_argv) == 1
+    assert "no current stamp" in capsys.readouterr().err
+    assert main(["certify", "--repo", str(repo), "cosmo_p8_s0"]) == 0
+    assert "cosmo_p8_s0 v1" in capsys.readouterr().out
+    assert main(promote_argv) == 0
+    c = load_all(repo)["P8-0"]
+    e = c.evidence[-1]
+    assert c.level == "CONJECTURED" and e.verifier == "cosmo_p8_s0" and e.verdict == "PASS"
+    assert e.binary_hash and e.golden_suite_hash
+    assert check(repo).ok and check(repo).standings == {"P8-0": "CURRENT"}
+    # an elevated statement promotion still needs a receipt: core's rule, unchanged
+    assert main([*promote_argv[:6], "CERTIFIED", *promote_argv[7:]]) == 1
+    assert "requires a review receipt" in capsys.readouterr().err
+    # reverify by the pack verifier object
+    assert main(["reverify", "--repo", str(repo), "--id", "P8-0"]) == 0
+    assert "P8-0: re-verified" in capsys.readouterr().out
+    # a repository declaration of the same name shadows the pack verifier
+    (repo / "claims" / "verifiers").mkdir(exist_ok=True)
+    (repo / "claims" / "verifiers" / "cosmo_p8_s0.yaml").write_text("name: cosmo_p8_s0\n")
+    assert main(["certify", "--repo", str(repo), "cosmo_p8_s0"]) == 1
+    assert "shadows" in capsys.readouterr().err
+    assert main(["promote", "--repo", str(repo), "--id", "P8-0", "--level", "CONJECTURED",
+                 "--verifier", "cosmo_nope", "--evidence", rel]) == 1
+
+
 @pytest.mark.slow
 def test_the_p8b_chain_verifier_reproduces_all_six_certificates(built, tmp_path, monkeypatch):
     v = built("cosmo_p8_chain")
