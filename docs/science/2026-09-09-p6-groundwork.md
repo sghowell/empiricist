@@ -53,8 +53,10 @@ its 2388 critical pairs all join within four steps.
 ## What this sets up
 
 M25b, the completion campaign: the model proposes orientations of the remaining JPV
-equations and auxiliary rules on top of R0core; the pack certifies soundness, termination, local
-confluence at arity ≤ 2 and bounded completeness; every PASS becomes a VERIFIED_N claim and
-every FAIL a REFUTED row with its witness. The stopping condition is a system that passes all
-four on C(2, 3, 6) and C(2, 4, 8). The honest ceiling stays: without the critical-pair lemma
-for star rules, such a system is locally confluent at bounded arity, not proven confluent.
+equations and auxiliary rules on top of R0core and R1's scalar eliminations; the pack certifies
+soundness, termination, local confluence at arity ≤ 2 and bounded completeness; every PASS
+becomes a VERIFIED_N claim and every FAIL a REFUTED row with its witness. The stopping condition
+is a system that passes all four on C(2, 2, 4) and on the largest class the checker can survey
+within its budgets (C(3, 2, 4) or C(2, 2, 6), to be measured first). The honest ceiling stays:
+without the critical-pair lemma for star rules, such a system is locally confluent at bounded
+arity, not proven confluent.
