@@ -1,0 +1,36 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 449e97a766d3f9e24df308c9d5733b43ac6f9c35e31ada92e2f327a7647dfac4
+  golden_suite_hash: f94994cdd0b6f689de1d69d82a39d2eb2463f199677ad572a83bb077e543d687
+  note: argv=None cwd=None exit=None env_sha256=None reason='two semantically equal
+    diagrams of C(2, 2, 4) on 0 inputs and 0 outputs have different normal forms (found
+    after reducing 2 of 89367 diagrams)'
+  path: claims/evidence/p6/r0core_completeness_c224.json
+  stamped: '2026-09-09T04:21:06+00:00'
+  verdict: FAIL
+  verifier: zx_completeness
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.r0_core_complete_c224
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: 'Tested by zx_completeness on claims/evidence/p6/r0core_completeness_c224.json
+  (89367 diagrams, 199 semantic classes). The witness is a scalar: the empty diagram
+  and the zero-leg spider Z(0) are semantically equal (both non-zero scalars) and
+  both are normal forms under R0core. Every class C(w, v>=1, e) contains the six non-zero
+  zero-leg spiders, one semantic class, so no system without scalar-elimination rules
+  is complete for any such class.'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: The 12-rule system R0core = {fusion, fusion_x, identity_z, identity_x,
+  identity_z_h, identity_x_h, identity_z_hh, identity_x_hh, loop_z, loop_x, loop_z_h,
+  loop_x_h} is complete for the class C(2, 2, 4) of stabilizer diagrams (at most 2
+  boundary wires, 2 interior spiders, 4 edges; formulation p6-zx-v1, section 3).
+substatus: null
+supersedes: []
+updated: '2026-09-09'
