@@ -373,3 +373,43 @@ def test_zx_completeness_goldens_are_the_stated_classes(tmp_path):
             d = verdicts[label].details
             assert sem.equal_up_to_scalar(sem.matrix(Diagram.from_json(d["a"])),
                                           sem.matrix(Diagram.from_json(d["b"])))
+# ----------------------------------------------------------------------------- Task 3: per-arity
+
+from empiricist.packs.zx import critical_pairs as cp  # noqa: E402
+
+
+def test_check_per_arity_records_joinability_at_every_residual_arity():
+    rep = cp.check(subset("fusion", "identity_z"), 1, star_legs=2, per_arity=True,
+                   phases=PHASES_CLIFFORD)
+    assert rep.ok and rep.star_legs == 2
+    assert sorted(rep.per_arity) == [0, 1, 2]
+    for row in rep.per_arity.values():
+        assert set(row) == {"pairs", "overlaps", "joined", "failures"}
+        assert row["pairs"] == 3 and row["failures"] == 0 and row["joined"] == row["overlaps"]
+    counts = [rep.per_arity[a]["overlaps"] for a in (0, 1, 2)]
+    assert counts[0] < counts[1] < counts[2] == rep.overlaps
+    assert rep.per_arity[2]["joined"] == rep.joined
+    # without the flag nothing is recorded, and the verdict is the same
+    plain = cp.check(subset("fusion", "identity_z"), 1, star_legs=2, phases=PHASES_CLIFFORD)
+    assert plain.ok and plain.per_arity == {} and plain.overlaps == rep.overlaps
+    # a failing set: the failure is at the requested arity; lower arities are still counted
+    broken = cp.check(subset("fusion_x", "colour_change"), 2, star_legs=1, per_arity=True)
+    assert not broken.ok and sorted(broken.per_arity) == [0, 1]
+    assert broken.per_arity[1]["failures"] >= 1
+
+
+def test_zx_critical_pairs_verifier_reports_per_arity(tmp_path):
+    v = MANIFEST.verifiers["zx_critical_pairs"](tmp_path)
+    r = v.verify_bytes(payload({"rules": ["fusion", "identity_z"], "depth": 1, "star_legs": 2,
+                                "fragment": "clifford", "per_arity": True}))
+    assert r.verdict is Verdict.PASS
+    assert list(r.details["per_arity"]) == ["0", "1", "2"]
+    assert all(row["failures"] == 0 for row in r.details["per_arity"].values())
+    assert r.details["per_arity"]["2"]["overlaps"] == r.details["overlaps"]
+    r = v.verify_bytes(payload({"rules": ["fusion", "identity_z"], "depth": 1, "star_legs": 2,
+                                "fragment": "clifford"}))
+    assert r.verdict is Verdict.PASS and "per_arity" not in r.details
+    r = v.verify_bytes(payload({"rules": ["fusion"], "depth": 1, "per_arity": "yes"}))
+    assert r.verdict is Verdict.ERROR and "per_arity" in r.details["error"]
+
+

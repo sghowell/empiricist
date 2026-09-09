@@ -19,7 +19,11 @@ Soundness note. A PASS from `check` says: every enumerated critical pair is join
 within the depth. The enumeration is complete for rules without star vertices; for
 star rules it covers the residual-leg configurations up to `star_legs` per star, and
 the critical-pair lemma for such rules (joinability transferring to every number of
-residual legs) is not established here -- see the plan's outcome section.
+residual legs) is not established here -- see the plan's outcome section. With
+`per_arity` the check is also run at every residual arity 0..`star_legs` and the
+counts per arity are recorded, so a claim can state exactly what was checked; the
+verdict is that of the requested `star_legs` (the arity-k enumeration contains every
+lower-arity configuration).
 """
 from __future__ import annotations
 
@@ -83,10 +87,16 @@ class CheckReport:
     failures: list[tuple[Overlap, JoinReport]] = field(default_factory=list)
     seconds: float = 0.0
     per_pair: dict[tuple[str, str], int] = field(default_factory=dict)
+    per_arity: dict[int, dict[str, int]] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
         return self.failure is None
+
+    @property
+    def counts(self) -> dict[str, int]:
+        return {"pairs": self.pairs, "overlaps": self.overlaps, "joined": self.joined,
+                "failures": len(self.failures)}
 
 
 # ----------------------------------------------------------------------------- variables
@@ -479,11 +489,34 @@ def check(rules: Mapping[str, Rule], depth: int, *, star_legs: int = 1,
           phases: tuple[Fraction, ...] = PHASES_CLIFFORD_T,
           max_nodes: int = DEFAULT_MAX_NODES,
           max_instances: int = DEFAULT_MAX_INSTANCES,
-          max_failures: int | None = 1, budget_as_failure: bool = False) -> CheckReport:
+          max_failures: int | None = 1, budget_as_failure: bool = False,
+          per_arity: bool = False) -> CheckReport:
     """Every critical pair of every (unordered) pair of rules, joinable within `depth`
     or the first that is not (`max_failures=None` collects them all). A joinability
     budget exhaustion raises `CriticalPairError` -- undecided is not a verdict -- unless
-    `budget_as_failure`, which records it as a failure (for surveys)."""
+    `budget_as_failure`, which records it as a failure (for surveys). With `per_arity`
+    the check also runs at every residual arity below `star_legs` and the report's
+    `per_arity` maps each arity 0..`star_legs` to its counts (pairs, overlaps, joined,
+    failures -- the last bounded by `max_failures`); the verdict is unchanged."""
+    if not per_arity:
+        return _check_at(rules, depth, star_legs, phases, max_nodes, max_instances,
+                         max_failures, budget_as_failure)
+    t0 = time.perf_counter()
+    rows: dict[int, dict[str, int]] = {}
+    rep = CheckReport(depth=depth, star_legs=star_legs)
+    for arity in range(star_legs + 1):
+        rep = _check_at(rules, depth, arity, phases, max_nodes, max_instances, max_failures,
+                        budget_as_failure)
+        rows[arity] = rep.counts
+    rep.star_legs = star_legs
+    rep.per_arity = rows
+    rep.seconds = time.perf_counter() - t0
+    return rep
+
+
+def _check_at(rules: Mapping[str, Rule], depth: int, star_legs: int,
+              phases: tuple[Fraction, ...], max_nodes: int, max_instances: int,
+              max_failures: int | None, budget_as_failure: bool) -> CheckReport:
     t0 = time.perf_counter()
     rep = CheckReport(depth=depth, star_legs=star_legs)
     names = sorted(rules)

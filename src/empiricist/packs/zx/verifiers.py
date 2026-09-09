@@ -10,10 +10,11 @@ Each judges the bytes of one committed evidence file, a JSON object:
   PASS iff the two diagrams' matrices are equal up to a non-zero scalar (both zero
   counts as equal); FAIL otherwise; ERROR above the evaluation budget (6 wires).
 * `zx_critical_pairs`  {"rules": [names or inline rules], "depth", "star_legs"?,
-  "fragment"?, "max_nodes"?, "max_instances"?}
+  "fragment"?, "max_nodes"?, "max_instances"?, "per_arity"?: bool}
   PASS iff every enumerated critical pair of the (oriented) rules is joinable within
   `depth` forward steps on each side; FAIL names the first that is not, with the
-  overlap and both results; ERROR when a search budget runs out (undecided).
+  overlap and both results; ERROR when a search budget runs out (undecided). With
+  `per_arity` the details carry the counts at every residual arity 0..`star_legs`.
 * `zx_termination`  {"rules": [...], "measure": [components]}
   PASS iff every rule strictly decreases the lexicographic measure for every instance
   (symbolic check over residual legs); FAIL names the first rule that does not.
@@ -296,15 +297,20 @@ class ZXCriticalPairsVerifier(_ZXVerifier):
         max_instances = _int(obj, "max_instances", critical_pairs.DEFAULT_MAX_INSTANCES, 1,
                              10 ** 6)
         fragment = _fragment(obj)
+        per_arity = obj.get("per_arity", False)
+        if not isinstance(per_arity, bool):
+            raise PayloadError("'per_arity' must be a boolean")
         try:
             rep = critical_pairs.check(rulebook, depth, star_legs=star_legs,
                                        phases=FRAGMENTS[fragment], max_nodes=max_nodes,
-                                       max_instances=max_instances)
+                                       max_instances=max_instances, per_arity=per_arity)
         except critical_pairs.CriticalPairError as exc:
             raise PayloadError(f"undecided: {exc}") from None
         common = {"depth": depth, "star_legs": star_legs, "fragment": fragment,
                   "pairs": rep.pairs, "overlaps": rep.overlaps, "case_splits": rep.case_splits,
                   "rules": sorted(rulebook)}
+        if per_arity:
+            common["per_arity"] = {str(a): dict(row) for a, row in sorted(rep.per_arity.items())}
         if rep.failure is not None:
             o, j = rep.failure
             return VerifierResult(Verdict.FAIL, {
