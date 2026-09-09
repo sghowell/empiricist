@@ -1,0 +1,215 @@
+{
+  "claim": "P8-A.2",
+  "date": "2026-09-05",
+  "difference_QSEI_derivation": {
+    "Fourier_convention": "F(u)=integral exp(-i*u*eta)*f(eta) deta; B=Fourier(f/eta)",
+    "bound": "integral h^2*(E_omega-E_reference) dt >= -Q[h]",
+    "conformal_positive_form": "2*(Derivative(f(eta), eta)/eta - f(eta)/eta**2)**2/9 + (Derivative(f(eta), (eta, 2)) + 4*Derivative(f(eta), eta)/(3*eta) - 4*f(eta)/(3*eta**2))**2",
+    "conformal_reduced_density": "Derivative(f(eta), (eta, 2))**2 + 6*Derivative(f(eta), eta)**2/eta**2 - 12*f(eta)**2/eta**4",
+    "curvature_credit": "(3/8)*||hdot/t-3h/(2t^2)||^2+(111/256)*||h/t^2||^2",
+    "exact_comparison": "0 <= Q[h] <= hbar/(16*pi^2)*||hddot||^2 for every admissible h",
+    "flat_upper_bound_decomposition": "-3*(Derivative(h(t), t)/t - 3*h(t)/(2*t**2))**2/8 + Derivative(h(t), (t, 2))**2 - 111*h(t)**2/(256*t**4)",
+    "not_optimality": "Q is the evaluated positive-type construction, not an optimal QEI over states",
+    "overall_proper_time_prefactor": "hbar/(16*pi^2)",
+    "proper_time_density": "Derivative(h(t), (t, 2))**2 - 3*Derivative(h(t), t)**2/(8*t**2) + 105*h(t)**2/(256*t**4)",
+    "residuals": {
+      "conformal_IBP": "0",
+      "conformal_positive_square": "0",
+      "flat_coefficient_upper_bound_IBP": "0",
+      "positive_spectral_square": "0",
+      "proper_time_IBP": "0",
+      "proper_time_pullback": "0",
+      "triangular_frequency_integral": "0",
+      "weighted_Hardy_IBP": "0"
+    },
+    "sampling_dictionary": "f(eta)=a(eta)^(-3/2)*h(A*eta^2/2)",
+    "spectral_norm": "integral_0^infty du [u^4*|F|^2/4+u^2*|B|^2/2-(2/3)*u^3*Im(F*conj(B))]",
+    "spectral_prefactor": "hbar/(4*pi^3)"
+  },
+  "fixed_background_and_field_map": {
+    "Kretschmann": "3/(2*t**4)",
+    "Ricci_UU_FK_convention": "-3/(4*t**2)",
+    "all_normals_scope": "all normals to a constant-t FLRW slice are comoving; no other slices/backgrounds",
+    "field_map": "chi=a*phi; Dchi=(partial_eta-1/eta)chi; partial_t phi=a^-2 Dchi",
+    "initial_slice_expansion": "3/(2*t)",
+    "matter_era_flat_mode_negative_control": "-sqrt(2)*exp(-I*eta*k)/(eta**2*sqrt(k))",
+    "metric": "ds^2=(A*eta)^2*(deta^2-dx^2), A>0, eta>0",
+    "proper_time": "t=A*eta^2/2 > 0",
+    "reference_two_point": "W0_rad(x,x')=W0_Mink(x,x')/[a(eta)*a(eta')]",
+    "residuals": {
+      "canonical_mode_Wronskian": "0",
+      "comoving_geodesic_acceleration": "0",
+      "cosmic_clock": "0",
+      "radiation_Ricci_scalar_zero": "0",
+      "radiation_plane_wave_solves_KG": "0",
+      "rescaled_Klein_Gordon": "0"
+    }
+  },
+  "formulation": "FORMULATION.md",
+  "independent_FLINT_benchmark": {
+    "conformal_interval_for_A_2": [
+      "1",
+      "sqrt(2)"
+    ],
+    "exact_integrals": {
+      "conformal_positive_norm": [
+        "-75587/1280",
+        "2763/32"
+      ],
+      "conformal_reduced_norm": [
+        "-75587/1280",
+        "2763/32"
+      ],
+      "flat_norm": [
+        "4/5",
+        "0"
+      ],
+      "proper_Hardy_decomposition": [
+        "-75587/1280",
+        "2763/32"
+      ],
+      "proper_curved_norm": [
+        "-75587/1280",
+        "2763/32"
+      ]
+    },
+    "integral_basis": [
+      "1",
+      "log(2)"
+    ],
+    "polynomial_coefficients_ascending": [
+      "4",
+      "-12",
+      "13",
+      "-6",
+      "1"
+    ],
+    "positive_and_strictly_below_flat_norm": true,
+    "proper_interval": [
+      "1",
+      "2"
+    ],
+    "validated_normalized_curved_norm": {
+      "lower": "7965831/10000000",
+      "strict": true,
+      "upper": "995729/1250000"
+    }
+  },
+  "not_established": [
+    "a value or bound for the actual renormalized reference EED",
+    "an unconditional absolute QSEI or general-background T-regularity",
+    "self-consistency of the radiation metric with the scalar field SEE",
+    "all normal geodesics of arbitrary Cauchy surfaces or other metrics",
+    "a new cosmological incompleteness theorem or a realistic-field calibration",
+    "an optimal QEI over states or sharp sampling-duration threshold",
+    "massive, nonminimal, interacting or additional field extensions",
+    "an exclusion of P8(b) bounces or full P8(a) completion"
+  ],
+  "precision_bits": 192,
+  "prior_A1_sha256": "f719c98068848003e296260d3ff6b03d32acad40662b9c9980f61c39175f209e",
+  "reference_state_conditional_bridge": {
+    "Poincare_domain": "H2_0 of this proper-time interval; h and hdot have zero traces",
+    "all_duration_C1_sufficient_if_separately_proved": "E_reference(t) >= -111*hbar/(4096*pi^2*t^4)",
+    "conditional_geometric_constants_beta_1_tmin_1_kappa_hbar_1": {
+      "Q0": "145/(4096*pi**2)",
+      "Q2": "1/(16*pi**2)",
+      "conditional_on_SEE_and_reference_bound": true
+    },
+    "dimensionless_reference_credit": "111/256",
+    "example_with_UNESTABLISHED_beta_1": {
+      "L_over_t_c": "1/2",
+      "absolute_QSEI_multiplier": "145/(1296*pi**4) + 1",
+      "assumed_reference_lower_bound": "E_reference(t) >= -(1)*hbar/(16*pi^2*t^4)",
+      "reference_bound_is_derived_here": false,
+      "remaining_dimensionless_reference_deficit": "145/256",
+      "status": "CONDITIONAL_ON_REFERENCE_EED_BOUND; NOT_A_SEE_SOLUTION",
+      "t_min_over_t_c": "3/4",
+      "validated_multiplier": {
+        "lower": "2002297/2000000",
+        "strict": true,
+        "upper": "10011487/10000000"
+      },
+      "window_over_t_c": [
+        "3/4",
+        "5/4"
+      ]
+    },
+    "general_multiplier": "1+max(0,beta-111/256)*(L/t_min)^4/pi^4",
+    "support": "(t_c-L/2,t_c+L/2), 0<L<2*t_c, t_min=t_c-L/2"
+  },
+  "schema": 1,
+  "scope": {
+    "absolute_QSEI_is_unconditionally_derived": false,
+    "assumed_small_duration_for_difference_bound": false,
+    "field": "free real massless minimally coupled scalar",
+    "renormalized_reference_EED": "RETAINED, NOT EVALUATED OR SET TO ZERO",
+    "required_endpoint_jets": "h=hdot=0 at both endpoints",
+    "sampling": "real C_c^infinity(t>0), extended to H2_0 on compact intervals with positive lower endpoint",
+    "self_consistent_SEE_solution_is_established": false,
+    "state_of_interest": "arbitrary Hadamard state on the fixed radiation patch"
+  },
+  "second_independent_FLINT_benchmark": {
+    "conformal_interval_for_A_2": [
+      "1",
+      "sqrt(2)"
+    ],
+    "exact_integrals": {
+      "conformal_positive_norm": [
+        "-26105/1792",
+        "909/32"
+      ],
+      "conformal_reduced_norm": [
+        "-26105/1792",
+        "909/32"
+      ],
+      "flat_norm": [
+        "36/7",
+        "0"
+      ],
+      "proper_Hardy_decomposition": [
+        "-26105/1792",
+        "909/32"
+      ],
+      "proper_curved_norm": [
+        "-26105/1792",
+        "909/32"
+      ]
+    },
+    "integral_basis": [
+      "1",
+      "log(2)"
+    ],
+    "polynomial_coefficients_ascending": [
+      "4",
+      "-8",
+      "1",
+      "7",
+      "-5",
+      "1"
+    ],
+    "proper_interval": [
+      "1",
+      "2"
+    ]
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "429676d3f8192cb1009d71ca9a9cafe7370223b0be2c0ae2cd3f7a225b97fe80",
+    "README.md": "a0e12daa207ad9358ba024ab246de82ecbcaf4831fa461db2a50f012e121327d",
+    "notes/derivation.md": "8b809ddc958eee442ce78ffa6b27971f60656127788e0d14041c2ee17ea790ba",
+    "notes/sources.md": "439333b8bdf36b794b29e6c444359179c088e72311283e035a16e2d3b9e3c356",
+    "src/p8a_radiation/__init__.py": "b1d9605705c4dfcfd6c2fa6d4888ff5c441dda78a89216f0f5421778dc4ae85b",
+    "src/p8a_radiation/functional.py": "22e474981be78c44b894a4a9833f8789c512cf28a6a50325871aa3e1d31aeecb",
+    "src/p8a_radiation/independent.py": "3294292be19eee08e7da1b0694172ff86eb945eaddbed2d93bd1a22cda9864a2",
+    "src/p8a_radiation/radiation.py": "74e160fbaef94035cd409b3140abce5a38c707a1bcfb23138c34e2e9faa21dd3",
+    "src/p8a_radiation/validated.py": "10f9b3269e4943d13b44a2a342d9caea028a376b82b485c90cf8617a35bf38a0",
+    "src/p8a_radiation/verify.py": "a64f6a8fe8e8154491da913d895fdb77b9d60ed3b321ae8d144d406c72a60956",
+    "src/p8a_radiation/windows.py": "69edf84c8508c36b46c0171208eff6c8db9db27c552b37c58324ed5709e42093",
+    "tests/conftest.py": "f8ccc83c080622b025666fb6125bf4679e50df1f884e0de683aab609daf4d10b",
+    "tests/test_radiation_derivation.py": "96fcaece50da1506e6ccd9a0a0978414f1ff247557d0b4c08fe1f29af19c9719",
+    "tests/test_radiation_report.py": "e022bcd463f7ea84c5406bca54d78e8e90048fe081a16527ab9f18a746b25764",
+    "tests/test_radiation_windows.py": "8e34d21f211fe4fe5c4c19a9b6234efaa3ce984885fb5683a3117e2352231a7d"
+  },
+  "status": "RADIATION_DIFFERENCE_QSEI_DERIVED; ABSOLUTE_REFERENCE_AND_SEE_APPLICATION_OPEN",
+  "written_proof": "notes/derivation.md"
+}

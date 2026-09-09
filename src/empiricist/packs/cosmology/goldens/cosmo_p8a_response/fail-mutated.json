@@ -1,0 +1,235 @@
+{
+  "Wick_square_first_response": "-hbar*K/(8*pi^2*A^2*eta^2)",
+  "actual_fixed_proper_time_first_response": {
+    "EED": "gamma*(-18*(-Derivative(Q(eta), (eta, 4)) - 3*Derivative(Q(eta), (eta, 3))/eta + 6*Derivative(Q(eta), (eta, 2))/eta**2 - 6*Derivative(Q(eta), eta)/eta**3)/eta**4 + 18*(-4*Derivative(Q(eta), (eta, 3)) - 12*Derivative(Q(eta), (eta, 2))/eta + 12*Derivative(Q(eta), eta)/eta**2)/eta**5 - 18*(-4*Derivative(Q(eta), (eta, 2)) - 12*Derivative(Q(eta), eta)/eta)/eta**6)/A**4 + hbar*((-3*Derivative(Q(eta), (eta, 4)) - 9*Derivative(Q(eta), (eta, 3))/eta + 18*Derivative(Q(eta), (eta, 2))/eta**2 - 18*Derivative(Q(eta), eta)/eta**3)/(480*eta**4) - Derivative(K(eta), (eta, 2))/(32*eta**4) - (-12*Derivative(Q(eta), (eta, 3)) - 36*Derivative(Q(eta), (eta, 2))/eta + 36*Derivative(Q(eta), eta)/eta**2)/(480*eta**5) + Derivative(K(eta), eta)/(8*eta**5) + (-13*Derivative(Q(eta), (eta, 2)) - 39*Derivative(Q(eta), eta)/eta)/(480*eta**6) - K(eta)/(8*eta**6) + Derivative(Q(eta), eta)/(80*eta**7))/(pi**2*A**4)",
+    "density": "gamma*(36*(-Derivative(Q(eta), (eta, 3)) - 3*Derivative(Q(eta), (eta, 2))/eta + 3*Derivative(Q(eta), eta)/eta**2)/eta**5 - 36*(-Derivative(Q(eta), (eta, 2)) - 3*Derivative(Q(eta), eta)/eta)/eta**6)/A**4 + hbar*((3*Derivative(Q(eta), (eta, 3)) + 9*Derivative(Q(eta), (eta, 2))/eta - 9*Derivative(Q(eta), eta)/eta**2)/(240*eta**5) + Derivative(K(eta), eta)/(16*eta**5) + (-3*Derivative(Q(eta), (eta, 2)) - 9*Derivative(Q(eta), eta)/eta)/(240*eta**6) - K(eta)/(16*eta**6) + Derivative(Q(eta), eta)/(240*eta**7))/(pi**2*A**4)",
+    "pressure": "gamma*(-12*(-Derivative(Q(eta), (eta, 4)) - 3*Derivative(Q(eta), (eta, 3))/eta + 6*Derivative(Q(eta), (eta, 2))/eta**2 - 6*Derivative(Q(eta), eta)/eta**3)/eta**4 + 12*(-3*Derivative(Q(eta), (eta, 3)) - 9*Derivative(Q(eta), (eta, 2))/eta + 9*Derivative(Q(eta), eta)/eta**2)/eta**5 - 12*(-3*Derivative(Q(eta), (eta, 2)) - 9*Derivative(Q(eta), eta)/eta)/eta**6)/A**4 + hbar*((-3*Derivative(Q(eta), (eta, 4)) - 9*Derivative(Q(eta), (eta, 3))/eta + 18*Derivative(Q(eta), (eta, 2))/eta**2 - 18*Derivative(Q(eta), eta)/eta**3)/(720*eta**4) - Derivative(K(eta), (eta, 2))/(48*eta**4) - (-9*Derivative(Q(eta), (eta, 3)) - 27*Derivative(Q(eta), (eta, 2))/eta + 27*Derivative(Q(eta), eta)/eta**2)/(720*eta**5) + Derivative(K(eta), eta)/(16*eta**5) + (-10*Derivative(Q(eta), (eta, 2)) - 30*Derivative(Q(eta), eta)/eta)/(720*eta**6) - K(eta)/(16*eta**6) + Derivative(Q(eta), eta)/(144*eta**7))/(pi**2*A**4)"
+  },
+  "asymptotic_defect_and_second_correction_identities": {
+    "frozen_EED_second_coefficient": "0",
+    "frozen_density_second_coefficient": "0",
+    "frozen_pressure_second_coefficient": "0",
+    "second_order_density_cancellation": "0",
+    "second_order_geometric_Bianchi_identity": "0",
+    "second_order_pressure_cancellation": "0"
+  },
+  "claim": "P8-A.6",
+  "date": "2026-09-05",
+  "formulation": "FORMULATION.md",
+  "kernel_identities": {
+    "Born_real_scalar_modulus_normalization": "0",
+    "Hadamard_subtraction_includes_five_sixths": "0",
+    "Wick_square_length_scale_shift": "0",
+    "auxiliary_span_cancels": "0",
+    "spatial_kernel_constant_primitive": "0",
+    "spatial_kernel_finite_constant": "0"
+  },
+  "negative_controls": {
+    "finite_or_unproved_parameter_inputs_rejected": "tests include rounded floats, infinity, wrong signs and missing derivative data",
+    "kernel": {
+      "monomial_histories_are_physical_C_infinity_preparations": false,
+      "omit_Hadamard_finite_piece_error": "1/6",
+      "omit_local_log_scale_derivative_error": "1",
+      "omit_real_part_factor_two_error": "1/2",
+      "omit_spatial_finite_constant_error": "1"
+    },
+    "stress": {
+      "drop_background_conservation_forcing": "hbar*Derivative(b(eta), eta)/(120*pi**2*A**4*eta**8)",
+      "finite_epsilon_remainder_follows_from_first_derivative_bound": false,
+      "finite_gamma_is_determined_by_A3": false,
+      "homogeneous_constant_not_fixed_by_trace": "C/eta**4",
+      "homogeneous_constant_solves_trace_conservation": "0",
+      "omit_proper_clock_conversion_density": "hbar*J(eta)/(120*pi**2*A**4*eta**9)"
+    }
+  },
+  "prepared_potential": "Q=-4*d*chi_tilde/(A^2*eta^4); V=-Q''-3*Q'/eta; full history retained",
+  "prior_A5_sha256": "a7e1766a16778920c5784b9c52f997497a6e22259c48d956c8ca50ca60770930",
+  "retarded_kernel": "integral_eta_i^eta V'(s)*log((eta-s)/T) ds + V(eta)*(log(sqrt(2)*A*eta*T/lambda)+5/6)",
+  "schema": 1,
+  "scope": {
+    "FK_curvature": "R=+6*(Hdot+2*H^2); GS Box equals FK Box; do not import P8(b) R sign",
+    "actual_first_RSET_parameter_derivative_computed": true,
+    "actual_second_Einstein_defect_coefficient_bounded": true,
+    "arbitrary_preparation_norm_tuples_certified_automatically": false,
+    "computed_smooth_preparation_derivative_bounds": true,
+    "cosmological_focusing_or_P8a_completion": false,
+    "exact_SEE_solution_or_stability_theorem": false,
+    "field": "one real massless minimally coupled scalar",
+    "finite_epsilon_RSET_remainder_bound": false,
+    "gamma_dictionary": "gamma=-(c3_GS+c4_GS/3); finite massless curvature freedom not fixed by A.3",
+    "generic_lambda_gamma_retained": true,
+    "initial_Cauchy_slice": "strictly before eta_star, e.g. eta_star/2; log integral can start at eta_star by flatness",
+    "named_calibration": "lambda=2*sqrt(2)*A*eta_star^2, gamma=0; a new declared normalization, not scheme independence",
+    "numerical_cubic_residual_remainder_bound": false,
+    "past_state_fixes_radiation_integration_constant": true,
+    "prescription": "GS raw H_lambda Wick square, conserved GS(3.4) stress plus physical FK gamma*I_R2",
+    "proper_time_comparison": true,
+    "qualitative_corrected_actual_compact_slab_residual_O_epsilon_cubed": true,
+    "quantitative_perturbed_QSEI_or_all_sampler_bound": false,
+    "state": "actual past-Cauchy-transported homogeneous isotropic quasifree Hadamard state",
+    "uniform_parameter_interval_response_bound": false
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "6d6b9763d4c8ead9f34e522d34a531e3deb8e849bbec57f7f9be2cda5f7cc319",
+    "README.md": "aef086df80989a5df867aa52c773f3511ce661e001418baeeedbecde432b5c06",
+    "notes/proof.md": "8cff5d0a71bc5af87600328a88deeacc2608eb9f0320004ab2cf45196d6c8398",
+    "notes/sources.md": "77e075195483e0f2a659369453b03ce3297f90d428425b40724407e9bd55c48c",
+    "src/p8a_response/__init__.py": "ca8f009b7a2043f48e37c7498c735de9bd885c6dba796b64267d9c2b1bba11e7",
+    "src/p8a_response/defects.py": "695c9391ac47844f44f1c57a07eb89ee4b52a82c4d48c83bed7924cfb702aa81",
+    "src/p8a_response/independent.py": "84623b5e705f92f4f9d7fcc5e6154590619e93ba30eeea1a9d07dae6c8fefabb",
+    "src/p8a_response/kernel.py": "1a79571d0d2cc0aed28927a9e24618de0e7e3fa3582bdff7d39177c0dd1c89d2",
+    "src/p8a_response/preparation.py": "5cc645951d6e77967e933e09c657ff2aeea754642c37b793a72844dfcc6135b1",
+    "src/p8a_response/response.py": "17c4fe87f526f807fdcd23c5dfe9ccafe6f3a23fa14dc461dcda29765daba3b9",
+    "src/p8a_response/verify.py": "2f5e34bcfbcd5c3561c6c683b02cd1642ce187883d08c8a16dc8dc162a1d0e97",
+    "tests/conftest.py": "012d88037aeecc7d17e58aecfeb5a33a5127b092579fc1d4e92f036f868500cb",
+    "tests/test_response_geometry_audit.py": "88e3de84d5dabaa4f10fc64e6ed51a8557896b79d051e53e41fc8c2c9185bc81",
+    "tests/test_response_kernel.py": "1c450e1992635ab99ece51cde6abcfeab0b2764eb8ddeb1393c619ffa5d4cf3b",
+    "tests/test_response_preparation.py": "dd44379fcd21ee1e45f24ff691b041b804c0ace5ba86e6de3270f80fa4b34e62",
+    "tests/test_response_report.py": "3484b083dcbb9c2f2d610691369901953dd2ab30e000ea3cd9d4caa82142cf1e",
+    "tests/test_response_stress.py": "cef927653e9b3b88b2b8ecee0414f483f38d0ab0ef8693126e4ddde4c7267e06"
+  },
+  "specific_smooth_preparation": {
+    "C_infinity_derivative_norms_derived_not_assumed": true,
+    "auxiliary_span": "2*eta_star",
+    "cutoff": "chi_tilde=sigma((eta-eta_star)/eta_star)*sigma((4*eta_star-eta)/eta_star)",
+    "denominator_bound": "r(x)+r(1-x)>=2*exp(-2)>1/4",
+    "exact_independent_bounds": {
+      "K_norm_constants": [
+        "42390611/512",
+        "90228813829/16384",
+        "609364243966613/1048576"
+      ],
+      "Q_norm_constants": [
+        "4",
+        "43",
+        "14699/16",
+        "38363475/1024",
+        "85026093189/32768",
+        "586563755981205/2097152"
+      ],
+      "V_norm_constants": [
+        "16763/16",
+        "41317779/1024",
+        "88898062245/32768",
+        "603632183932245/2097152"
+      ],
+      "amplitude_derivative_order": 1,
+      "elementary_enclosures": {
+        "e_geometric_tail_upper": "1631/600",
+        "e_partial_sum_lower": "65/24",
+        "exp_seven_sixths_partial_lower": "99193/31104"
+      },
+      "elementary_identity_and_margins": {
+        "e_lower_margin_over_8_over_3": "1/24",
+        "e_squared_upper_below_8": "7/16",
+        "e_upper_margin_below_11_over_4": "19/600",
+        "exp_seven_sixths_lower_above_3": "5881/31104",
+        "log_kernel_L1_unit_integral": "1",
+        "switch_denominator_monotonic_identity": "0"
+      },
+      "finite_epsilon_remainder_bound": false,
+      "r_derivative_bounds": [
+        "3/8",
+        "9/16",
+        "2025/256",
+        "4901553/16384",
+        "11583599319/524288",
+        "90437483085255/33554432"
+      ],
+      "response_constants": {
+        "EED": "9323796896231963/8053063680",
+        "density": "1365615131563/125829120",
+        "pressure": "1031121912446883/1342177280"
+      },
+      "response_units": "hbar*d/(pi^2*A^6*eta_star^12)",
+      "switch_derivative_bounds": [
+        "1",
+        "27/4",
+        "9963/64",
+        "28561491/4096",
+        "67419329157/131072",
+        "486706995060885/8388608"
+      ],
+      "switch_polynomial_coefficients": [
+        [
+          "1"
+        ],
+        [
+          "0",
+          "0",
+          "1"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "-2",
+          "1"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "0",
+          "6",
+          "-6",
+          "1"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "0",
+          "0",
+          "-24",
+          "36",
+          "-12",
+          "1"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0",
+          "120",
+          "-240",
+          "120",
+          "-20",
+          "1"
+        ]
+      ]
+    },
+    "local_log_absolute_cap": "2",
+    "observation_envelope": "[2*eta_star,3*eta_star]; compact interior J for near-target A.5/correction theorem",
+    "proper_time_pullback": "chi(t)=chi_tilde(sqrt(2*t/A))",
+    "switch": "r(x)=exp(-1/x) for x>0 else0; sigma=r(x)/(r(x)+r(1-x))"
+  },
+  "status": "MUTATED_FOR_EMPIRICIST_FAIL_FIXTURE",
+  "stress_clock_anomaly_and_scheme_identities": {
+    "EED_definition": "0",
+    "FK_trace_from_GS_conserved_Hadamard_stress": "0",
+    "finite_tensor_conservation": "0",
+    "finite_tensor_trace": "0",
+    "linear_conservation_with_background_forcing": "0",
+    "prepared_potential_from_proper_time_q": "0",
+    "proper_clock_conversion_EED": "0",
+    "proper_clock_conversion_density": "0",
+    "proper_clock_conversion_pressure": "0",
+    "subtraction_length_shift_EED": "0",
+    "subtraction_length_shift_density": "0",
+    "subtraction_length_shift_pressure": "0",
+    "v1_in_potential_variables": "0"
+  },
+  "subtraction_length_stress_shift": "-hbar*log(lambda2/lambda1)*I1/(576*pi^2)",
+  "verification_boundary": [
+    "Hadamard propagation, positivity of full transported states and HW joint smoothness are primary written inputs replayed through A.5",
+    "the retarded distribution/finite-part limit and first-derivative coincidence exchange are proved in the notes, not by finite arithmetic alone",
+    "all switch polynomials, derivative norm recurrences and response constants agree with a separate Fraction-only implementation",
+    "independent parent geometry tests derive proper-time curvature, finite tensor, spatial finite limit and second-order correction without the assembly oracle",
+    "the numerical bounds apply to the first parameter derivative at zero, not a uniform epsilon neighborhood or the truncated Born covariance as a state"
+  ],
+  "written_proof": "notes/proof.md"
+}

@@ -1,0 +1,263 @@
+{
+  "analytic_obligations": {
+    "benchmark_infinite_tails": "notes/s2-benchmarks.md section 2",
+    "domain_canonical_tails_and_completeness": "notes/s2-rational-witnesses.md sections 3-4",
+    "positive_numerator_component_no_go": "notes/s3-classification.md sections 1-3",
+    "regular_ODE_and_principal_charts": "notes/s1-derived-action.md section 3"
+  },
+  "claim": "P8-3",
+  "counts": {
+    "M0": {
+      "E": 12,
+      "N": 4
+    },
+    "M1": {
+      "E": 4,
+      "N": 12
+    }
+  },
+  "date": "2026-09-04",
+  "dependency_semantic_sha256": {
+    "a25-regression.json": "d4d05afb5906b3793ce06bcc0dcdf03b3993238c5f963c4d29d0331f437bd189",
+    "s1-derived-action.json": "35cc4c3e56dba5907bd024aa1bc5852d4dcd94d8c1cfb389a02523ee85f636f8",
+    "witness-C.json": "9d249b5213d17029295bec3d487cf705017b0139e5d3e583d2c20d4466ad6e54",
+    "witness-CD_matter.json": "db371ba86009a3ec0c298be31ec4288b90c4fd6c4ac77d48487b3852009f1b48",
+    "witness-D.json": "dde0484931b5a7a85be038e994e53674f4dbb99136fe18c24592344f1707cb60"
+  },
+  "environment": {
+    "python": "3.11.14",
+    "python_flint": "0.9.0",
+    "sympy": "1.14.0",
+    "uv_lock_sha256": "83af0a0a6d4d56b568c6f4949e489041f656da38c1701d26e486b6d8adc78fe3"
+  },
+  "exclusion_exact_residuals": {
+    "exceptional_relation": "0",
+    "gamma_detK": "0",
+    "gamma_gradient": "0",
+    "matter_mismatch_in_regular_chart": "0",
+    "no_C_D_Lambda": "0",
+    "no_C_exceptional_Lambda": "0",
+    "no_D_exceptional_Lambda": "0",
+    "no_D_exceptional_factor": "0"
+  },
+  "minimal_supports": {
+    "M0": [
+      "C",
+      "D"
+    ],
+    "M1": [
+      "CD"
+    ]
+  },
+  "not_established": [
+    "P8(a)",
+    "nonlinear or BKL stability",
+    "all-wavelength Hamiltonian positivity",
+    "a strong-coupling hierarchy",
+    "UV positivity or completion",
+    "observational viability",
+    "classification outside the frozen ladder/matter/frame/tail contract"
+  ],
+  "proof_level": "Exact SymPy/FLINT algebra, rational Sturm and Bernstein bounds, Arb core enclosures, plus explicit written analytic lemmas; not FORMALIZED",
+  "rows": [
+    {
+      "M0": "N",
+      "M0_exclusion": "positive_Lambda_no_C_D",
+      "M0_witness": null,
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "baseline"
+    },
+    {
+      "M0": "N",
+      "M0_exclusion": "positive_Lambda_no_C_D",
+      "M0_witness": null,
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "A"
+    },
+    {
+      "M0": "N",
+      "M0_exclusion": "positive_Lambda_no_C_D",
+      "M0_witness": null,
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "B"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "C"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "D",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "D"
+    },
+    {
+      "M0": "N",
+      "M0_exclusion": "positive_Lambda_no_C_D",
+      "M0_witness": null,
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "AB"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "AC"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "D",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "AD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "BC"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "D",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "BD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "E",
+      "M1_exclusion": null,
+      "M1_witness": "CD_matter",
+      "groups": "CD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "ABC"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "D",
+      "M1": "N",
+      "M1_exclusion": "luminal_matter_requires_C_and_D",
+      "M1_witness": null,
+      "groups": "ABD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "E",
+      "M1_exclusion": null,
+      "M1_witness": "CD_matter",
+      "groups": "ACD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "E",
+      "M1_exclusion": null,
+      "M1_witness": "CD_matter",
+      "groups": "BCD"
+    },
+    {
+      "M0": "E",
+      "M0_exclusion": null,
+      "M0_witness": "C",
+      "M1": "E",
+      "M1_exclusion": null,
+      "M1_witness": "CD_matter",
+      "groups": "ABCD"
+    }
+  ],
+  "schema": 1,
+  "scope": "All 32 M0/M1 sector-row verdicts in the frozen 16-row covariant function-group ladder, with all-time regular linear principal health and conventional tube tails",
+  "source_sha256": {
+    "FORMULATION.md": "73dd18f7a4b56a0205f9fbc6a4b09b213a3c280b3f0274414a255635b04e2b09",
+    "README.md": "f4cbd40df05d1504aac9a493052ffeba504e73db5c36a6e4a886f1b4865aeeee",
+    "notes/WORKING.md": "ba9411b20c6f4fd0b82430fefc086d50919d8dc24c5d1fc024ada5800b37b1a5",
+    "notes/literature-digest.md": "7c1d6a20cfebb3097ef7365f712f9788414f00284db5a6cdd1677efa74e59e49",
+    "notes/s0-opening.md": "9d6980e9724acb4f3085587b90d93a860ac9f90a2b2002b3b513ed67bb4e59b0",
+    "notes/s1-derived-action.md": "98199bc728d8f3814e872c7d8854bbd1c091c041b2d1b3a5806ac5b4a99035c9",
+    "notes/s2-benchmarks.md": "84bb7c3e16e03418c97b09962a18115249898762b57e3398a9f5473dec102161",
+    "notes/s2-rational-witnesses.md": "af742957982ae1197fd15f6676a201e312a0b7e40e082de9cc291f9b78664ef1",
+    "notes/s3-classification.md": "484d96d7aa3c737a76091e3d5b2e10385ed56e3a5cb74054497fb63a0be02611",
+    "notes/s4-review.md": "7b653e2eb475d7e930ae92c1e30d6de6004c6ff229fc78f66eb153c591363d6f",
+    "src/p8/__init__.py": "b962dfaf86febf70dc0de1a8dd392ab9db977cba0e09648080f3536ab8e3c0fd",
+    "src/p8/a25_certificate.py": "d9f8c6a73840fd6a2d7bdbd47349b6a9fa18aa578ceb02ec7f2c8f389da85839",
+    "src/p8/adm.py": "0ee205adc3cba5f6ebfcb046e647ef7790e3890d3f0d7ab3d3462500aeaf9f02",
+    "src/p8/benchmark.py": "6d291b597aaa75175e969eea98cf07036318acab6ba3d632caf59501c9295b86",
+    "src/p8/candidate_cert.py": "bd5f8d43eb6bef4fa5ab0f9dd9c02e0239d9f10fe22594149829df3e75f7fd26",
+    "src/p8/coupled.py": "12671e2b1baaceb1ca1b01663c02d5ed2ffc753240533fbdae4d095859d8c194",
+    "src/p8/covariant.py": "fa69b61732a1245541ff53e99e0c999b43559d6b783fd5d639604c73f1cd249e",
+    "src/p8/exclusions.py": "735c7da7bd3f00e4d31d9bce6946b799e13f02c8c48780db2ea1c0232b21b79b",
+    "src/p8/gamma.py": "5e411e649be38bcdea745e8602840fd1e1fe774608798a6948ceb88dbfe35bfe",
+    "src/p8/horndeski.py": "2d7feaf0c0b04a5501db4af82e5147214f9bc8636fa8778a20cb5518b7ffa6cb",
+    "src/p8/independent_sigma.py": "b198cf82356defe50e5dd866ff4246382ca64fcad41a0bb4d4fce95365fe1ef0",
+    "src/p8/jets.py": "6cec1342446622ece78fa53fe6f8cec8e625edcc0b971c187885d9023dc368b7",
+    "src/p8/matter.py": "bd4328057bb3c36e03eccfcd7c734fd8f7e2be600155607bd37b50b21347916b",
+    "src/p8/quadratic.py": "e9b72be7a5aa0bc3e7a99b6e29513b5c68db4e0f3e29aa0019f70db7fc2b4fce",
+    "src/p8/rational_candidates.py": "009a2a8f9b1f0c171fcc1af0eaffbf8877a6e801d9987d5af4d5ec9fd32002ba",
+    "src/p8/regressions.py": "9de645bb5f4dbea50f6e9fda106db27fa79323a8beb533203a988665eefde5c7",
+    "src/p8/signs.py": "a1226b67f7b483015a2c459eecfefebd58fafc0dce6441ad7a2ac4d5009ed306",
+    "src/p8/strong_gravity.py": "b30a9dc2432bc6c019f0d34ffa6817a376962e32425f64e8ea65081927a3544a",
+    "src/p8/tensor.py": "3bc4a2345e30c3ad93960532b011eb65e65b637e15c34ffc7ac75f355c36c1cc",
+    "src/p8/tilted_hessian.py": "6d981ad4f7210ff60ea1c916c7764dbda12e4fda9f2016a946db290abb62b145",
+    "src/p8/verify.py": "ff7b3fc4eda66a7835d99eef3958f710fdb295dbccbcd9f91fefeac65b03c035",
+    "src/p8/verify_all.py": "152aecb85d9cba01fa829b8870400e0613820f0a0326503d8ad821492273147b",
+    "tests/conftest.py": "8224029389c1b92c9a368e61859d786b9240cd6851be937489350e0a08c33296",
+    "tests/test_a25_certificate.py": "2fb9806b7e9e303409cbc7f5987fd3789a820c7d5711dc462682130be6f299e6",
+    "tests/test_benchmark.py": "eea3917844475b2f866c4418a7c169e208750a479da596eac1f6c64f3df6c7c3",
+    "tests/test_candidate_cert.py": "6da7ba085177f5af11f404e603c31e44f699befac418b932619f022521b2813f",
+    "tests/test_certificate.py": "910c883ce921344d3f88b7fb6d7bf1898d7a98ab189d90ab9f1b390d0c8d8412",
+    "tests/test_complete_chain.py": "ef74b74348f6a92d314da9019558a32f538f04e8a7d5f6e4b40e8ca1591ce36a",
+    "tests/test_coupled.py": "a5f21daf5a774fa15221dd6d01c304528fd3172d27b4972511a7ffb122edc0d2",
+    "tests/test_covariant.py": "c702b1c712686d917b48547afc819b3bee822e54daeb7c5a4e67af6676ca3f9e",
+    "tests/test_exclusions.py": "4014ba75b80221ba1d1a676bf0842dc8c7bd8e0af96bb40dc54bc377e89a785a",
+    "tests/test_gamma.py": "de948d96dc9e2ae3f1cc8ec77f52910c2eb3a3234e757d19376b8bb59cefe02d",
+    "tests/test_horndeski.py": "72f75800215badbcd53a79d3830ff27ca55078b3d0012f9e7f353b129ca3255a",
+    "tests/test_matter.py": "2711a7c000b0149832c129f3b81f600e2d57f9aa8bf35a9253d1ac0b1e296fab",
+    "tests/test_quadratic.py": "0bf8f98068b6ddf3669548150e8c0369b1869231de6f6a663a8b2f6805e06d3b",
+    "tests/test_rational_candidates.py": "b43e6232063146911849d350b2c67d9f7377e1dd6815912c88bf851a0ddfebeb",
+    "tests/test_regressions.py": "453ae6e27b3a604b913f2661d4db8bf6b55d8b43a3c0379de9586f2e4253c0ff",
+    "tests/test_signs.py": "31ed35642816d4c1b24a6010452722a70e63779d4e4bb83ebb2d0c8f27f3e913",
+    "tests/test_strong_gravity.py": "8cffd7b9d0d53dbac6be0a31b5aa89e33cf57c207ca62b21467c18ce764be735",
+    "tests/test_tensor.py": "2d48772a28c7ca9625c0b1282332af7d3f8ee24c83064041578bb112c4f726e3",
+    "tests/test_tilted_hessian.py": "1548a342ffd8bfd4d1717e7e3481cfe0040aa28d6cd210671968eb3dd2296804"
+  }
+}

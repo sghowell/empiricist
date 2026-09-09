@@ -28,8 +28,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
-      - name: Sync locked environment
-        run: uv sync --frozen
+      - name: Sync locked environment (with the cosmology pack's optional group)
+        run: uv sync --frozen --group cosmology
 
       - name: Install exact graph enumerator (nauty geng; P5 n=8 tablebase tests need it)
         run: brew install nauty

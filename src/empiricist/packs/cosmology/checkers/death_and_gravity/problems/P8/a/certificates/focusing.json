@@ -1,0 +1,265 @@
+{
+  "claim": "P8-A.1",
+  "date": "2026-09-05",
+  "finite_family_optimization": {
+    "coefficient_order": [
+      "c0",
+      "c1"
+    ],
+    "cubic_threshold_exact": "44818*z**2/222578125 + 2803544*z/546328125 + 18917761/3937500",
+    "gram": [
+      [
+        "7519819243*z**2/823225863281250 + 53194286417*z/234675246093750 + 36006521/472500000",
+        "-10862391931*z**2/1783656037109375 - 6931611056*z/46223912109375"
+      ],
+      [
+        "-10862391931*z**2/1783656037109375 - 6931611056*z/46223912109375",
+        "96684191619370249*z**2/20207406677555753906250 + 1031379115947127*z/8662379618861718750 + 26402533/1039500000"
+      ]
+    ],
+    "gram_determinant_positive": true,
+    "gram_leading_minor_positive": true,
+    "improvement_exact": "(1068394333541580537593060691485588059533517824*z**6 + 81421362165057799067762556725342846882547950592*z**5 + 73215579030387159254264868815453341459154010237120*z**4 + 3491867065595637071069408254668093165393532619955200*z**3 - 181601805722715196311374879720559765183742712462952000*z**2 - 5358878899431565932800613012764549805186396503156250000*z + 886735274346736374752909645529737641128302949114990234375)/(5893202051261102489089914851408833256640000000000*z**4 + 307826970560809534212952012999155438530688000000000*z**3 + 535315987486898122207431537506894773049585112000000000*z**2 + 13207037030454435352670165726197401110529669000000000000*z + 1723653959147135153278725890530255279583983867968750000000)",
+    "linear_vector": [
+      "22024017*z**2/578703125000 + 16986829*z/18210937500 + 1/8000",
+      "-20471082909*z**2/960430173828125 - 1153267343*z/2235002343750 + 4801/42000"
+    ],
+    "optimal_coefficients": [
+      "(-3282512512895018174629451142027648*z**4 - 166718516577207325172314167415506048*z**3 - 106542210934893888869069350933513581720*z**2 - 2564489514498781162633549659113926548000*z - 199322843281432760016844373025509765625)/(415458509906080285668156444756480*z**4 + 21701162353788528679190958634146816*z**3 + 37738665763651576891477164061818238784*z**2 + 931068691896089010655499705715926808000*z + 121514025691303578135610027870050385806250)",
+      "(-1163639343240350535053795687726976*z**4 - 57844322387557356419015229987503616*z**3 + 17465936166226150482601619392051027536*z**2 + 420382938419887278030421243264750074000*z - 273437282026363244126412561612019755468750)/(207729254953040142834078222378240*z**4 + 10850581176894264339595479317073408*z**3 + 18869332881825788445738582030909119392*z**2 + 465534345948044505327749852857963404000*z + 60757012845651789067805013935025192903125)"
+    ],
+    "optimality_scope": "unique minimum in the frozen two-coefficient family only",
+    "optimized_threshold_exact": "(1064268548933074046960756268368146720368835584*z**6 + 97234607508793356350009967804137268708811471872*z**5 + 580216073563340946315278104286973243692569240883520*z**4 + 30541267988260478451615470604780690131863771872486400*z**3 + 28515410984282203957355884144925662042284759667883784000*z**2 + 698916181371823782731974145577512054807949537794518250000*z + 66551208007106267860195933833806150139920670582738500390625)/(53038818461349922401809233662679499309760000000000*z**4 + 2770442735047285807916568116992398946776192000000000*z**3 + 4817843887382083099866883837562052957446266008000000000*z**2 + 118863333274089918174031491535776609994767021000000000000*z + 15512885632324216379508533014772297516255854811718750000000)",
+    "residuals": {
+      "completed_square_constant": "0",
+      "quadratic_reconstruction": "0",
+      "stationarity_0": "0",
+      "stationarity_1": "0"
+    },
+    "tail": "c0*x**4 - 2*c0*x**3 + c0*x**2 + 2*c1*x**5 - 5*c1*x**4 + 4*c1*x**3 - c1*x**2 - 2*x**3 + 3*x**2"
+  },
+  "focusing_and_field_dictionary": {
+    "Q0_if_stated_Wick_square_bound_and_SEE_hold": "kappa*mass**2*phimax**2/2",
+    "Q2_if_stated_local_QSEI_and_SEE_hold": "C*hbar*kappa/(16*pi**2)",
+    "focusing_implication": "J[g] <= -K forces a focal point on a normal geodesic by tau",
+    "meaning_of_K": "trace of second fundamental form; K=theta(0), K=3H in 4D FLRW",
+    "not_derived": "local QSEI validity duration, Hadamard state bound, or semiclassical applicability",
+    "residuals": {
+      "Q0_four_dimensional_mapping": "0",
+      "Q2_four_dimensional_mapping": "0",
+      "Raychaudhuri_completed_square": "0"
+    }
+  },
+  "hypotheses": "FORMULATION.md; assumed local Ricci/QEI bound plus initial pointwise Ricci bound",
+  "independent_FLINT_replay": {
+    "finite_sum_plus_remainder_residuals": [
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0"
+      ]
+    ],
+    "initial_localized_norm": [
+      "768",
+      "6848/35",
+      "1728/715"
+    ],
+    "tail_basis_gram": [
+      [
+        [
+          "256/9",
+          "172585664/34965",
+          "3349184/16835"
+        ],
+        [
+          "0",
+          "271789264/291375",
+          "176192136/4629625"
+        ],
+        [
+          "0",
+          "-36904554976/71520075",
+          "-1310149306176/61467531125"
+        ]
+      ],
+      [
+        [
+          "0",
+          "271789264/291375",
+          "176192136/4629625"
+        ],
+        [
+          "256/135",
+          "1702217165344/7509607875",
+          "240634215776/26343227625"
+        ],
+        [
+          "0",
+          "-443623107584/2958330375",
+          "-695193083584/114153986375"
+        ]
+      ],
+      [
+        [
+          "0",
+          "-36904554976/71520075",
+          "-1310149306176/61467531125"
+        ],
+        [
+          "0",
+          "-443623107584/2958330375",
+          "-695193083584/114153986375"
+        ],
+        [
+          "256/189",
+          "33004131710308064/277196147803575",
+          "3093894131819847968/646637013681784125"
+        ]
+      ]
+    ]
+  },
+  "not_established": [
+    "a derived local QSEI validity duration in curved spacetime",
+    "a realistic quantum-field or state calibration",
+    "a cosmological application in a verified semiclassical regime",
+    "a singularity theorem assuming only QEIs with no initial pointwise hypothesis",
+    "the global optimum over all test functions, cutoffs or partitions",
+    "a proof-assistant formalization of global Lorentzian causal geometry",
+    "a worldvolume, null or nonminimal-field extension",
+    "an exclusion of the P8(b) bounce witnesses",
+    "full P8(a) or P8 completion"
+  ],
+  "parameters": {
+    "Q0_times_tau_squared": "1/100",
+    "Q2_over_tau_squared": "1/1000000",
+    "T0_over_tau": "1",
+    "dimension": 4,
+    "extended_geodesic_domain_over_tau": [
+      "-1/2",
+      "1"
+    ],
+    "partition_ratio": "3/4",
+    "physical_calibration": "NONE; dimensionless conditional demonstration",
+    "rho0_times_tau_squared": "0",
+    "tau0_over_tau": "1/4",
+    "units": "all thresholds below are multiplied by tau",
+    "z": "pi^2"
+  },
+  "partition_and_geometric_series_residuals": {
+    "beta_first_derivative_norm": "0",
+    "beta_norm": "0",
+    "beta_second_derivative_norm": "0",
+    "geometric_tail_reconstruction": "0",
+    "partition_angle_end": "0",
+    "partition_angle_start": "0",
+    "partition_first_jet_end": "0",
+    "partition_first_jet_start": "0",
+    "rotation_sum_of_squares": "0"
+  },
+  "schema": 1,
+  "separating_contraction_example": {
+    "cubic_test_certifies_focusing": false,
+    "failure_of_a_test_implies_completeness": false,
+    "initial_SEC_classical_threshold_times_tau": "12",
+    "minus_K_times_tau": "9/2",
+    "optimized_test_certifies_focusing": true
+  },
+  "source_sha256": {
+    "FORMULATION.md": "e0e4bd0d9b04213567ded0f8e57b48b0de44833c205c072b4610a6d12c75ed45",
+    "README.md": "00c0d6651f4d051a90e39a79e954f6d5e0de5108c5dfaae75163b510363556ae",
+    "notes/focusing.md": "98bea029773ac2382da256177be0a8909f14e013e75242f1071f4d53e2acbc96",
+    "notes/sources.md": "ea521f4fb6d3097b5f8f4e1c91a16da2d59500c564c5f22bbd933ff6d26d46b8",
+    "src/p8a/__init__.py": "cbaa4156bb86ae9e2320ecbf99503486cb3eafcc826858967846a9ad7b623570",
+    "src/p8a/focusing.py": "6b1aae949b9e2f8445d4e01e95830826fa275c4853a394b166483e5c90339015",
+    "src/p8a/geometry.py": "22a0b47d237a81770658e2485d61c40e6fbba4eb32289d5f2eae1d052b8089fc",
+    "src/p8a/independent.py": "3601d87c7276a6772c02d6a6406f20d0250f5f71296e5b75b4576eeb0d3d350e",
+    "src/p8a/partition.py": "e916c069908fce9565c90e4e852f198c10b008fc0059b32c154bb7f637511ae4",
+    "src/p8a/validated.py": "b2a91fc87b2cd398e28bebac458077ad692fb4fa6862dc7de3cf32308e80c463",
+    "src/p8a/verify.py": "a5f620920c3d96d8eefe77e829e5b648eb7aae626fd9ca8b58d759940ac8f066",
+    "tests/conftest.py": "7a53035ca4de6b2b74d4e2af6be557da2016abd76d6d1b9f30df025776701eb9",
+    "tests/test_a_focusing.py": "668e36568cf9aa99603cd9ca96e5d59988eb316ed6cd94886841984b7648eda8",
+    "tests/test_a_partition.py": "224146f76e3247cd5bfd5ef45b6cc5dac96d65e036d9858661989f7f7dda3803",
+    "tests/test_a_report.py": "1c38f2ad8b4ce80234057492f006d0889cf9d1d18b72101bcb6e6c891b6ff040"
+  },
+  "status": "CONDITIONAL_LOCAL_QEI_FOCUSING_OPTIMIZATION; PHYSICAL_APPLICATION_OPEN",
+  "support_coverage": {
+    "bad_ratio_one_half_width_over_window": "6/5",
+    "first_width_over_allowed_window": "2/7",
+    "first_window_over_tau": [
+      "-5/16",
+      "9/16"
+    ],
+    "interior_width_over_allowed_window": "14/25",
+    "strict_containment": true
+  },
+  "validated_enclosures": {
+    "coefficient_0": {
+      "lower": "-1342199/5000000",
+      "strict": true,
+      "upper": "-2684397/10000000"
+    },
+    "coefficient_1": {
+      "lower": "-19914079/5000000",
+      "strict": true,
+      "upper": "-39828157/10000000"
+    },
+    "cubic_threshold": {
+      "lower": "24373859/5000000",
+      "strict": true,
+      "upper": "48747719/10000000"
+    },
+    "improvement_percent": {
+      "lower": "353/40",
+      "strict": true,
+      "upper": "4413/500"
+    },
+    "method": "outward Arb rational-function evaluation of pi^2",
+    "optimized_threshold": {
+      "lower": "44445507/10000000",
+      "strict": true,
+      "upper": "11111377/2500000"
+    },
+    "precision_bits": 192
+  },
+  "written_proof": "notes/focusing.md"
+}
