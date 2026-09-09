@@ -24,6 +24,13 @@ Each judges the bytes of one committed evidence file, a JSON object:
   equation up to a non-zero scalar; FAIL names the rule, the bindings, the legs and the
   first differing matrix entry; ERROR when the class exceeds `max_instances` or a rule
   has no judged instance (all over the semantic budget).
+* `zx_completeness`  {"rules": [...], "fragment"?: "clifford" (only), "max_wires"?: 0..3
+  (default 2), "max_vertices"?: 0..4 (default 3), "max_edges"? (default 6), "max_steps"?
+  (default 200), "max_diagrams"? (default 20000)}
+  PASS iff every semantic class (matrix up to scalar per wire signature; zero matrices
+  one class) of the enumerated class C(max_wires, max_vertices, max_edges) has exactly
+  one normal form under the rules applied first-applicable in payload order; FAIL is a
+  witness pair with both normal forms; ERROR past `max_diagrams` or `max_steps`.
 
 `verify_bytes` is total: a malformed payload, an ill-formed diagram, an unknown rule
 or component, or an exhausted budget is an ERROR verdict with the reason, never a
@@ -42,6 +49,7 @@ from typing import Any
 from empiricist.ledger.models import Verdict
 from empiricist.packs import BytesFileVerifier, GoldenCase
 from empiricist.packs.zx import (
+    completeness,
     critical_pairs,
     derivation,
     diagram,
@@ -59,6 +67,9 @@ GOLDEN_DIR = Path(__file__).resolve().parent / "goldens"
 MAX_DEPTH = 12
 MAX_STAR_LEGS = 3
 MAX_SOUND_STAR_LEGS = 2
+MAX_CLASS_WIRES = 3
+MAX_CLASS_VERTICES = 4
+MAX_CLASS_EDGES = 16
 FRAGMENTS = {"clifford+t": PHASES_CLIFFORD_T, "clifford": PHASES_CLIFFORD}
 
 GOLDENS: dict[str, tuple[tuple[str, Verdict], ...]] = {
@@ -96,6 +107,12 @@ GOLDENS: dict[str, tuple[tuple[str, Verdict], ...]] = {
         ("zx_rule_sound__colour_change_no_flip", Verdict.FAIL),
         ("zx_rule_sound__pi_commute_wrong_sign", Verdict.FAIL),
         ("zx_rule_sound__identity_z_h_no_h", Verdict.FAIL),
+    ),
+    "zx_completeness": (
+        ("zx_completeness__wires_only", Verdict.PASS),
+        ("zx_completeness__one_spider_two_wires", Verdict.PASS),
+        ("zx_completeness__one_spider_two_wires_no_identity_z_hh", Verdict.FAIL),
+        ("zx_completeness__one_spider_two_wires_no_scalar_rules", Verdict.FAIL),
     ),
 }
 
@@ -372,9 +389,54 @@ class ZXRuleSoundVerifier(_ZXVerifier):
         })
 
 
+class ZXCompletenessVerifier(_ZXVerifier):
+    name = "zx_completeness"
+    engines = (diagram, rules, rewrite, semantics, completeness)
+
+    def _verify(self, obj: dict[str, Any]) -> VerifierResult:
+        rulebook = _rulebook(obj.get("rules"), extend_library=False)
+        fragment = _fragment(obj, default="clifford", allowed=("clifford",))
+        max_wires = _int(obj, "max_wires", completeness.DEFAULT_MAX_WIRES, 0, MAX_CLASS_WIRES)
+        max_vertices = _int(obj, "max_vertices", completeness.DEFAULT_MAX_VERTICES, 0,
+                            MAX_CLASS_VERTICES)
+        max_edges = _int(obj, "max_edges", completeness.DEFAULT_MAX_EDGES, 0, MAX_CLASS_EDGES)
+        max_steps = _int(obj, "max_steps", completeness.DEFAULT_MAX_STEPS, 1, 10 ** 5)
+        max_diagrams = _int(obj, "max_diagrams", completeness.DEFAULT_MAX_DIAGRAMS, 1, 10 ** 6)
+        try:
+            rep = completeness.check(rulebook, phases=FRAGMENTS[fragment], max_wires=max_wires,
+                                     max_vertices=max_vertices, max_edges=max_edges,
+                                     max_steps=max_steps, max_diagrams=max_diagrams)
+        except completeness.CompletenessError as exc:
+            raise PayloadError(f"undecided: {exc}") from None
+        common = {"fragment": fragment, "max_wires": max_wires, "max_vertices": max_vertices,
+                  "max_edges": max_edges, "max_steps": max_steps, "max_diagrams": max_diagrams,
+                  "diagrams": rep.diagrams, "skipped": rep.skipped, "classes": rep.classes,
+                  "reduced": rep.reduced, "normal_forms": rep.normal_forms,
+                  "steps_max": rep.steps_max, "rules": sorted(rulebook)}
+        cls = f"C({max_wires}, {max_vertices}, {max_edges})"
+        if rep.failure is not None:
+            w = rep.failure
+            return VerifierResult(Verdict.FAIL, {
+                "detail": f"two semantically equal diagrams of {cls} on {w.inputs} inputs and "
+                          f"{w.outputs} outputs have different normal forms (found after "
+                          f"reducing {rep.reduced} of {rep.diagrams - rep.skipped} diagrams)",
+                "a": w.a.to_json(), "b": w.b.to_json(),
+                "normal_form_a": w.normal_form_a.to_json(),
+                "normal_form_b": w.normal_form_b.to_json(),
+                "inputs": w.inputs, "outputs": w.outputs, **common,
+            })
+        return VerifierResult(Verdict.PASS, {
+            "detail": f"every one of {rep.classes} semantic classes of the {rep.diagrams} "
+                      f"diagrams of {cls} has one normal form under {len(rulebook)} rules "
+                      f"({rep.skipped} skipped over the semantic budget; at most "
+                      f"{rep.steps_max} steps)",
+            **common,
+        })
+
+
 VERIFIERS: dict[str, type[_ZXVerifier]] = {
     v.name: v for v in (ZXDerivationVerifier, ZXSemanticEqualVerifier, ZXCriticalPairsVerifier,
-                        ZXTerminationVerifier, ZXRuleSoundVerifier)
+                        ZXTerminationVerifier, ZXRuleSoundVerifier, ZXCompletenessVerifier)
 }
 
 
@@ -383,7 +445,8 @@ def golden_labels(name: str) -> Sequence[str]:
 
 
 __all__ = [
-    "FRAGMENTS", "GOLDENS", "GOLDEN_DIR", "MAX_DEPTH", "MAX_SOUND_STAR_LEGS", "MAX_STAR_LEGS",
-    "VERIFIERS", "PayloadError", "ZXCriticalPairsVerifier", "ZXDerivationVerifier",
+    "FRAGMENTS", "GOLDENS", "GOLDEN_DIR", "MAX_CLASS_EDGES", "MAX_CLASS_VERTICES",
+    "MAX_CLASS_WIRES", "MAX_DEPTH", "MAX_SOUND_STAR_LEGS", "MAX_STAR_LEGS", "VERIFIERS",
+    "PayloadError", "ZXCompletenessVerifier", "ZXCriticalPairsVerifier", "ZXDerivationVerifier",
     "ZXRuleSoundVerifier", "ZXSemanticEqualVerifier", "ZXTerminationVerifier", "golden_labels",
 ]

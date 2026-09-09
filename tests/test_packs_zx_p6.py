@@ -210,6 +210,166 @@ def test_zx_rule_sound_golden_payloads_are_the_stated_classes(tmp_path):
 
 def test_manifest_hashes_cover_the_new_engines(tmp_path):
     sound = MANIFEST.verifiers["zx_rule_sound"](tmp_path)
-    assert sound.name == "zx_rule_sound" and sound.version == "1"
-    assert len(sound.binary_hash) == 64
+    complete = MANIFEST.verifiers["zx_completeness"](tmp_path)
+    assert sound.name == "zx_rule_sound" and complete.name == "zx_completeness"
+    assert sound.version == complete.version == "1"
+    assert len(sound.binary_hash) == 64 and sound.binary_hash != complete.binary_hash
     assert dg.Diagram is Diagram   # the diagram module is in every trust boundary
+
+
+# ----------------------------------------------------------------------------- Task 2: completeness
+
+from empiricist.packs.zx import completeness as cm  # noqa: E402
+from empiricist.packs.zx.rules import swap_colours  # noqa: E402
+
+LOOP_RULES = ("loop_z", "loop_x", "loop_z_h", "loop_x_h")
+WIRE_RULES = ("identity_z", "identity_x", "identity_z_h", "identity_x_h", "identity_z_hh",
+              "identity_x_hh") + LOOP_RULES
+
+
+def scalar_rule(kind: str, phase: Fraction) -> Rule:
+    """A non-zero 0-leg spider is the empty diagram (up to scalar)."""
+    tag = str(phase).replace("/", "_")
+    return Rule(f"scalar_{kind.lower()}_{tag}", pattern({0: (kind, phase)}, []),
+                pattern({}, []), (), "test: a non-zero scalar is 1 up to scalar")
+
+
+def scalar_rules() -> dict[str, Rule]:
+    out = {}
+    for kind in ("Z", "X"):
+        for phase in (F(0), F(1, 2), F(3, 2)):
+            r = scalar_rule(kind, phase)
+            out[r.name] = r
+    return out
+
+
+def test_enumerate_diagrams_counts_small_classes_exactly_and_canonically():
+    wires_only = cm.enumerate_diagrams(PHASES_CLIFFORD, 2, 0, 2, 1000)
+    assert len(wires_only) == 7            # empty; cap, wire, cup, each plain or Hadamard
+    scalars = cm.enumerate_diagrams(PHASES_CLIFFORD, 0, 1, 2, 1000)
+    assert len(scalars) == 49              # empty; 8 spiders x (no loop, 1 loop x2, 2 loops x3)
+    one_wire = cm.enumerate_diagrams(PHASES_CLIFFORD, 1, 1, 1, 1000)
+    assert len(one_wire) == 57             # 25 scalars (<= 1 loop) + 8 x 2 flags x {input, output}
+    for cls in (wires_only, scalars, one_wire):
+        assert all(d.is_well_formed() and d.is_ground() for d in cls)
+        assert all(d == d.relabel_canonical() for d in cls)
+        assert len({d.canonical_json() for d in cls}) == len(cls)
+    ins_outs = {(len(d.inputs), len(d.outputs)) for d in one_wire}
+    assert ins_outs == {(0, 0), (1, 0), (0, 1)}
+    assert cm.enumerate_diagrams(PHASES_CLIFFORD, 0, 0, 0, 1) == [Diagram((), ())]
+    with pytest.raises(cm.CompletenessError, match="max_diagrams"):
+        cm.enumerate_diagrams(PHASES_CLIFFORD, 2, 1, 2, 10)
+    # a bigger class: every enumerated diagram respects the bounds
+    cls = cm.enumerate_diagrams(PHASES_CLIFFORD, 2, 2, 3, 100000)
+    assert all(len(d.inputs) + len(d.outputs) <= 2 and len(d.interior) <= 2
+               and len(d.edges) <= 3 for d in cls)
+    assert len(cls) > len(one_wire)
+
+
+def test_normal_form_applies_the_first_rule_in_payload_order_until_none_applies():
+    x_wire = Diagram.build({0: ("B", 0), 1: ("X", 0), 2: ("B", 0)},
+                           [(0, 1, False), (1, 2, False)], inputs=[0], outputs=[2])
+    wire = Diagram.build({0: ("B", 0), 1: ("B", 0)}, [(0, 1, False)], inputs=[0], outputs=[1])
+    nf, steps = cm.reduce(x_wire, subset("colour_change", "identity_z_hh"), 10)
+    assert nf == wire.relabel_canonical() and steps == 2
+    nf2, steps2 = cm.reduce(x_wire, subset("identity_x", "colour_change"), 10)
+    assert nf2 == nf and steps2 == 1
+    assert cm.normal_form(x_wire, subset("identity_x"), 10) == nf
+    assert cm.normal_form(x_wire, subset("identity_z"), 10) == x_wire.relabel_canonical()
+    with pytest.raises(cm.CompletenessError, match="terminate"):
+        cm.reduce(x_wire, subset("colour_change", "identity_z_hh"), 1)
+    ping_pong = {"colour_change": RULES["colour_change"],
+                 "colour_change_x": swap_colours(RULES["colour_change"], "colour_change_x")}
+    with pytest.raises(cm.CompletenessError, match="terminate"):
+        cm.normal_form(x_wire, ping_pong, 50)
+
+
+def test_semantic_key_groups_matrices_up_to_scalar_and_zero_together():
+    a = np.array([[1, 1j], [0.5, -0.25]], dtype=complex)
+    assert cm.semantic_key(a) == cm.semantic_key((0.3 - 2j) * a)
+    assert cm.semantic_key(a) != cm.semantic_key(a.conj())
+    assert cm.semantic_key(np.zeros((2, 2))) == cm.semantic_key(1e-12 * a) == ("zero",)
+    # noise does not move the pivot between tied maxima
+    b = np.array([[1, 1]], dtype=complex)
+    assert cm.semantic_key(b) == cm.semantic_key(np.array([[1, 1 + 1e-13]], dtype=complex))
+
+
+def test_check_finds_a_witness_pair_and_passes_once_the_class_is_complete():
+    rep = cm.check(subset(*LOOP_RULES), phases=PHASES_CLIFFORD, max_wires=0, max_vertices=1,
+                   max_edges=1, max_steps=20, max_diagrams=1000)
+    assert not rep.ok and rep.diagrams == 25 and rep.classes == 2       # zero and non-zero
+    w = rep.failure
+    assert sem.equal_up_to_scalar(sem.matrix(w.a), sem.matrix(w.b))
+    assert w.normal_form_a != w.normal_form_b
+    assert w.normal_form_a == cm.normal_form(w.a, subset(*LOOP_RULES), 20)
+    # the check stops at the witness: the empty diagram and Z(0), both normal forms
+    assert rep.reduced == 2 and rep.normal_forms == 2 and rep.steps_max == 0
+    assert rep.skipped == 0 and len(w.a.vertices) == 0 and len(w.b.vertices) == 1
+    complete = subset(*LOOP_RULES, "colour_change") | scalar_rules()
+    rep2 = cm.check(complete, phases=PHASES_CLIFFORD, max_wires=0, max_vertices=1, max_edges=1,
+                    max_steps=20, max_diagrams=1000)
+    assert rep2.ok and rep2.classes == 2 and rep2.normal_forms == 2 and rep2.diagrams == 25
+    assert rep2.steps_max == 3                  # X(a)+H loop -> X(a+1) -> Z(a+1) -> empty
+    # without colour change the X scalars are stranded next to the Z ones
+    rep3 = cm.check(subset(*LOOP_RULES) | scalar_rules(), phases=PHASES_CLIFFORD, max_wires=0,
+                    max_vertices=1, max_edges=1, max_steps=20, max_diagrams=1000)
+    assert not rep3.ok
+    # budgets are errors
+    with pytest.raises(cm.CompletenessError):
+        cm.check(subset(*LOOP_RULES), phases=PHASES_CLIFFORD, max_wires=0, max_vertices=1,
+                 max_edges=1, max_steps=20, max_diagrams=3)
+
+
+def test_zx_completeness_verifier_verdicts_and_details(tmp_path):
+    v = MANIFEST.verifiers["zx_completeness"](tmp_path)
+    r = v.verify_bytes(payload({"rules": ["identity_z"], "max_vertices": 0}))
+    assert r.verdict is Verdict.PASS, r.details
+    assert r.details["diagrams"] == r.details["classes"] == r.details["normal_forms"] == 7
+    assert r.details["steps_max"] == 0 and r.details["skipped"] == 0
+    assert r.details["max_wires"] == 2 and r.details["max_edges"] == 6
+    assert r.details["fragment"] == "clifford" and r.details["max_steps"] == 200
+    r = v.verify_bytes(payload({"rules": list(LOOP_RULES), "max_wires": 0, "max_vertices": 1,
+                                "max_edges": 1}))
+    assert r.verdict is Verdict.FAIL
+    for key in ("a", "b", "normal_form_a", "normal_form_b"):
+        assert Diagram.from_json(r.details[key]).is_well_formed()
+    assert r.details["inputs"] == 0 and r.details["outputs"] == 0
+    assert r.details["diagrams"] == 25 and r.details["classes"] == 2
+    assert "different normal forms" in r.details["detail"]
+    inline = [r_.to_json() for r_ in scalar_rules().values()]
+    r = v.verify_bytes(payload({"rules": list(LOOP_RULES) + ["colour_change"] + inline,
+                                "max_wires": 0, "max_vertices": 1, "max_edges": 1}))
+    assert r.verdict is Verdict.PASS and r.details["normal_forms"] == 2
+    # errors: the fragment, the budgets, the bounds
+    r = v.verify_bytes(payload({"rules": ["identity_z"], "fragment": "clifford+t"}))
+    assert r.verdict is Verdict.ERROR and "fragment" in r.details["error"]
+    r = v.verify_bytes(payload({"rules": ["identity_z"], "max_diagrams": 2}))
+    assert r.verdict is Verdict.ERROR and "max_diagrams" in r.details["error"]
+    ping_pong = swap_colours(RULES["colour_change"], "colour_change_x").to_json()
+    r = v.verify_bytes(payload({"rules": ["colour_change", ping_pong], "max_wires": 0,
+                                "max_vertices": 1, "max_edges": 0, "max_steps": 5}))
+    assert r.verdict is Verdict.ERROR and "terminate" in r.details["error"]
+    for bad in ({"rules": ["identity_z"], "max_wires": 4},
+                {"rules": ["identity_z"], "max_vertices": 5},
+                {"rules": ["identity_z"], "max_edges": -1},
+                {"rules": ["identity_z"], "max_steps": 0},
+                {"rules": ["nope"]}, {"rules": []}):
+        r = v.verify_bytes(payload(bad))
+        assert r.verdict is Verdict.ERROR and r.details["error"], bad
+
+
+def test_zx_completeness_goldens_are_the_stated_classes(tmp_path):
+    v = MANIFEST.verifiers["zx_completeness"](tmp_path)
+    cases = {c.label: c for c in v.golden_suite()}
+    verdicts = {label: v.verify_bytes(c.payload) for label, c in cases.items()}
+    assert {c.expected for c in cases.values()} == {Verdict.PASS, Verdict.FAIL}
+    for label, r in verdicts.items():
+        assert r.verdict is cases[label].expected, (label, r.details)
+    wires = json.loads(cases["zx_completeness__wires_only"].payload)
+    assert wires["max_vertices"] == 0
+    assert verdicts["zx_completeness__wires_only"].details["diagrams"] == 7
+    for label, c in cases.items():
+        if c.expected is Verdict.FAIL:
+            d = verdicts[label].details
+            assert sem.equal_up_to_scalar(sem.matrix(Diagram.from_json(d["a"])),
+                                          sem.matrix(Diagram.from_json(d["b"])))
