@@ -43,6 +43,7 @@ class VerifierStamp(BaseModel):
     golden_suite_hash: str
     stamped: str
     declaration: str | None = None  # repo-relative path of a command-verifier declaration
+    pack: str | None = None         # the installed pack that ships the verifier (charter 5)
 
 
 class Registry(BaseModel):
@@ -83,6 +84,7 @@ def stamp(
     binary_hash: str,
     golden_suite_hash: str,
     declaration: str | None = None,
+    pack: str | None = None,
     now: str | None = None,
     allow_downgrade: bool = False,
 ) -> VerifierStamp:
@@ -103,6 +105,7 @@ def stamp(
         golden_suite_hash=golden_suite_hash,
         stamped=now or datetime.now(UTC).isoformat(timespec="seconds"),
         declaration=declaration,
+        pack=pack,
     )
     reg.stamps[name] = s
     write_registry(repo, reg)
