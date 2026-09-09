@@ -103,3 +103,7 @@ class BytesFileVerifier:  # helper base: run() = read file -> verify_bytes(); ER
 
 - **M24b `cosmology`** (`docs/superpowers/plans/2026-09-07-m24b-cosmology-pack.md`): port death_and_gravity's P8(a) checker family (sympy + python-flint ball arithmetic; seven replay checkers) into `packs/cosmology/` with golden suites from the pinned certificates and mutated FAIL fixtures; then the Taylor-model / Krawczyk (P4 `validated`) and conic-dual (P9) checkers as far as time allows; optional dependency group `cosmology`; a cosmology claim promoted with a pack verifier and a receipt in death_and_gravity.
 - **M24c `zx`** (`docs/superpowers/plans/2026-09-07-m24c-zx-pack.md`): the P6 pack — ZX diagrams over π/4 phases, the Jeandel–Perdrix–Vilmart ruleset, a derivation-replay verifier, a small-size semantic oracle, a critical-pair joinability checker, a termination-certificate checker; golden suites; manifest. No science runs in this milestone.
+
+## Outcome (2026-09-07)
+
+Tasks 1–4 done on `feat/m24a-packs`. Fast suite 1142 passed; ruff clean; `claims check --repo . --min-claims 1` green (86 claims) with the registry's `sos_certificate`, `p3_exact_witness` identities now resolved through the `ftfbqc` pack; `claims packs` lists the pack's five verifiers. Deferred as recorded debt (charter §5 status): the physical move of `domain/`, `certificates/`, `search/`, `campaign/` under `packs/ftfbqc/` and the P3/P5 CLI verbs. The cosmology (M24b) and zx (M24c) packs are being built against this API by parallel streams.
