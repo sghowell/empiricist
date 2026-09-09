@@ -1,0 +1,21 @@
+{
+  "depth": 6,
+  "fragment": "clifford",
+  "max_nodes": 40000,
+  "rules": [
+    "fusion",
+    "fusion_x",
+    "identity_z",
+    "identity_x",
+    "identity_z_h",
+    "identity_x_h",
+    "identity_z_hh",
+    "identity_x_hh",
+    "loop_z",
+    "loop_x",
+    "loop_z_h",
+    "loop_x_h",
+    "hopf_h"
+  ],
+  "star_legs": 2
+}
