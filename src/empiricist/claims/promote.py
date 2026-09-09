@@ -123,9 +123,26 @@ def formulate(
 
 
 def _resolve_verifier(repo: Path, verifier: Any):
-    if isinstance(verifier, str):
+    """A verifier by name: the repository's own declaration first (`claims/verifiers/`),
+    an installed pack second (charter section 5); anything else must already be an object
+    with `name`, `version`, `binary_hash` and `run`."""
+    if not isinstance(verifier, str):
+        return verifier
+    from empiricist.claims.command_verifier import declaration_path
+    from empiricist.packs import PackError, resolve_pack_verifier
+
+    if declaration_path(repo, verifier).is_file():
         return load_command_verifier(repo, verifier)
-    return verifier
+    try:
+        v = resolve_pack_verifier(repo, verifier)
+    except PackError as exc:
+        raise PromotionRefused(str(exc)) from exc
+    if v is None:
+        raise PromotionRefused(
+            f"unknown verifier {verifier!r}: no declaration under claims/verifiers/ and no "
+            "installed pack declares it (`claims packs` lists them)"
+        )
+    return v
 
 
 def _require_current_stamp(repo: Path, v: Any):
@@ -141,6 +158,15 @@ def _require_current_stamp(repo: Path, v: Any):
             f"verifier {v.name}: its fixtures changed since certification; run "
             "certify-verifier again"
         )
+    suite = getattr(v, "golden_suite", None)
+    if spec is None and callable(suite):
+        from empiricist.packs import golden_suite_hash as pack_suite_hash
+
+        if pack_suite_hash(suite()) != stamp.golden_suite_hash:
+            raise PromotionRefused(
+                f"verifier {v.name}: its pack's golden suite changed since certification; "
+                "run certify-verifier again"
+            )
     return stamp
 
 
@@ -394,8 +420,8 @@ def reverify(
             v = (verifiers or {}).get(e.verifier)
             if v is None:
                 try:
-                    v = load_command_verifier(repo, e.verifier)
-                except ClaimSchemaError:
+                    v = _resolve_verifier(repo, e.verifier)
+                except (ClaimSchemaError, PromotionRefused):
                     outcomes[cid] = f"no verifier available for {e.verifier}"
                     failed = True
                     break

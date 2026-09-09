@@ -32,7 +32,7 @@ from empiricist.claims.standing import (
     load_receipts,
     statement_sha256,
 )
-from empiricist.verifiers.builtin import builtin_identity
+from empiricist.verifiers.builtin import identity_for
 
 BLOCKING_CODES = frozenset({
     "schema_error", "graph_error", "lock_mismatch", "elevated_without_pass",
@@ -69,7 +69,7 @@ def drifted_verifiers(repo: Path | str) -> tuple[set[str], list[tuple[str, str]]
     for name, s in reg.stamps.items():
         if name in verifiers:
             continue
-        live = builtin_identity(name)
+        live = identity_for(name)
         if live is not None and (live[0] != s.version or live[1] != s.binary_hash):
             drifted.add(name)
     return drifted, errors
@@ -81,7 +81,7 @@ def _drift_detail(repo: Path, name: str) -> str:
 
     s = read_registry(repo).stamps.get(name)
     stamped = f"{s.version} {s.binary_hash[:12]}" if s else "?"
-    live = builtin_identity(name)
+    live = identity_for(name)
     if live is not None:
         return (
             f"verifier {name}: the live verifier ({live[0]} {live[1][:12]}) is not the stamped "

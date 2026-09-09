@@ -271,6 +271,7 @@ def build_parser() -> argparse.ArgumentParser:
     c_is.add_argument(
         "--force", action="store_true", help="overwrite an existing tools/empiricist_check.py"
     )
+    claims_sub.add_parser("packs", help="list the installed packs and their verifiers")
     c_cv = claims_sub.add_parser(
         "certify-verifier", help="run a command verifier's PASS/FAIL fixtures and stamp it"
     )
@@ -794,6 +795,21 @@ def _cmd_claims(args: argparse.Namespace) -> int:
             who = f" {issue.claim_id}" if issue.claim_id else ""
             print(f"{issue.code}:{who} {issue.detail}")
         return 0 if report.ok else 1
+    if args.claims_command == "packs":
+        from empiricist.packs import installed_packs
+
+        found = installed_packs()
+        if not found:
+            print("packs: none installed")
+        for pname, m in sorted(found.items()):
+            print(f"{pname} {m.version}")
+            for vname, factory in sorted(m.verifiers.items()):
+                try:
+                    v = factory(Path("."))
+                    print(f"  {vname} v{v.version} [{v.binary_hash[:12]}]")
+                except Exception as exc:  # noqa: BLE001 - listing never crashes
+                    print(f"  {vname}: cannot construct ({type(exc).__name__}: {exc})")
+        return 0
     if args.claims_command in ("certify-verifier", "formulate", "promote", "reverify", "demote"):
         return _cmd_claims_promotion(args)
     if args.claims_command == "review":
@@ -892,7 +908,13 @@ def _cmd_claims_promotion(args: argparse.Namespace) -> int:
 
     try:
         if args.claims_command == "certify-verifier":
-            stamp, problems = certify_command_verifier(args.repo, args.name)
+            from empiricist.claims.command_verifier import declaration_path
+            from empiricist.packs import certify_pack_verifier
+
+            if declaration_path(args.repo, args.name).is_file():
+                stamp, problems = certify_command_verifier(args.repo, args.name)
+            else:
+                stamp, problems = certify_pack_verifier(args.repo, args.name)
             if stamp is None:
                 print("certify-verifier: FAILED")
                 for p in problems:
