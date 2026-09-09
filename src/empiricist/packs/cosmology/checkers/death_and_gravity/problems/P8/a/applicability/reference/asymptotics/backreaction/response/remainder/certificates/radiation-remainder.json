@@ -1,0 +1,1415 @@
+{
+  "claim": "P8-A.7",
+  "date": "2026-09-05",
+  "derived_finite_geometry": {
+    "IR_exponent_at_delta_bar": "491064/63632507",
+    "UV_exponent_at_delta_bar": "1/2",
+    "U_derivative_bounds_through_5_per_delta": [
+      "20461/128",
+      "61013499/8192",
+      "141220786323/524288",
+      "940988878183233/33554432",
+      "17518133497660055661/4294967296",
+      "225768593552804469282249/274877906944"
+    ],
+    "calibration_geometry_bounds": "history<=3eta_star; a^-4<=1/(8A^4eta_star^4), |a'/a|<=2/eta_star on y in[2,3]",
+    "clock": "eta_actual/eta_star=1+integral_1^y (1-delta*p(s))^(-1/4) ds",
+    "conformal_Hubble_extra_at_delta_bar": "11008/190897521",
+    "delta_bar": "2048/190897521",
+    "finite_amplitude": "delta=16*epsilon*d/(A^2*eta_star^4); 0<=delta<=delta_bar",
+    "fractional_jet_ring_term_counts": [
+      3,
+      6,
+      11,
+      18,
+      29,
+      43
+    ],
+    "p_derivative_bounds_through_7": [
+      "1",
+      "43/4",
+      "14699/64",
+      "38363475/4096",
+      "85026093189/131072",
+      "586563755981205/8388608",
+      "11954017137305143053/1073741824",
+      "172818063343196524492281/68719476736"
+    ]
+  },
+  "exact_finite_geometry_identities": {
+    "exact_clock_derivative_inverse": "0",
+    "exact_conformal_Hubble": "0",
+    "exact_finite_potential": "0",
+    "proper_time_label": "0"
+  },
+  "exact_metric_retarded_kernel_identities": {
+    "auxiliary_span_cancels_for_flat_past": "0",
+    "exact_scale_Wick_normalization": "0",
+    "finite_metric_spatial_Hadamard_subtraction": "0"
+  },
+  "exact_retarded_Born_kernel": "integral_eta_i^eta U'(s)*log((eta-s)/T)ds+U(eta)*(log(sqrt(2)*a(eta)*T/lambda)+5/6)",
+  "exact_stress_error_in_hbar_over_pi2_units": {
+    "EED": "(2*J(eta) + 4*Rmode(eta)*Derivative(a(eta), eta)**2/a(eta)**2 + Derivative(Rmode(eta), (eta, 2)) - 4*Derivative(Rmode(eta), eta)*Derivative(a(eta), eta)/a(eta))/(16*a(eta)**4)",
+    "density": "((Derivative(a(eta), (eta, 2))/a(eta) + Derivative(a(eta), eta)**2/a(eta)**2)*Rmode(eta) + J(eta) - Derivative(Rmode(eta), eta)*Derivative(a(eta), eta)/a(eta))/(8*a(eta)**4)",
+    "pressure": "((-Derivative(a(eta), (eta, 2))/a(eta) + 3*Derivative(a(eta), eta)**2/a(eta)**2)*Rmode(eta) + J(eta) + Derivative(Rmode(eta), (eta, 2)) - 3*Derivative(Rmode(eta), eta)*Derivative(a(eta), eta)/a(eta))/(24*a(eta)**4)"
+  },
+  "exact_stress_reconstruction_identities": {
+    "exact_EED_remainder": "0",
+    "exact_remainder_conservation": "0",
+    "exact_remainder_trace": "0",
+    "history_integration_identity": "0"
+  },
+  "finite_Wick_decomposition": "<phi^2>=-hbar*K_{a,lambda}[U]/(8*pi^2*a^2)+hbar*Rmode/(4*pi^2*a^2)",
+  "formulation": "FORMULATION.md",
+  "independently_replayed_uniform_bounds": {
+    "IR_remainder_constants": [
+      "79125326469/65536",
+      "116804053359/65536",
+      "146947034871/32768"
+    ],
+    "UV_remainder_constants": [
+      "8227446532981764127302462561696466405545/1146301339255401913253888",
+      "2742482177786702253167158911468907201251/286575334813850478313472",
+      "8227446554153246134205175737218476345513/573150669627700956626944"
+    ],
+    "U_jet_bounds_per_delta": [
+      "20461/128",
+      "61013499/8192",
+      "141220786323/524288",
+      "940988878183233/33554432",
+      "17518133497660055661/4294967296",
+      "225768593552804469282249/274877906944"
+    ],
+    "Wick_C2_remainder_constants": [
+      "8227446534365758690602566348287364630697/9170410714043215306031104",
+      "2742482178165805210532619461916204401379/573150669627700956626944",
+      "9599003726266454936783013709200117706478337433367/291768111977114948131765683748864"
+    ],
+    "Wick_C2_units": "j-th actual conformal derivative: hbar*delta^2/(pi^2*A^2*eta_star^(4+j))",
+    "actual_finite_amplitude_accuracy_example": {
+      "all_three_ratios_strictly_below_one_percent": true,
+      "delta": "1/1000000000000",
+      "denominator": "positive pinned A.3 reference components at the same proper time, not actual or Born stress",
+      "metric_is_claimed_to_solve_SEE": false,
+      "physical_amplitude_interpretation": "t_star=A*eta_star^2/2, delta=4*epsilon*d/t_star^2; epsilon=1 and t_star>=2*10^6*sqrt(d) suffice",
+      "uniform_reference_scale_error_ratios": {
+        "EED": "200227811516778399052970661284981208272045901258374271/58353622395422989626353136749772800000000000000000000000",
+        "density": "284743290931796756750245701599923020984251922338739177/58353622395422989626353136749772800000000000000000000000",
+        "pressure": "183352990589084902099136066605187807425961477169810717/58353622395422989626353136749772800000000000000000000000"
+      }
+    },
+    "delta_bar": "2048/190897521",
+    "independent_fractional_jet_audit": {
+      "all_six_exact_jet_comparisons_passed": true,
+      "control_is_the_physical_smooth_cutoff": false,
+      "delta": "1695/4096",
+      "eta_star_and_A": "1 in this algebra-only control",
+      "f_quarter_at_y0": "7/8",
+      "jet_values_from_independent_Taylor_series": [
+        "-18832015/240945152",
+        "324130374635/2644613988352",
+        "-38662660463525143/174163698816909312",
+        "448703520680627458423/955810379107198304256",
+        "-73373149883833455538216837/62945848326483651525083136",
+        "7008876195542747671403562755305/2072680893694453677417937502208"
+      ],
+      "y0": "3/2"
+    },
+    "integrated_mode_remainder_constants": [
+      "8227446534365758690602566348287364630697/1146301339255401913253888",
+      "2742482178297462151527911499377452974819/286575334813850478313472",
+      "8227446556723521751762511340887287335081/573150669627700956626944"
+    ],
+    "nonnegative_amplitude_polynomial_audit": [
+      {
+        "bound_polynomial": "1149455482712144055*delta**3/1073741824 + 129296281448609178545362286962731*delta**2/18014398509481984",
+        "minimum_amplitude_degree": 2,
+        "nonnegative_coefficients": true,
+        "normalized_at_delta_bar": "8227446534365758690602566348287364630697/1146301339255401913253888"
+      },
+      {
+        "bound_polynomial": "383151827570714685*delta**3/268435456 + 43098760485628419753199328830137*delta**2/4503599627370496",
+        "minimum_amplitude_degree": 2,
+        "nonnegative_coefficients": true,
+        "normalized_at_delta_bar": "2742482178297462151527911499377452974819/286575334813850478313472"
+      },
+      {
+        "bound_polynomial": "1149455482712144055*delta**3/536870912 + 129296281799966748995320277657643*delta**2/9007199254740992",
+        "minimum_amplitude_degree": 2,
+        "nonnegative_coefficients": true,
+        "normalized_at_delta_bar": "8227446556723521751762511340887287335081/573150669627700956626944"
+      }
+    ],
+    "p_jet_bounds": [
+      "1",
+      "43/4",
+      "14699/64",
+      "38363475/4096",
+      "85026093189/131072",
+      "586563755981205/8388608",
+      "11954017137305143053/1073741824",
+      "172818063343196524492281/68719476736"
+    ],
+    "rounded_stress_error_upper_bounds": {
+      "EED": "1700000000000000",
+      "density": "800000000000000",
+      "pressure": "900000000000000"
+    },
+    "stress_error_constants": {
+      "EED": "30517880127538240977437991355735590347819829486111/18673159166535356680433003759927296",
+      "density": "14466457904374168406759421917386730731303760724419/18673159166535356680433003759927296",
+      "pressure": "46576484933466672280428813342780015095758135743995/56019477499606070041299011279781888"
+    },
+    "stress_error_units": "hbar*delta^2/(pi^2*A^4*eta_star^8)",
+    "strict_rounded_bound_margins": {
+      "EED": "1226490455571865379298115036140812852180170513889/18673159166535356680433003759927296",
+      "density": "472069428854116937586981090555106068696239275581/18673159166535356680433003759927296",
+      "pressure": "3841044816178790756740296809023684104241864256005/56019477499606070041299011279781888"
+    }
+  },
+  "mode_and_retarded_Green_identities": {
+    "Gelfand_Dikii_adiabatic_residual": "0",
+    "Green_first_initial_value": "0",
+    "Green_homogeneous_equation": "0",
+    "Green_second_initial_value": "0",
+    "Green_zeroth_initial_value": "0",
+    "linear_asymptotic_residual": "0"
+  },
+  "mode_potential_jet_ring": [
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "-1/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "-1/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "1/8",
+        "delta_power": 2,
+        "f_power": "-3/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1
+        ]
+      }
+    ],
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "-1/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          3
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "-1/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "-3/4",
+        "delta_power": 1,
+        "f_power": "-1/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "3/8",
+        "delta_power": 2,
+        "f_power": "-5/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "3/8",
+        "delta_power": 2,
+        "f_power": "-5/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "3/16",
+        "delta_power": 3,
+        "f_power": "-9/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "0",
+        "inverse_y_power": 0,
+        "p_jets": [
+          4
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "0",
+        "inverse_y_power": 1,
+        "p_jets": [
+          3
+        ]
+      },
+      {
+        "coefficient": "-3/2",
+        "delta_power": 1,
+        "f_power": "0",
+        "inverse_y_power": 2,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "3/2",
+        "delta_power": 1,
+        "f_power": "0",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "7/16",
+        "delta_power": 2,
+        "f_power": "-1",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "3/8",
+        "delta_power": 2,
+        "f_power": "-1",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "15/16",
+        "delta_power": 2,
+        "f_power": "-1",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-9/16",
+        "delta_power": 2,
+        "f_power": "-1",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "33/32",
+        "delta_power": 3,
+        "f_power": "-2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "15/32",
+        "delta_power": 3,
+        "f_power": "-2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "27/64",
+        "delta_power": 4,
+        "f_power": "-3",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "1/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          5
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "1/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          4
+        ]
+      },
+      {
+        "coefficient": "-9/4",
+        "delta_power": 1,
+        "f_power": "1/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          3
+        ]
+      },
+      {
+        "coefficient": "9/2",
+        "delta_power": 1,
+        "f_power": "1/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "-9/2",
+        "delta_power": 1,
+        "f_power": "1/4",
+        "inverse_y_power": 4,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "7/16",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "19/16",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "15/16",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "15/16",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "-33/16",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "9/8",
+        "delta_power": 2,
+        "f_power": "-3/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "47/32",
+        "delta_power": 3,
+        "f_power": "-7/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "39/16",
+        "delta_power": 3,
+        "f_power": "-7/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "75/32",
+        "delta_power": 3,
+        "f_power": "-7/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-33/32",
+        "delta_power": 3,
+        "f_power": "-7/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "15/4",
+        "delta_power": 4,
+        "f_power": "-11/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "15/16",
+        "delta_power": 4,
+        "f_power": "-11/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "81/64",
+        "delta_power": 5,
+        "f_power": "-15/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          6
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          5
+        ]
+      },
+      {
+        "coefficient": "-3",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 2,
+        "p_jets": [
+          4
+        ]
+      },
+      {
+        "coefficient": "9",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 3,
+        "p_jets": [
+          3
+        ]
+      },
+      {
+        "coefficient": "-18",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 4,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "18",
+        "delta_power": 1,
+        "f_power": "1/2",
+        "inverse_y_power": 5,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "3/8",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          5
+        ]
+      },
+      {
+        "coefficient": "13/8",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          4
+        ]
+      },
+      {
+        "coefficient": "19/16",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          3,
+          3
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "45/16",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "-39/16",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "-3",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 2,
+        "p_jets": [
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "21/4",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-9/4",
+        "delta_power": 2,
+        "f_power": "-1/2",
+        "inverse_y_power": 4,
+        "p_jets": [
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "115/64",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "557/64",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "39/16",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "195/64",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "345/64",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "-447/64",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "93/32",
+        "delta_power": 3,
+        "f_power": "-3/2",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "809/128",
+        "delta_power": 4,
+        "f_power": "-5/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "993/64",
+        "delta_power": 4,
+        "f_power": "-5/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "1005/128",
+        "delta_power": 4,
+        "f_power": "-5/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-351/128",
+        "delta_power": 4,
+        "f_power": "-5/2",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "1065/64",
+        "delta_power": 5,
+        "f_power": "-7/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "165/64",
+        "delta_power": 5,
+        "f_power": "-7/2",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "1215/256",
+        "delta_power": 6,
+        "f_power": "-9/2",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    [
+      {
+        "coefficient": "1/4",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          7
+        ]
+      },
+      {
+        "coefficient": "3/4",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          6
+        ]
+      },
+      {
+        "coefficient": "-15/4",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          5
+        ]
+      },
+      {
+        "coefficient": "15",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          4
+        ]
+      },
+      {
+        "coefficient": "-45",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 4,
+        "p_jets": [
+          3
+        ]
+      },
+      {
+        "coefficient": "90",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 5,
+        "p_jets": [
+          2
+        ]
+      },
+      {
+        "coefficient": "-90",
+        "delta_power": 1,
+        "f_power": "3/4",
+        "inverse_y_power": 6,
+        "p_jets": [
+          1
+        ]
+      },
+      {
+        "coefficient": "1/4",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          6
+        ]
+      },
+      {
+        "coefficient": "2",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          5
+        ]
+      },
+      {
+        "coefficient": "4",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          3,
+          4
+        ]
+      },
+      {
+        "coefficient": "3/8",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          5
+        ]
+      },
+      {
+        "coefficient": "57/16",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          2,
+          4
+        ]
+      },
+      {
+        "coefficient": "45/16",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          3,
+          3
+        ]
+      },
+      {
+        "coefficient": "-27/16",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "-45/4",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "45/8",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "45/4",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "-45/4",
+        "delta_power": 2,
+        "f_power": "-1/4",
+        "inverse_y_power": 4,
+        "p_jets": [
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "127/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          5
+        ]
+      },
+      {
+        "coefficient": "839/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "coefficient": "595/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          3,
+          3
+        ]
+      },
+      {
+        "coefficient": "1025/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          2,
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "219/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "585/32",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "345/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "-45/4",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "-1335/64",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "405/16",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-315/32",
+        "delta_power": 3,
+        "f_power": "-5/4",
+        "inverse_y_power": 4,
+        "p_jets": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "577/64",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          4
+        ]
+      },
+      {
+        "coefficient": "4035/64",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "coefficient": "555/16",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "795/64",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "2025/64",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "-1875/64",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "315/32",
+        "delta_power": 4,
+        "f_power": "-9/4",
+        "inverse_y_power": 3,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "8305/256",
+        "delta_power": 5,
+        "f_power": "-13/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          3
+        ]
+      },
+      {
+        "coefficient": "13485/128",
+        "delta_power": 5,
+        "f_power": "-13/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      {
+        "coefficient": "8325/256",
+        "delta_power": 5,
+        "f_power": "-13/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "-2415/256",
+        "delta_power": 5,
+        "f_power": "-13/4",
+        "inverse_y_power": 2,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "2775/32",
+        "delta_power": 6,
+        "f_power": "-17/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "coefficient": "1155/128",
+        "delta_power": 6,
+        "f_power": "-17/4",
+        "inverse_y_power": 1,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "coefficient": "10935/512",
+        "delta_power": 7,
+        "f_power": "-21/4",
+        "inverse_y_power": 0,
+        "p_jets": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    ]
+  ],
+  "negative_controls": {
+    "frozen_background_clock_changes_exact_potential": "delta*((-delta*p(y) + 1)**(3/2)*(y*(3*delta*Derivative(p(y), y)**2 - 4*(delta*p(y) - 1)*Derivative(p(y), (y, 2))) - 8*(delta*p(y) - 1)*Derivative(p(y), y)) + (delta*p(y) - 1)**2*(-3*delta*y*Derivative(p(y), y)**2 + 4*(delta*p(y) - 1)*(y*Derivative(p(y), (y, 2)) + 2*Derivative(p(y), y)) + (delta*y*Derivative(p(y), y) + 4*delta*p(y) - 4)*Derivative(p(y), y)))/(16*y*(-delta*p(y) + 1)**(7/2))",
+    "inputs_rejected": "rounded floats, infinities, unproved signs, negative jets, missing jets, nonpositive split/span, unsupported switch orders, amplitude or exponential caps outside proved domain",
+    "local_adiabatic_subtraction_alone_leaves_linear_U5": "U^(5)/(8*k^4); independent symbolic audit checks exact-Born cancellation",
+    "omitted_retarded_history_breaks_stress_conservation": "(a(eta)*Derivative(a(eta), (eta, 3)) - Derivative(a(eta), eta)*Derivative(a(eta), (eta, 2)))*Rmode(eta)/(8*a(eta)**6)"
+  },
+  "prior_A6_sha256": "1101c2c2977716ef3bcf452ab02f69abb91ba43c7720df0920384099a1c1e868",
+  "schema": 1,
+  "scope": {
+    "A6_epsilon_linear_formula_has_same_error_without_clock_comparison": false,
+    "A6_second_order_corrected_metric_jets_certified_here": false,
+    "Born_functional_claimed_positive_state": false,
+    "FK_conventions": "+---; R=+6*(Hdot+2*H^2); GS Box equals FK Box",
+    "absolute_RSET_scheme_independence": false,
+    "actual_finite_amplitude_RSET_error": true,
+    "actual_smooth_preparation_derivative_bounds_derived": true,
+    "all_geodesic_focusing_or_P8a_completion": false,
+    "field": "one real free massless minimally coupled scalar",
+    "finite_amplitude_SEE_solution_shadowing_or_stability": false,
+    "gamma_dictionary": "gamma=-(c3_GS+c4_GS/3); no additional alpha*R Wick shift",
+    "identical_exact_anomaly_local_terms_and_past_density": true,
+    "initial_Cauchy_slice": "y=1/2, strictly before preparation at y=1; all initial potential jets vanish",
+    "nonlinear_Wick_remainder_through_two_actual_conformal_derivatives": true,
+    "prescription": "GS raw H_lambda Wick square and conserved stress; same lambda>0 and physical FK gamma*I_R2 in actual and approximation",
+    "quantitative_perturbed_QSEI_or_all_sampler_bound": false,
+    "state": "actual positive homogeneous isotropic quasifree Hadamard state transported from the radiation past",
+    "unconstrained_supplied_jet_bounds_automatically_certified": false,
+    "uniform_derived_nonzero_amplitude_interval": true
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "bb415f07620ef7a0119cf94397cb1384f993109cd11309fe0e112924cf216eaf",
+    "README.md": "237bd4c2ca5ac1360a4c3d6ee0cd235c009cf43153c386c811c7afffe84140e5",
+    "notes/proof.md": "1de4b521475f7f7a0351255198523fed745adee91896ab955544e483ecc21025",
+    "notes/sources.md": "840140d97eb09d333dd338bdb768759ea6a6067a25de563f051b3a707dfbfbc6",
+    "src/p8a_remainder/__init__.py": "445e3bcbaef2e7237be4d5eb1d586ed01fe2b4136705e4a03bba0f27ba31e138",
+    "src/p8a_remainder/geometry.py": "da3ef861345571d4a385163adfccb52c629cf8e7eb31add3c2280298cd84538a",
+    "src/p8a_remainder/independent.py": "1c780c415e8886655ae9edce8affc6fc983890a59f8a0c26eecbaa82dd49787c",
+    "src/p8a_remainder/kernel.py": "e3b6c036d569220b92eb919dda9544b820582f2f4724d8062590ffd282b78299",
+    "src/p8a_remainder/mode_bounds.py": "17a95d9d2604a31304dfa725429c5d8ec4ed92868c223b33c511fcd2c9c5134e",
+    "src/p8a_remainder/stress.py": "d6e55f4312a877eaa5b88af2685946c22945fb20ee31f3a5d8520794f8ea6e74",
+    "src/p8a_remainder/verify.py": "ead0aa7554986474cbdeb58614674943f7f5487c170c19ca37869bede737114d",
+    "tests/conftest.py": "9564c7ee5ab1f018ca3e060e3862ec5aaaf73b706c3b88170f77c3ec5ba32b67",
+    "tests/test_remainder_gelfand_dikii_audit.py": "ced02dbcdccddb1d0d85431484356059abd5935f122fe6776dcfc6447e981390",
+    "tests/test_remainder_geometry.py": "89c7dcc04d646cc7fac0460cb574783d3f3dab78a313ff5c75cfd61c31f3aab8",
+    "tests/test_remainder_modes.py": "abc9bf366b6bea5b202ad64fe4bba35bd2ae450c1567d5e9c994ec7a89b42e71",
+    "tests/test_remainder_report.py": "20df5927bf300aba5b9aa32f2c505e6e1c619ac592e859e03ad9797b3ee23719",
+    "tests/test_remainder_stress.py": "00b14a6de2b18cdf239d27293db394324a8bfc4045960758d825288be6967bbd"
+  },
+  "status": "FINITE_AMPLITUDE_ACTUAL_RSET_BORN_ON_EXACT_GEOMETRY_ERROR_CERTIFIED; SEE_QSEI_FOCUSING_OPEN",
+  "verification_boundary": [
+    "the full transported state, Hadamard prescription and baseline past density are pinned through A.6 and every earlier dependency",
+    "IR Volterra and UV retarded-residual inequalities and coincidence-limit domination are written analytic proofs, not finite sampling claims",
+    "the finite-family derivative majorants and all numerical constants are exact rational enclosures, replayed separately using fractions only",
+    "a separate exact Taylor-series audit checks all six fractional clock jets; parent-owned tests derive mode, curvature and conservation identities independently",
+    "the Born-on-exact-geometry functional retains exact history and local terms; it is neither a positive state construction nor a solved SEE metric",
+    "the one-percent example divides by positive radiation-reference components, not actual or Born values and not a cosmological error target"
+  ],
+  "written_proof": "notes/proof.md"
+}

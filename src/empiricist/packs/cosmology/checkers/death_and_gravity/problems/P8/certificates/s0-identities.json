@@ -1,0 +1,62 @@
+{
+  "benchmark_Hdot0_pinned": "1/375",
+  "benchmark_jet": {
+    "H0": "0",
+    "Hdot0": "(epsilon + 3)/(6*epsilon*tau**2)",
+    "a0": "1",
+    "a1_0": "w*(11*epsilon - 3)/(12*(epsilon + 3)*cosh(u)**2)",
+    "theta0": "-2*w*tanh(u)/(3*tau*cosh(u)**2)"
+  },
+  "claim": "P8-0",
+  "domain": [
+    "a > 0",
+    "k2 > 0",
+    "Theta != 0 for quotient chart",
+    "matter implication additionally Q > 0 and chi_dot != 0",
+    "exceptional dictionary additionally X > 0, GT != 0, 3*X*A1-4*F2 != 0"
+  ],
+  "exact_residuals": {
+    "A1_zero_specialization": "0",
+    "canonical_action": "0",
+    "exceptional_factorization": "0",
+    "exceptional_relation": "0",
+    "gradient_identity": "0",
+    "kinetic_identity": "0",
+    "lapse_constraint": "0",
+    "luminal_mismatch": "0",
+    "shift_constraint": "0"
+  },
+  "exceptional_A3": "2*(A1**2*X - 2*A1*F2 - 2*A1*F2X*X + 4*F2*F2X)/(X*(3*A1*X - 4*F2))",
+  "horndeski": {
+    "FS": "(-FT*Theta**2 + GT**2*H*Theta - GT**2*Thetadot + 2*GT*GTdot*Theta)/Theta**2",
+    "GS": "(GT**2*Sigma + 3*GT*Theta**2)/Theta**2",
+    "boundary": "GT**2*a*k2*z**2/Theta",
+    "raw": "a**3*(-3*GT*zdot**2 + Sigma*n**2 + 6*Theta*n*zdot) + a*k2*(FT*z**2 - 2*GT*b*zdot + 2*GT*n*z + 2*Theta*b*n)",
+    "xi": "GT**2*a/Theta"
+  },
+  "independent_flint": {
+    "ibp_polynomial_zero": true,
+    "wrong_boundary_sign_detected": true
+  },
+  "not_established": [
+    "covariant action-to-coefficient derivation",
+    "gamma-crossing regularity",
+    "full background reconstruction",
+    "all-time scalar/tensor bounds",
+    "any ladder row verdict",
+    "UV positivity or weak coupling"
+  ],
+  "printed_A25_D_A3_mismatch": "-4*F2X*(A1*X - F2)/(X*(3*A1*X - 4*F2))",
+  "schema": 1,
+  "scope": "Exact source-action algebra and local benchmark jets only; no covariant or global bounce theorem",
+  "source_sha256": {
+    "benchmark.py": "6d291b597aaa75175e969eea98cf07036318acab6ba3d632caf59501c9295b86",
+    "horndeski.py": "2d7feaf0c0b04a5501db4af82e5147214f9bc8636fa8778a20cb5518b7ffa6cb",
+    "matter.py": "bd4328057bb3c36e03eccfcd7c734fd8f7e2be600155607bd37b50b21347916b"
+  },
+  "sources": {
+    "action": "arXiv:1105.5723v4 (4.24)",
+    "benchmark": "arXiv:2501.09985v2 (28),(40),(42),(43),(45)",
+    "matter": "arXiv:2501.09985v2 (9c),(10c,d,h); D from arXiv:2011.14912v1 (8a)"
+  }
+}

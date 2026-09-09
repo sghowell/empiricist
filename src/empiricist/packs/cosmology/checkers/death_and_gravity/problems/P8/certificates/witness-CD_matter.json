@@ -1,0 +1,3985 @@
+{
+  "analytic_lemmas_required": [
+    "Sturm root count and positive sample imply strict positivity",
+    "Bernstein convex-hull enclosure bounds the entire compactified tube",
+    "smooth Hamiltonian with nondegenerate symplectic form gives regular finite-k continuation",
+    "a>=1 on R implies physical causal geodesic completeness",
+    "a>=1 and FT>1/4 imply both tensor integrals diverge",
+    "canonical field-redefinition expansion in notes/s2-rational-witnesses.md"
+  ],
+  "background": {
+    "H": "4*t/(t**2 + 1)",
+    "Hdot_at_bounce": "4",
+    "a": "(t**2 + 1)**2",
+    "a_lower_bound": "1",
+    "chi_dot": "1/(10*(t**2 + 1)**6)",
+    "phi": "t",
+    "tail_power": "4"
+  },
+  "candidate": "CD_matter",
+  "canonical_kinetic_ge_1_over_4_when_d_ge": "10481/1680",
+  "covariant_domain": {
+    "X": [
+      "9/10",
+      "11/10"
+    ],
+    "minus_F2_denominator": {
+      "coefficients": [
+        "1"
+      ],
+      "degrees": [
+        0,
+        0
+      ],
+      "lower": "1",
+      "upper": "1"
+    },
+    "minus_F2_numerator": {
+      "coefficients": [
+        "1/2",
+        "1/2",
+        "1/2",
+        "1/2",
+        "1/2",
+        "1/2",
+        "9/20",
+        "11/20"
+      ],
+      "degrees": [
+        3,
+        1
+      ],
+      "lower": "9/20",
+      "upper": "11/20"
+    },
+    "phi": "R"
+  },
+  "covariant_functions": {
+    "A1": "0",
+    "A3": "1/(X*(t**2 + 1)**3)",
+    "F": "(-2850*X**2*t**16 - 20200*X**2*t**14 - 61600*X**2*t**12 - 106775*X**2*t**10 - 115975*X**2*t**8 - 80750*X**2*t**6 - 34550*X**2*t**4 - 7875*X**2*t**2 - 625*X**2 + 800*X*t**22 + 7200*X*t**20 + 28000*X*t**18 + 54900*X*t**16 + 35600*X*t**14 - 78400*X*t**12 - 223250*X*t**10 - 260050*X*t**8 - 167300*X*t**6 - 59700*X*t**4 - 10650*X*t**2 - 751*X - 8800*t**22 - 88800*t**20 - 404000*t**18 - 1084050*t**16 - 1887400*t**14 - 2212000*t**12 - 1753175*t**10 - 919975*t**8 - 303950*t**6 - 57750*t**4 - 5475*t**2 - 225)/(200*(t**2 + 1)**12)",
+    "F2": "(1 - X)/(2*(t**2 + 1)**3) - 1/2",
+    "K": "0"
+  },
+  "coverage": {
+    "core": [
+      "-2",
+      "2"
+    ],
+    "global_signs": "exact even-rational Sturm proofs cover both tails and the core simultaneously",
+    "regular_gamma_chart": "|t| <= 1/4",
+    "tails": [
+      "(-infinity,-2]",
+      "[2,+infinity)"
+    ],
+    "unitary_chart": "|t| >= 1/8"
+  },
+  "exact_background_and_principal_residuals": {
+    "background_lapse": "0",
+    "background_scale": "0",
+    "luminal_00": "0",
+    "luminal_01": "0",
+    "luminal_10": "0",
+    "luminal_11": "0",
+    "matter_equation": "0",
+    "matter_field_definition": "0",
+    "metric_H_definition": "0",
+    "principal_target": "0"
+  },
+  "minimal_covariant_support": "CD",
+  "principal": {
+    "FT": "1",
+    "G": "Matrix([[(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/(2*t**2*(4*t**6 + 12*t**4 + 12*t**2 + 3)**2), -(2*t**6 + 6*t**4 + 6*t**2 - 1)/(40*t*(t**2 + 1)**5*(4*t**6 + 12*t**4 + 12*t**2 + 3))], [-(2*t**6 + 6*t**4 + 6*t**2 - 1)/(40*t*(t**2 + 1)**5*(4*t**6 + 12*t**4 + 12*t**2 + 3)), 1/2]])",
+    "GT": "1",
+    "G_gamma": "Matrix([[2*(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/((t**2 + 1)**2*(2*t**6 + 6*t**4 + 6*t**2 - 1)**2), 1/(20*(t**2 + 1)**6)], [1/(20*(t**2 + 1)**6), 1/2]])",
+    "J": "(3200*t**34 + 48000*t**32 + 332800*t**30 + 1410400*t**28 + 4068800*t**26 + 8413600*t**24 + 12776400*t**22 + 14350800*t**20 + 11890800*t**18 + 7319600*t**16 + 3693600*t**14 + 2108796*t**12 + 1559176*t**10 + 1030340*t**8 + 470732*t**6 + 133176*t**4 + 20412*t**2 + 1199)/(800*(t**2 + 1)**18)",
+    "K": "Matrix([[(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/(2*t**2*(4*t**6 + 12*t**4 + 12*t**2 + 3)**2), -(2*t**6 + 6*t**4 + 6*t**2 - 1)/(40*t*(t**2 + 1)**5*(4*t**6 + 12*t**4 + 12*t**2 + 3))], [-(2*t**6 + 6*t**4 + 6*t**2 - 1)/(40*t*(t**2 + 1)**5*(4*t**6 + 12*t**4 + 12*t**2 + 3)), 1/2]])",
+    "K_gamma": "Matrix([[2*(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/((t**2 + 1)**2*(2*t**6 + 6*t**4 + 6*t**2 - 1)**2), 1/(20*(t**2 + 1)**6)], [1/(20*(t**2 + 1)**6), 1/2]])",
+    "Lambda": "(2*t**6 + 6*t**4 + 6*t**2 - 1)/(2*(t**2 + 1)**3)",
+    "Theta": "t*(4*t**6 + 12*t**4 + 12*t**2 + 3)/(t**2 + 1)**4"
+  },
+  "schema": 1,
+  "scope": "All-time background, linear principal stability/subluminality, regular gamma chart, covariant tube and canonical tails; not UV/strong-coupling/nonlinear stability",
+  "sign_certificates": {
+    "Hamiltonian_J": {
+      "denominator": {
+        "coefficients_ascending": [
+          "800",
+          "14400",
+          "122400",
+          "652800",
+          "2448000",
+          "6854400",
+          "14851200",
+          "25459200",
+          "35006400",
+          "38896000",
+          "35006400",
+          "25459200",
+          "14851200",
+          "6854400",
+          "2448000",
+          "652800",
+          "122400",
+          "14400",
+          "800"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          18,
+          17
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "(3200*t**34 + 48000*t**32 + 332800*t**30 + 1410400*t**28 + 4068800*t**26 + 8413600*t**24 + 12776400*t**22 + 14350800*t**20 + 11890800*t**18 + 7319600*t**16 + 3693600*t**14 + 2108796*t**12 + 1559176*t**10 + 1030340*t**8 + 470732*t**6 + 133176*t**4 + 20412*t**2 + 1199)/(800*(t**2 + 1)**18)",
+      "numerator": {
+        "coefficients_ascending": [
+          "1199",
+          "20412",
+          "133176",
+          "470732",
+          "1030340",
+          "1559176",
+          "2108796",
+          "3693600",
+          "7319600",
+          "11890800",
+          "14350800",
+          "12776400",
+          "8413600",
+          "4068800",
+          "1410400",
+          "332800",
+          "48000",
+          "3200"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "sturm_degrees": [
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 8,
+        "variations_upper": 8
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    },
+    "gamma_K11": {
+      "denominator": {
+        "coefficients_ascending": [
+          "1",
+          "-10",
+          "1",
+          "104",
+          "220",
+          "212",
+          "112",
+          "32",
+          "4"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        "signs_upper": [
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        "sturm_degrees": [
+          8,
+          7,
+          5,
+          4
+        ],
+        "upper": "1/16",
+        "variations_lower": 1,
+        "variations_upper": 1
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "2*(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/((t**2 + 1)**2*(2*t**6 + 6*t**4 + 6*t**2 - 1)**2)",
+      "numerator": {
+        "coefficients_ascending": [
+          "6",
+          "42",
+          "-24",
+          "-16",
+          "92",
+          "144",
+          "80",
+          "16"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        "sturm_degrees": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "upper": "1/16",
+        "variations_lower": 3,
+        "variations_upper": 3
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": "1/16"
+    },
+    "gamma_Lambda_negative": {
+      "denominator": {
+        "coefficients_ascending": [
+          "2",
+          "6",
+          "6",
+          "2"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          3,
+          2
+        ],
+        "upper": "1/16",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "-(2*t**6 + 6*t**4 + 6*t**2 - 1)/(2*(t**2 + 1)**3)",
+      "numerator": {
+        "coefficients_ascending": [
+          "1",
+          "-6",
+          "-6",
+          "-2"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          -1,
+          -1
+        ],
+        "signs_upper": [
+          1,
+          -1,
+          -1
+        ],
+        "sturm_degrees": [
+          3,
+          2,
+          0
+        ],
+        "upper": "1/16",
+        "variations_lower": 1,
+        "variations_upper": 1
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": "1/16"
+    },
+    "gamma_detK": {
+      "denominator": {
+        "coefficients_ascending": [
+          "400",
+          "0",
+          "-21600",
+          "-86400",
+          "126000",
+          "2145600",
+          "9004800",
+          "22881600",
+          "40906800",
+          "54560000",
+          "55836000",
+          "44409600",
+          "27522000",
+          "13204800",
+          "4824000",
+          "1300800",
+          "244800",
+          "28800",
+          "1600"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          0,
+          -1,
+          -1
+        ],
+        "signs_upper": [
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        "sturm_degrees": [
+          18,
+          17,
+          15,
+          14
+        ],
+        "upper": "1/16",
+        "variations_lower": 1,
+        "variations_upper": 1
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "(3200*t**34 + 48000*t**32 + 332800*t**30 + 1410400*t**28 + 4068800*t**26 + 8413600*t**24 + 12776400*t**22 + 14350800*t**20 + 11890800*t**18 + 7319600*t**16 + 3693600*t**14 + 2108796*t**12 + 1559176*t**10 + 1030340*t**8 + 470732*t**6 + 133176*t**4 + 20412*t**2 + 1199)/(400*(t**2 + 1)**12*(2*t**6 + 6*t**4 + 6*t**2 - 1)**2)",
+      "numerator": {
+        "coefficients_ascending": [
+          "1199",
+          "20412",
+          "133176",
+          "470732",
+          "1030340",
+          "1559176",
+          "2108796",
+          "3693600",
+          "7319600",
+          "11890800",
+          "14350800",
+          "12776400",
+          "8413600",
+          "4068800",
+          "1410400",
+          "332800",
+          "48000",
+          "3200"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "sturm_degrees": [
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "upper": "1/16",
+        "variations_lower": 8,
+        "variations_upper": 8
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": "1/16"
+    },
+    "matter_rolls_at_all_finite_times": {
+      "denominator": {
+        "coefficients_ascending": [
+          "10",
+          "60",
+          "150",
+          "200",
+          "150",
+          "60",
+          "10"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          6,
+          5
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "1/(10*(t**2 + 1)**6)",
+      "numerator": {
+        "coefficients_ascending": [
+          "1"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1
+        ],
+        "signs_upper": [
+          1
+        ],
+        "sturm_degrees": [
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    },
+    "tensor_margin_GT_gt_1_over_4": {
+      "denominator": {
+        "coefficients_ascending": [
+          "4"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1
+        ],
+        "signs_upper": [
+          1
+        ],
+        "sturm_degrees": [
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "3/4",
+      "numerator": {
+        "coefficients_ascending": [
+          "3"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1
+        ],
+        "signs_upper": [
+          1
+        ],
+        "sturm_degrees": [
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    },
+    "unique_simple_gamma_Theta_over_t": {
+      "denominator": {
+        "coefficients_ascending": [
+          "1",
+          "4",
+          "6",
+          "4",
+          "1"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          4,
+          3
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 0,
+      "domain": "all t",
+      "expression": "(4*t**6 + 12*t**4 + 12*t**2 + 3)/(t**2 + 1)**4",
+      "numerator": {
+        "coefficients_ascending": [
+          "3",
+          "12",
+          "12",
+          "4"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          3,
+          2,
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    },
+    "unitary_K11": {
+      "denominator": {
+        "coefficients_ascending": [
+          "18",
+          "144",
+          "432",
+          "624",
+          "480",
+          "192",
+          "32"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          6,
+          5,
+          3
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 1,
+      "domain": "t != 0",
+      "expression": "(8*t**14 + 40*t**12 + 72*t**10 + 46*t**8 - 8*t**6 - 12*t**4 + 21*t**2 + 3)/(2*t**2*(4*t**6 + 12*t**4 + 12*t**2 + 3)**2)",
+      "numerator": {
+        "coefficients_ascending": [
+          "3",
+          "21",
+          "-12",
+          "-8",
+          "46",
+          "72",
+          "40",
+          "8"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1,
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        "sturm_degrees": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 3,
+        "variations_upper": 3
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    },
+    "unitary_detK": {
+      "denominator": {
+        "coefficients_ascending": [
+          "14400",
+          "259200",
+          "2145600",
+          "10867200",
+          "37776000",
+          "95750400",
+          "183376000",
+          "271091200",
+          "313070400",
+          "283728000",
+          "201345600",
+          "110822400",
+          "46425600",
+          "14323200",
+          "3072000",
+          "409600",
+          "25600"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "sturm_degrees": [
+          16,
+          15,
+          13,
+          12
+        ],
+        "upper": "+infinity",
+        "variations_lower": 0,
+        "variations_upper": 0
+      },
+      "denominator_zero_order_in_t_squared": 1,
+      "domain": "t != 0",
+      "expression": "(3200*t**34 + 48000*t**32 + 332800*t**30 + 1410400*t**28 + 4068800*t**26 + 8413600*t**24 + 12776400*t**22 + 14350800*t**20 + 11890800*t**18 + 7319600*t**16 + 3693600*t**14 + 2108796*t**12 + 1559176*t**10 + 1030340*t**8 + 470732*t**6 + 133176*t**4 + 20412*t**2 + 1199)/(1600*t**2*(t**2 + 1)**10*(4*t**6 + 12*t**4 + 12*t**2 + 3)**2)",
+      "numerator": {
+        "coefficients_ascending": [
+          "1199",
+          "20412",
+          "133176",
+          "470732",
+          "1030340",
+          "1559176",
+          "2108796",
+          "3693600",
+          "7319600",
+          "11890800",
+          "14350800",
+          "12776400",
+          "8413600",
+          "4068800",
+          "1410400",
+          "332800",
+          "48000",
+          "3200"
+        ],
+        "lower": "0",
+        "roots": 0,
+        "signs_lower": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "signs_upper": [
+          1,
+          1,
+          1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ],
+        "sturm_degrees": [
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "upper": "+infinity",
+        "variations_lower": 8,
+        "variations_upper": 8
+      },
+      "numerator_zero_order_in_t_squared": 0,
+      "upper_t_squared": null
+    }
+  },
+  "source_sha256": {
+    "adm.py": "0ee205adc3cba5f6ebfcb046e647ef7790e3890d3f0d7ab3d3462500aeaf9f02",
+    "candidate_cert.py": "bd5f8d43eb6bef4fa5ab0f9dd9c02e0239d9f10fe22594149829df3e75f7fd26",
+    "coupled.py": "12671e2b1baaceb1ca1b01663c02d5ed2ffc753240533fbdae4d095859d8c194",
+    "covariant.py": "fa69b61732a1245541ff53e99e0c999b43559d6b783fd5d639604c73f1cd249e",
+    "gamma.py": "5e411e649be38bcdea745e8602840fd1e1fe774608798a6948ceb88dbfe35bfe",
+    "jets.py": "6cec1342446622ece78fa53fe6f8cec8e625edcc0b971c187885d9023dc368b7",
+    "matter.py": "bd4328057bb3c36e03eccfcd7c734fd8f7e2be600155607bd37b50b21347916b",
+    "quadratic.py": "e9b72be7a5aa0bc3e7a99b6e29513b5c68db4e0f3e29aa0019f70db7fc2b4fce",
+    "rational_candidates.py": "009a2a8f9b1f0c171fcc1af0eaffbf8877a6e801d9987d5af4d5ec9fd32002ba",
+    "signs.py": "a1226b67f7b483015a2c459eecfefebd58fafc0dce6441ad7a2ac4d5009ed306",
+    "tensor.py": "3bc4a2345e30c3ad93960532b011eb65e65b637e15c34ffc7ac75f355c36c1cc",
+    "tilted_hessian.py": "6d981ad4f7210ff60ea1c916c7764dbda12e4fda9f2016a946db290abb62b145"
+  },
+  "tail_certificates": {
+    "H_dot": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "4",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "-4*(t - 1)*(t + 1)/(t**2 + 1)**2",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-4",
+          "4"
+        ],
+        "degrees": [
+          1,
+          0
+        ],
+        "lower": "-4",
+        "upper": "4"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "H_squared": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "16",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "16*t**2/(t**2 + 1)**2",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "16",
+          "0"
+        ],
+        "degrees": [
+          1,
+          0
+        ],
+        "lower": "0",
+        "upper": "16"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "canonical_kinetic_error": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "10481/6720",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "-(1600*t**20 + 16000*t**18 + 77100*t**16 + 228400*t**14 + 448000*t**12 + 592850*t**10 + 524050*t**8 + 299300*t**6 + 103700*t**4 + 19450*t**2 + 1551)/(1600*(t**2 + 1)**11)",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-1",
+          "-1",
+          "-257/240",
+          "-571/480",
+          "-4/3",
+          "-11857/8064",
+          "-10481/6720",
+          "-2993/1920",
+          "-1037/720",
+          "-389/320",
+          "-1551/1600"
+        ],
+        "degrees": [
+          10,
+          0
+        ],
+        "lower": "-10481/6720",
+        "upper": "-1551/1600"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "curvature_coupling_to_GR": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "1/20",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "-(X - 1)/(2*(t**2 + 1)**3)",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "1/20",
+          "-1/20"
+        ],
+        "degrees": [
+          0,
+          1
+        ],
+        "lower": "-1/20",
+        "upper": "1/20"
+      },
+      "order": 3,
+      "u": "1/(1+t^2)"
+    },
+    "noncanonical_X_squared": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "57/256",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "-(114*t**8 + 352*t**6 + 372*t**4 + 215*t**2 + 25)/(512*(t**2 + 1)**6)",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-57/256",
+          "-11/64",
+          "-31/256",
+          "-215/2048",
+          "-25/512"
+        ],
+        "degrees": [
+          4,
+          0
+        ],
+        "lower": "-57/256",
+        "upper": "-25/512"
+      },
+      "order": 2,
+      "u": "1/(1+t^2)"
+    },
+    "normalized_X_R_coefficient": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "1/16",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "16"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "16",
+        "upper": "16"
+      },
+      "expression": "-1/(16*(t**2 + 1)**2)",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "-1",
+        "upper": "-1"
+      },
+      "order": 2,
+      "u": "1/(1+t^2)"
+    },
+    "potential_term": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "44",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "1"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "1",
+        "upper": "1"
+      },
+      "expression": "-(352*t**14 + 2144*t**12 + 5472*t**10 + 7202*t**8 + 4928*t**6 + 1524*t**4 + 183*t**2 + 9)/(8*(t**2 + 1)**8)",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-44",
+          "-268/7",
+          "-228/7",
+          "-3601/140",
+          "-88/5",
+          "-127/14",
+          "-183/56",
+          "-9/8"
+        ],
+        "degrees": [
+          7,
+          0
+        ],
+        "lower": "-44",
+        "upper": "-9/8"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "weighted_A3": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "10/9",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "9",
+          "11"
+        ],
+        "degrees": [
+          0,
+          1
+        ],
+        "lower": "9",
+        "upper": "11"
+      },
+      "expression": "1/(X*(t**2 + 1))",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "10"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "10",
+        "upper": "10"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "weighted_A4": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "605/162",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "180",
+          "200",
+          "220",
+          "180",
+          "200",
+          "220",
+          "180",
+          "200",
+          "220",
+          "162",
+          "198",
+          "242"
+        ],
+        "degrees": [
+          3,
+          2
+        ],
+        "lower": "162",
+        "upper": "242"
+      },
+      "expression": "-(11*X + 4*t**6 + 12*t**4 + 12*t**2)/(4*X*(t**2 + 1)*(X + t**6 + 3*t**4 + 3*t**2))",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "-200",
+          "-200",
+          "-200",
+          "-200",
+          "-200",
+          "-200",
+          "-495",
+          "-605"
+        ],
+        "degrees": [
+          3,
+          1
+        ],
+        "lower": "-605",
+        "upper": "-200"
+      },
+      "order": 1,
+      "u": "1/(1+t^2)"
+    },
+    "weighted_A5": {
+      "X_interval": [
+        "9/10",
+        "11/10"
+      ],
+      "bound": "100/81",
+      "denominator_Bernstein": {
+        "coefficients": [
+          "90",
+          "100",
+          "110",
+          "90",
+          "100",
+          "110",
+          "90",
+          "100",
+          "110",
+          "81",
+          "99",
+          "121"
+        ],
+        "degrees": [
+          3,
+          2
+        ],
+        "lower": "81",
+        "upper": "121"
+      },
+      "expression": "1/(X*(X + t**6 + 3*t**4 + 3*t**2))",
+      "numerator_Bernstein": {
+        "coefficients": [
+          "100"
+        ],
+        "degrees": [
+          0,
+          0
+        ],
+        "lower": "100",
+        "upper": "100"
+      },
+      "order": 3,
+      "u": "1/(1+t^2)"
+    }
+  },
+  "tail_derivative_certificates": {
+    "H_dot": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "24",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "8*t**2*(t**2 - 3)**2/(t**2 + 1)**5",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "8",
+            "-16",
+            "24",
+            "0"
+          ],
+          "degrees": [
+            3,
+            0
+          ],
+          "lower": "-16",
+          "upper": "24"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "15/2",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-(2*t**4 - 15*t**2 + 3)/(t**2 + 1)**3",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-2",
+            "15/2",
+            "-3"
+          ],
+          "degrees": [
+            2,
+            0
+          ],
+          "lower": "-3",
+          "upper": "15/2"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "H_squared": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "128",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "128*t**2*(t - 1)**2*(t + 1)**2/(t**2 + 1)**5",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "128",
+            "-256/3",
+            "128/3",
+            "0"
+          ],
+          "degrees": [
+            3,
+            0
+          ],
+          "lower": "-256/3",
+          "upper": "128"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "14",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "4*(2*t**4 - 7*t**2 + 1)/(t**2 + 1)**3",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "8",
+            "-14",
+            "4"
+          ],
+          "degrees": [
+            2,
+            0
+          ],
+          "lower": "-14",
+          "upper": "8"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "canonical_kinetic_error": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "3049317/2894080",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "t**2*(1600*t**20 + 16000*t**18 + 87300*t**16 + 296800*t**14 + 641200*t**12 + 869100*t**10 + 704100*t**8 + 298200*t**6 + 35400*t**4 - 12900*t**2 - 2389)**2/(5120000*(t**2 + 1)**23)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "1/2",
+            "10/21",
+            "239/480",
+            "5849/10640",
+            "1917073/3064320",
+            "469505/651168",
+            "2876351/3472896",
+            "1634843/1751040",
+            "52981337/52093440",
+            "3049317/2894080",
+            "4602611413/4514764800",
+            "11948257/13278720",
+            "5257052253/7524608000",
+            "289685281/651168000",
+            "70804429/372096000",
+            "-2009633/463052800",
+            "-16340983/173644800",
+            "-1948433/25536000",
+            "-1707/4256000",
+            "102727/1792000",
+            "5707321/107520000",
+            "0"
+          ],
+          "degrees": [
+            21,
+            0
+          ],
+          "lower": "-16340983/173644800",
+          "upper": "3049317/2894080"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "2417/1760",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-(3200*t**22 + 30400*t**20 + 219800*t**18 + 890300*t**16 + 1960000*t**14 + 2093600*t**12 + 297300*t**10 - 1565700*t**8 - 1450200*t**6 - 435000*t**4 - 13858*t**2 + 2389)/(6400*(t**2 + 1)**12)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-1/2",
+            "-19/44",
+            "-1099/1760",
+            "-8903/10560",
+            "-245/264",
+            "-2617/3696",
+            "-991/9856",
+            "5219/7040",
+            "2417/1760",
+            "435/352",
+            "6929/35200",
+            "-2389/6400"
+          ],
+          "degrees": [
+            11,
+            0
+          ],
+          "lower": "-245/264",
+          "upper": "2417/1760"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "curvature_coupling_to_GR": {
+      "X_first": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "1/2",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "2"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "2",
+          "upper": "2"
+        },
+        "expression": "-1/(2*(t**2 + 1)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "-1",
+          "upper": "-1"
+        },
+        "order": 3,
+        "u": "1/(1+t^2)"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "9/8",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "9*t**2/(8*(t**2 + 1)**7)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "9/8",
+            "0"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "0",
+          "upper": "9/8"
+        },
+        "order": 6,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "9/800",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "9*t**2*(X - 1)**2/(8*(t**2 + 1)**7)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "9/800",
+            "-9/800",
+            "9/800",
+            "0",
+            "0",
+            "0"
+          ],
+          "degrees": [
+            1,
+            2
+          ],
+          "lower": "-9/800",
+          "upper": "9/800"
+        },
+        "order": 6,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "9/40",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-3*(X - 1)*(6*t**2 - 1)/(8*(t**2 + 1)**4)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "9/40",
+            "-9/40",
+            "-3/80",
+            "3/80"
+          ],
+          "degrees": [
+            1,
+            1
+          ],
+          "lower": "-9/40",
+          "upper": "9/40"
+        },
+        "order": 3,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "noncanonical_X_squared": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "3249/32768",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "t**2*(228*t**8 + 600*t**6 + 432*t**4 + 331*t**2 - 65)**2/(524288*(t**2 + 1)**13)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "3249/32768",
+            "475/8192",
+            "967/32768",
+            "27889/1835008",
+            "7697/917504",
+            "619/196608",
+            "53401/44040192",
+            "-21515/9437184",
+            "4225/4718592",
+            "0"
+          ],
+          "degrees": [
+            9,
+            0
+          ],
+          "lower": "-21515/9437184",
+          "upper": "3249/32768"
+        },
+        "order": 4,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "57/128",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-(912*t**10 + 1548*t**8 - 744*t**6 + 1150*t**4 - 1773*t**2 + 65)/(2048*(t**2 + 1)**7)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-57/128",
+            "-387/2560",
+            "93/2560",
+            "-115/2048",
+            "1773/10240",
+            "-65/2048"
+          ],
+          "degrees": [
+            5,
+            0
+          ],
+          "lower": "-57/128",
+          "upper": "1773/10240"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "normalized_X_R_coefficient": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "1/128",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "t**2/(128*(t**2 + 1)**5)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "1/128",
+            "0"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "0",
+          "upper": "1/128"
+        },
+        "order": 4,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "1/8",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-(2*t - 1)*(2*t + 1)/(32*(t**2 + 1)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-1/8",
+            "1/32"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "-1/8",
+          "upper": "1/32"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "potential_term": {
+      "X_first": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "X_second": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "bound": "0",
+        "expression": "0",
+        "order": "+infinity"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "968",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "t**2*(352*t**14 + 1824*t**12 + 3552*t**10 + 1448*t**8 - 4168*t**6 - 5640*t**4 - 1767*t**2 - 111)**2/(128*(t**2 + 1)**17)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "968",
+            "3344/5",
+            "2168/5",
+            "109196/455",
+            "116912/1365",
+            "-23148/1001",
+            "-385402/5005",
+            "-458291/6435",
+            "-186233/12870",
+            "367047/5720",
+            "120359/1001",
+            "217261/1820",
+            "4374369/58240",
+            "65379/2240",
+            "4107/640",
+            "0"
+          ],
+          "degrees": [
+            15,
+            0
+          ],
+          "lower": "-385402/5005",
+          "upper": "968"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "977/40",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "1"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "1",
+          "upper": "1"
+        },
+        "expression": "-(704*t**16 + 2016*t**14 - 2400*t**12 - 27488*t**10 - 54712*t**8 - 38504*t**6 + 3462*t**4 + 3525*t**2 + 111)/(32*(t**2 + 1)**9)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-22",
+            "-63/8",
+            "75/28",
+            "859/56",
+            "977/40",
+            "4813/224",
+            "-1731/448",
+            "-3525/256",
+            "-111/32"
+          ],
+          "degrees": [
+            8,
+            0
+          ],
+          "lower": "-22",
+          "upper": "977/40"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "weighted_A3": {
+      "X_first": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "100/81",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "81",
+            "99",
+            "121"
+          ],
+          "degrees": [
+            0,
+            2
+          ],
+          "lower": "81",
+          "upper": "121"
+        },
+        "expression": "-1/(X**2*(t**2 + 1))",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-100"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "-100",
+          "upper": "-100"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      },
+      "X_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "2000/729",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "729",
+            "891",
+            "1089",
+            "1331"
+          ],
+          "degrees": [
+            0,
+            3
+          ],
+          "lower": "729",
+          "upper": "1331"
+        },
+        "expression": "2/(X**3*(t**2 + 1))",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "2000"
+          ],
+          "degrees": [
+            0,
+            0
+          ],
+          "lower": "2000",
+          "upper": "2000"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "5000/6561",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "6561",
+            "8019",
+            "9801",
+            "11979",
+            "14641"
+          ],
+          "degrees": [
+            0,
+            4
+          ],
+          "lower": "6561",
+          "upper": "14641"
+        },
+        "expression": "t**2/(2*X**4*(t**2 + 1)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "5000",
+            "0"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "0",
+          "upper": "5000"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "50/81",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "81",
+            "99",
+            "121"
+          ],
+          "degrees": [
+            0,
+            2
+          ],
+          "lower": "81",
+          "upper": "121"
+        },
+        "expression": "t**2/(2*X**2*(t**2 + 1)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "50",
+            "0"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "0",
+          "upper": "50"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "5/9",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "18",
+            "22"
+          ],
+          "degrees": [
+            0,
+            1
+          ],
+          "lower": "18",
+          "upper": "22"
+        },
+        "expression": "(2*t**2 - 1)/(4*X*(t**2 + 1)**2)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "10",
+            "-5"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "-5",
+          "upper": "10"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "weighted_A4": {
+      "X_first": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "33275/6561",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8019",
+            "17901/2",
+            "9960",
+            "22099/2",
+            "12221",
+            "7776",
+            "8802",
+            "9940",
+            "11198",
+            "12584",
+            "7290",
+            "8505",
+            "9900",
+            "11495",
+            "13310",
+            "6561",
+            "8019",
+            "9801",
+            "11979",
+            "14641"
+          ],
+          "degrees": [
+            6,
+            4
+          ],
+          "lower": "6561",
+          "upper": "14641"
+        },
+        "expression": "(11*X**2 + 8*X*t**6 + 24*X*t**4 + 24*X*t**2 + 4*t**12 + 24*t**10 + 60*t**8 + 72*t**6 + 36*t**4)/(4*X**2*(t**2 + 1)*(X + t**6 + 3*t**4 + 3*t**2)**2)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "10000",
+            "9900",
+            "10000",
+            "10100",
+            "9600",
+            "10000",
+            "10400",
+            "9000",
+            "10000",
+            "11000",
+            "22275",
+            "27225",
+            "33275"
+          ],
+          "degrees": [
+            6,
+            2
+          ],
+          "lower": "9000",
+          "upper": "33275"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      },
+      "X_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "7320500/531441",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "5084775/7",
+            "807975",
+            "6278715/7",
+            "6956505/7",
+            "23076845/21",
+            "25467475/21",
+            "9350275/7",
+            "5030100/7",
+            "801900",
+            "6252660/7",
+            "6952020/7",
+            "23145980/21",
+            "25639900/21",
+            "9450100/7",
+            "4920750/7",
+            "789750",
+            "6200550/7",
+            "6943050/7",
+            "23284250/21",
+            "25984750/21",
+            "9649750/7",
+            "9480645/14",
+            "5387310/7",
+            "1746765/2",
+            "6927615/7",
+            "15675825/14",
+            "3794560/3",
+            "19971655/14",
+            "1279395/2",
+            "739935",
+            "1709505/2",
+            "986040",
+            "2271775/2",
+            "3919795/3",
+            "3001405/2",
+            "590490",
+            "699840",
+            "828630",
+            "980100",
+            "1157970",
+            "4099480/3",
+            "1610510",
+            "531441",
+            "649539",
+            "793881",
+            "970299",
+            "1185921",
+            "1449459",
+            "1771561"
+          ],
+          "degrees": [
+            9,
+            6
+          ],
+          "lower": "531441",
+          "upper": "1771561"
+        },
+        "expression": "-(11*X**3 + 12*X**2*t**6 + 36*X**2*t**4 + 36*X**2*t**2 + 12*X*t**12 + 72*X*t**10 + 180*X*t**8 + 216*X*t**6 + 108*X*t**4 + 4*t**18 + 36*t**16 + 144*t**14 + 324*t**12 + 432*t**10 + 324*t**8 + 108*t**6)/(2*X**3*(t**2 + 1)*(X + t**6 + 3*t**4 + 3*t**2)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-2000000",
+            "-13950000/7",
+            "-41950000/21",
+            "-42050000/21",
+            "-14050000/7",
+            "-13800000/7",
+            "-41800000/21",
+            "-42200000/21",
+            "-14200000/7",
+            "-13500000/7",
+            "-41500000/21",
+            "-42500000/21",
+            "-14500000/7",
+            "-13005000/7",
+            "-13665000/7",
+            "-42995000/21",
+            "-15005000/7",
+            "-1755000",
+            "-1915000",
+            "-6245000/3",
+            "-2255000",
+            "-1620000",
+            "-1860000",
+            "-6380000/3",
+            "-2420000",
+            "-4009500",
+            "-4900500",
+            "-5989500",
+            "-7320500"
+          ],
+          "degrees": [
+            9,
+            3
+          ],
+          "lower": "-7320500",
+          "upper": "-1620000"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "2678214075625/132497807238",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "13122000000",
+            "14288400000",
+            "15541200000",
+            "16885200000",
+            "384832400000/21",
+            "417202000000/21",
+            "150602800000/7",
+            "69823600000/3",
+            "75455600000/3",
+            "27152400000",
+            "29282000000",
+            "13122000000",
+            "14288400000",
+            "15541200000",
+            "16885200000",
+            "384832400000/21",
+            "417202000000/21",
+            "150602800000/7",
+            "69823600000/3",
+            "75455600000/3",
+            "27152400000",
+            "29282000000",
+            "13122000000",
+            "14288400000",
+            "15541200000",
+            "16885200000",
+            "384832400000/21",
+            "417202000000/21",
+            "150602800000/7",
+            "69823600000/3",
+            "75455600000/3",
+            "27152400000",
+            "29282000000",
+            "222909975000/17",
+            "242757000000/17",
+            "264078225000/17",
+            "286956000000/17",
+            "2180327325000/119",
+            "178795000000/9",
+            "7681632025000/357",
+            "1187318000000/51",
+            "3849853975000/153",
+            "461857000000/17",
+            "498160025000/17",
+            "222417900000/17",
+            "242319600000/17",
+            "263711700000/17",
+            "286678800000/17",
+            "2179158500000/119",
+            "1251442000000/63",
+            "1097757100000/51",
+            "1188268400000/51",
+            "3854709100000/153",
+            "462655600000/17",
+            "499258100000/17",
+            "221433750000/17",
+            "241444800000/17",
+            "262978650000/17",
+            "286124400000/17",
+            "2176820850000/119",
+            "1251196000000/63",
+            "7689635050000/357",
+            "1190169200000/51",
+            "3864419350000/153",
+            "464252800000/17",
+            "501454250000/17",
+            "1176551325000/91",
+            "21838911795000/1547",
+            "23819942565000/1547",
+            "25953258735000/1547",
+            "197736084435000/10829",
+            "214996026325000/10829",
+            "700565498305000/32487",
+            "108593712205000/4641",
+            "9054758515000/357",
+            "42489439795000/1547",
+            "45965785525000/1547",
+            "2825494650000/221",
+            "3091510395000/221",
+            "3379080240000/221",
+            "217035855000/13",
+            "4024568430000/221",
+            "92095361975000/4641",
+            "100253767780000/4641",
+            "15575186605000/663",
+            "1301644190000/51",
+            "6121994395000/221",
+            "6638229400000/221",
+            "2781207900000/221",
+            "3052045980000/221",
+            "3345920460000/221",
+            "3664451340000/221",
+            "28065407940000/1547",
+            "4382391900000/221",
+            "100495068220000/4641",
+            "15661754020000/663",
+            "1313026660000/51",
+            "6195245980000/221",
+            "6739252300000/221",
+            "29950951878000/2431",
+            "2999878156800/221",
+            "36321625141200/2431",
+            "3630996493200/221",
+            "307153403859600/17017",
+            "30647038140000/1547",
+            "369654471524400/17017",
+            "15777284752400/663",
+            "17267576220400/663",
+            "6293687611200/221",
+            "528878174000/17",
+            "29138910030000/2431",
+            "2933672418000/221",
+            "35705456262000/2431",
+            "3588155982000/221",
+            "43590579678000/2431",
+            "30607386150000/1547",
+            "371148230394000/17017",
+            "15926028674000/663",
+            "17524244254000/663",
+            "6421750962000/221",
+            "7053328370000/221",
+            "2558888415000/221",
+            "2852420994000/221",
+            "3176799021000/221",
+            "3534909336000/221",
+            "3929868819000/221",
+            "30555271650000/1547",
+            "33908280807000/1547",
+            "16112306012000/663",
+            "17848235317000/663",
+            "6584464986000/221",
+            "7280749685000/221",
+            "17165677160250/1547",
+            "19288748525850/1547",
+            "3093685694550/221",
+            "24292306510650/1547",
+            "190582545698550/10829",
+            "16416310992750/833",
+            "238765765094550/10829",
+            "38127871882650/1547",
+            "54748132014950/1989",
+            "6787679470550/221",
+            "52969384740250/1547",
+            "1254333620250/119",
+            "203302754550/17",
+            "1613283305850/119",
+            "1827330244650/119",
+            "14476202270550/833",
+            "16369054305750/833",
+            "18493465562550/833",
+            "2982203588650/119",
+            "30270239748650/1071",
+            "3789879217850/119",
+            "4266683880250/119",
+            "168599657250/17",
+            "193471096050/17",
+            "221838235650/17",
+            "254162970450/17",
+            "2036744023950/119",
+            "2329740690750/119",
+            "2662677255150/119",
+            "434376308850/17",
+            "4460504366450/153",
+            "564991065650/17",
+            "643519533250/17",
+            "314025829695/34",
+            "182556360792/17",
+            "424212326577/34",
+            "246262220811/17",
+            "571417910019/34",
+            "19483897950",
+            "767403477621/34",
+            "444144237009/17",
+            "1027397958983/34",
+            "593664263588/17",
+            "1371019915705/34",
+            "144636982560/17",
+            "170694597672/17",
+            "201332525616/17",
+            "237331157976/17",
+            "279598537152/17",
+            "329190107400/17",
+            "387331285968/17",
+            "455443209144/17",
+            "1605516130592/51",
+            "628422290408/17",
+            "737394550640/17",
+            "7748409780",
+            "9298091736",
+            "11153883708",
+            "13375307088",
+            "16033220676",
+            "19211920200",
+            "23011611084",
+            "27551316672",
+            "32972293332",
+            "39442034104",
+            "47158953820",
+            "6973568802",
+            "8523250758",
+            "10417306482",
+            "12732263478",
+            "15561655362",
+            "19019800998",
+            "23246423442",
+            "28412295318",
+            "34726138722",
+            "42443058438",
+            "51874849202"
+          ],
+          "degrees": [
+            18,
+            10
+          ],
+          "lower": "6973568802",
+          "upper": "51874849202"
+        },
+        "expression": "t**2*(11*X**3 + 61*X**2*t**6 + 183*X**2*t**4 + 183*X**2*t**2 + 42*X**2 + 12*X*t**12 + 72*X*t**10 + 180*X*t**8 + 216*X*t**6 + 108*X*t**4 + 4*t**18 + 36*t**16 + 144*t**14 + 324*t**12 + 432*t**10 + 324*t**8 + 108*t**6)**2/(32*X**4*(t**2 + 1)**3*(X + t**6 + 3*t**4 + 3*t**2)**6)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "10000000000",
+            "10000000000",
+            "10000000000",
+            "10000000000",
+            "10000000000",
+            "10000000000",
+            "10000000000",
+            "180000000000/19",
+            "180000000000/19",
+            "180000000000/19",
+            "180000000000/19",
+            "180000000000/19",
+            "180000000000/19",
+            "180000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "170000000000/19",
+            "2718000000000/323",
+            "8156000000000/969",
+            "8158000000000/969",
+            "160000000000/19",
+            "8162000000000/969",
+            "8164000000000/969",
+            "2722000000000/323",
+            "2542500000000/323",
+            "2545000000000/323",
+            "2547500000000/323",
+            "150000000000/19",
+            "2552500000000/323",
+            "2555000000000/323",
+            "2557500000000/323",
+            "2362500000000/323",
+            "7105000000000/969",
+            "7122500000000/969",
+            "140000000000/19",
+            "7157500000000/969",
+            "7175000000000/969",
+            "2397500000000/323",
+            "15259162500000/2261",
+            "15336137500000/2261",
+            "138718802500000/20349",
+            "46471052500000/6783",
+            "46702767500000/6783",
+            "140804237500000/20349",
+            "47166987500000/6783",
+            "26037450000000/4199",
+            "26278650000000/4199",
+            "79562710000000/12597",
+            "26764210000000/4199",
+            "27008570000000/4199",
+            "81761950000000/12597",
+            "27500450000000/4199",
+            "24042150000000/4199",
+            "24426050000000/4199",
+            "223324310000000/37791",
+            "75616310000000/12597",
+            "4517810000000/741",
+            "13764850000000/2223",
+            "79210450000000/12597",
+            "250048215000000/46189",
+            "1227600000000/221",
+            "263206117000000/46189",
+            "24541960000000/4199",
+            "276834923000000/46189",
+            "1984800000000/323",
+            "290936185000000/46189",
+            "248691060000000/46189",
+            "95175000000/17",
+            "268765578000000/46189",
+            "1493145000000/247",
+            "289949832000000/46189",
+            "1609425000000/247",
+            "24019830000000/3553",
+            "1423980000000/247",
+            "25558200000000/4199",
+            "26961748000000/4199",
+            "28419080000000/4199",
+            "29930972000000/4199",
+            "1657800000000/221",
+            "33121540000000/4199",
+            "28008274921875/4199",
+            "30023748984375/4199",
+            "32145352921875/4199",
+            "34376025609375/4199",
+            "330468552546875/37791",
+            "352587990859375/37791",
+            "125256531015625/12597",
+            "18673904531250/2261",
+            "20321393906250/2261",
+            "22083626531250/2261",
+            "23966013656250/2261",
+            "4583664593750/399",
+            "84340681718750/6783",
+            "30390207031250/2261",
+            "209758359375/19",
+            "3946482421875/323",
+            "4361756109375/323",
+            "4814185546875/323",
+            "47757184234375/2907",
+            "52568591796875/2907",
+            "19262377578125/969",
+            "313540621875/19",
+            "6008584556250/323",
+            "6763991765625/323",
+            "7603653712500/323",
+            "25605817278125/969",
+            "86103127618750/2907",
+            "32122539659375/969",
+            "8876540925000/323",
+            "10158897487500/323",
+            "11609507250000/323",
+            "13247214862500/323",
+            "15092406175000/323",
+            "51501158912500/969",
+            "19494757700000/323",
+            "865477912500/19",
+            "52621650000",
+            "1153414687500/19",
+            "1328730975000/19",
+            "4585353987500/57",
+            "15799768600000/171",
+            "6039595512500/57",
+            "1104548450625/19",
+            "1283792236875/19",
+            "1490535725625/19",
+            "1728678661875/19",
+            "2002613600625/19",
+            "121962025625",
+            "2678214075625/19",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "degrees": [
+            19,
+            6
+          ],
+          "lower": "0",
+          "upper": "2678214075625/19"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "5006375/767637",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "6480000",
+            "6960000",
+            "22384000/3",
+            "7984000",
+            "8528000",
+            "27280000/3",
+            "9680000",
+            "6480000",
+            "6960000",
+            "22384000/3",
+            "7984000",
+            "8528000",
+            "27280000/3",
+            "9680000",
+            "6480000",
+            "6960000",
+            "22384000/3",
+            "7984000",
+            "8528000",
+            "27280000/3",
+            "9680000",
+            "71150400/11",
+            "76464000/11",
+            "7456320",
+            "87817600/11",
+            "93858880/11",
+            "9104000",
+            "9697600",
+            "70761600/11",
+            "76176000/11",
+            "7441280",
+            "87798400/11",
+            "94011520/11",
+            "9136000",
+            "9750400",
+            "69984000/11",
+            "75600000/11",
+            "7411200",
+            "87760000/11",
+            "94316800/11",
+            "9200000",
+            "9856000",
+            "480848400/77",
+            "522493200/77",
+            "566801040/77",
+            "613864080/77",
+            "25861360/3",
+            "195443600/21",
+            "70228400/7",
+            "66776400/11",
+            "73213200/11",
+            "80143440/11",
+            "87592080/11",
+            "286753520/33",
+            "28403600/3",
+            "10300400",
+            "5832000",
+            "71236800/11",
+            "78982080/11",
+            "87433920/11",
+            "289920320/33",
+            "29086400/3",
+            "10683200",
+            "60781104/11",
+            "68654304/11",
+            "77429520/11",
+            "87191424/11",
+            "8911824",
+            "30011168/3",
+            "11211376",
+            "56687040/11",
+            "5948640",
+            "75427200/11",
+            "7892640",
+            "9071040",
+            "31227680/3",
+            "11925760",
+            "4723920",
+            "5598720",
+            "6629040",
+            "7840800",
+            "9263760",
+            "32795840/3",
+            "12884080",
+            "4251528",
+            "5196312",
+            "6351048",
+            "7762392",
+            "9487368",
+            "11595672",
+            "14172488"
+          ],
+          "degrees": [
+            12,
+            6
+          ],
+          "lower": "4251528",
+          "upper": "14172488"
+        },
+        "expression": "t**2*(11*X**2 + 36*X*t**6 + 108*X*t**4 + 108*X*t**2 + 21*X + 4*t**12 + 24*t**10 + 60*t**8 + 72*t**6 + 36*t**4)**2/(32*X**2*(t**2 + 1)**3*(X + t**6 + 3*t**4 + 3*t**2)**4)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "4000000",
+            "4000000",
+            "4000000",
+            "4000000",
+            "4000000",
+            "48000000/13",
+            "48000000/13",
+            "48000000/13",
+            "48000000/13",
+            "48000000/13",
+            "44000000/13",
+            "44000000/13",
+            "44000000/13",
+            "44000000/13",
+            "44000000/13",
+            "464400000/143",
+            "466200000/143",
+            "36000000/11",
+            "469800000/143",
+            "471600000/143",
+            "483840000/143",
+            "490320000/143",
+            "496800000/143",
+            "503280000/143",
+            "509760000/143",
+            "547200000/143",
+            "43200000/11",
+            "576000000/143",
+            "590400000/143",
+            "604800000/143",
+            "661905000/143",
+            "688975000/143",
+            "6446135000/1287",
+            "202825000/39",
+            "210365000/39",
+            "850230000/143",
+            "81750000/13",
+            "2848270000/429",
+            "1000750000/143",
+            "1053230000/143",
+            "1149300000/143",
+            "1237100000/143",
+            "919900000/99",
+            "4272700000/429",
+            "4570700000/429",
+            "1585040400/143",
+            "1735759800/143",
+            "1896000000/143",
+            "2065840200/143",
+            "204123600/13",
+            "162081000/11",
+            "2343748500/143",
+            "2599950000/143",
+            "2876251500/143",
+            "288477000/13",
+            "225261000/13",
+            "19561500",
+            "286380000/13",
+            "321700500/13",
+            "360459000/13",
+            "193349025/13",
+            "221715225/13",
+            "253875525/13",
+            "290278725/13",
+            "331422025/13",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "degrees": [
+            13,
+            4
+          ],
+          "lower": "0",
+          "upper": "360459000/13"
+        },
+        "order": 2,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "200255/52488",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "72000",
+            "76000",
+            "80000",
+            "84000",
+            "88000",
+            "72000",
+            "76000",
+            "80000",
+            "84000",
+            "88000",
+            "72000",
+            "76000",
+            "80000",
+            "84000",
+            "88000",
+            "502200/7",
+            "531000/7",
+            "1679800/21",
+            "589000/7",
+            "618200/7",
+            "496800/7",
+            "528000/7",
+            "1679200/21",
+            "592000/7",
+            "624800/7",
+            "486000/7",
+            "522000/7",
+            "1678000/21",
+            "598000/7",
+            "638000/7",
+            "468180/7",
+            "512010/7",
+            "79800",
+            "607990/7",
+            "660220/7",
+            "63180",
+            "71010",
+            "79600",
+            "88990",
+            "99220",
+            "58320",
+            "68040",
+            "79200",
+            "91960",
+            "106480",
+            "52488",
+            "64152",
+            "78408",
+            "95832",
+            "117128"
+          ],
+          "degrees": [
+            9,
+            4
+          ],
+          "lower": "52488",
+          "upper": "117128"
+        },
+        "expression": "-(22*X**3*t**2 - 11*X**3 + 10*X**2*t**8 - 17*X**2*t**6 - 111*X**2*t**4 - 183*X**2*t**2 - 21*X**2 + 248*X*t**14 + 1448*X*t**12 + 3480*X*t**10 + 4326*X*t**8 + 2877*X*t**6 + 963*X*t**4 + 189*X*t**2 + 8*t**20 + 68*t**18 + 252*t**16 + 504*t**14 + 540*t**12 + 216*t**10 - 108*t**8 - 108*t**6)/(16*X*(t**2 + 1)**2*(X + t**6 + 3*t**4 + 3*t**2)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-40000",
+            "-40000",
+            "-40000",
+            "-40000",
+            "-34000",
+            "-34000",
+            "-34000",
+            "-34000",
+            "-28000",
+            "-28000",
+            "-28000",
+            "-28000",
+            "-30300",
+            "-278900/9",
+            "-285100/9",
+            "-97100/3",
+            "-307200/7",
+            "-2909600/63",
+            "-3054400/63",
+            "-1066400/21",
+            "-465000/7",
+            "-4475000/63",
+            "-4765000/63",
+            "-1685000/21",
+            "-632250/7",
+            "-291650/3",
+            "-6559250/63",
+            "-333050/3",
+            "-411255/4",
+            "-1328645/12",
+            "-4270235/36",
+            "-1518065/12",
+            "-86310",
+            "-275890/3",
+            "-877070/9",
+            "-308330/3",
+            "-18954",
+            "-16056",
+            "-12334",
+            "-7876",
+            "125145",
+            "146655",
+            "171545",
+            "200255"
+          ],
+          "degrees": [
+            10,
+            3
+          ],
+          "lower": "-1518065/12",
+          "upper": "200255"
+        },
+        "order": 1,
+        "u": "1/(1+t^2)"
+      }
+    },
+    "weighted_A5": {
+      "X_first": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "22000/6561",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8100",
+            "9000",
+            "29900/3",
+            "11000",
+            "12100",
+            "8019",
+            "17901/2",
+            "9960",
+            "22099/2",
+            "12221",
+            "7776",
+            "8802",
+            "9940",
+            "11198",
+            "12584",
+            "7290",
+            "8505",
+            "9900",
+            "11495",
+            "13310",
+            "6561",
+            "8019",
+            "9801",
+            "11979",
+            "14641"
+          ],
+          "degrees": [
+            6,
+            4
+          ],
+          "lower": "6561",
+          "upper": "14641"
+        },
+        "expression": "-(2*X + t**6 + 3*t**4 + 3*t**2)/(X**2*(X + t**6 + 3*t**4 + 3*t**2)**2)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "-10000",
+            "-10000",
+            "-10000",
+            "-10000",
+            "-10000",
+            "-10000",
+            "-18000",
+            "-22000"
+          ],
+          "degrees": [
+            3,
+            1
+          ],
+          "lower": "-22000",
+          "upper": "-10000"
+        },
+        "order": 3,
+        "u": "1/(1+t^2)"
+      },
+      "X_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "2420000/177147",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "729000",
+            "810000",
+            "898200",
+            "994000",
+            "1097800",
+            "1210000",
+            "1331000",
+            "5084775/7",
+            "807975",
+            "6278715/7",
+            "6956505/7",
+            "23076845/21",
+            "25467475/21",
+            "9350275/7",
+            "5030100/7",
+            "801900",
+            "6252660/7",
+            "6952020/7",
+            "23145980/21",
+            "25639900/21",
+            "9450100/7",
+            "4920750/7",
+            "789750",
+            "6200550/7",
+            "6943050/7",
+            "23284250/21",
+            "25984750/21",
+            "9649750/7",
+            "9480645/14",
+            "5387310/7",
+            "1746765/2",
+            "6927615/7",
+            "15675825/14",
+            "3794560/3",
+            "19971655/14",
+            "1279395/2",
+            "739935",
+            "1709505/2",
+            "986040",
+            "2271775/2",
+            "3919795/3",
+            "3001405/2",
+            "590490",
+            "699840",
+            "828630",
+            "980100",
+            "1157970",
+            "4099480/3",
+            "1610510",
+            "531441",
+            "649539",
+            "793881",
+            "970299",
+            "1185921",
+            "1449459",
+            "1771561"
+          ],
+          "degrees": [
+            9,
+            6
+          ],
+          "lower": "531441",
+          "upper": "1771561"
+        },
+        "expression": "2*(3*X**2 + 3*X*t**6 + 9*X*t**4 + 9*X*t**2 + t**12 + 6*t**10 + 15*t**8 + 18*t**6 + 9*t**4)/(X**3*(X + t**6 + 3*t**4 + 3*t**2)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2000000",
+            "2070000",
+            "2100000",
+            "2130000",
+            "2280000",
+            "2400000",
+            "2520000",
+            "2700000",
+            "3000000",
+            "3300000",
+            "4860000",
+            "5940000",
+            "7260000"
+          ],
+          "degrees": [
+            6,
+            2
+          ],
+          "lower": "2000000",
+          "upper": "7260000"
+        },
+        "order": 3,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_X_mixed_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "6050000000/301327047",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "6561000000",
+            "7144200000",
+            "7770600000",
+            "8442600000",
+            "192416200000/21",
+            "208601000000/21",
+            "75301400000/7",
+            "34911800000/3",
+            "37727800000/3",
+            "13576200000",
+            "14641000000",
+            "6561000000",
+            "7144200000",
+            "7770600000",
+            "8442600000",
+            "192416200000/21",
+            "208601000000/21",
+            "75301400000/7",
+            "34911800000/3",
+            "37727800000/3",
+            "13576200000",
+            "14641000000",
+            "6561000000",
+            "7144200000",
+            "7770600000",
+            "8442600000",
+            "192416200000/21",
+            "208601000000/21",
+            "75301400000/7",
+            "34911800000/3",
+            "37727800000/3",
+            "13576200000",
+            "14641000000",
+            "111454987500/17",
+            "121378500000/17",
+            "132039112500/17",
+            "143478000000/17",
+            "1090163662500/119",
+            "89397500000/9",
+            "3840816012500/357",
+            "593659000000/51",
+            "1924926987500/153",
+            "230928500000/17",
+            "249080012500/17",
+            "111208950000/17",
+            "121159800000/17",
+            "131855850000/17",
+            "143339400000/17",
+            "1089579250000/119",
+            "625721000000/63",
+            "548878550000/51",
+            "594134200000/51",
+            "1927354550000/153",
+            "231327800000/17",
+            "249629050000/17",
+            "110716875000/17",
+            "120722400000/17",
+            "131489325000/17",
+            "143062200000/17",
+            "1088410425000/119",
+            "625598000000/63",
+            "3844817525000/357",
+            "595084600000/51",
+            "1932209675000/153",
+            "232126400000/17",
+            "250727125000/17",
+            "588275662500/91",
+            "10919455897500/1547",
+            "11909971282500/1547",
+            "12976629367500/1547",
+            "98868042217500/10829",
+            "107498013162500/10829",
+            "350282749152500/32487",
+            "54296856102500/4641",
+            "4527379257500/357",
+            "21244719897500/1547",
+            "22982892762500/1547",
+            "1412747325000/221",
+            "1545755197500/221",
+            "1689540120000/221",
+            "108517927500/13",
+            "2012284215000/221",
+            "46047680987500/4641",
+            "50126883890000/4641",
+            "7787593302500/663",
+            "650822095000/51",
+            "3060997197500/221",
+            "3319114700000/221",
+            "1390603950000/221",
+            "1526022990000/221",
+            "1672960230000/221",
+            "1832225670000/221",
+            "14032703970000/1547",
+            "2191195950000/221",
+            "50247534110000/4641",
+            "7830877010000/663",
+            "656513330000/51",
+            "3097622990000/221",
+            "3369626150000/221",
+            "14975475939000/2431",
+            "1499939078400/221",
+            "18160812570600/2431",
+            "1815498246600/221",
+            "153576701929800/17017",
+            "15323519070000/1547",
+            "184827235762200/17017",
+            "7888642376200/663",
+            "8633788110200/663",
+            "3146843805600/221",
+            "264439087000/17",
+            "14569455015000/2431",
+            "1466836209000/221",
+            "17852728131000/2431",
+            "1794077991000/221",
+            "21795289839000/2431",
+            "15303693075000/1547",
+            "185574115197000/17017",
+            "7963014337000/663",
+            "8762122127000/663",
+            "3210875481000/221",
+            "3526664185000/221",
+            "1279444207500/221",
+            "1426210497000/221",
+            "1588399510500/221",
+            "1767454668000/221",
+            "1964934409500/221",
+            "15277635825000/1547",
+            "16954140403500/1547",
+            "8056153006000/663",
+            "8924117658500/663",
+            "3292232493000/221",
+            "3640374842500/221",
+            "8582838580125/1547",
+            "9644374262925/1547",
+            "1546842847275/221",
+            "12146153255325/1547",
+            "95291272849275/10829",
+            "8208155496375/833",
+            "119382882547275/10829",
+            "19063935941325/1547",
+            "27374066007475/1989",
+            "3393839735275/221",
+            "26484692370125/1547",
+            "627166810125/119",
+            "101651377275/17",
+            "806641652925/119",
+            "913665122325/119",
+            "7238101135275/833",
+            "8184527152875/833",
+            "9246732781275/833",
+            "1491101794325/119",
+            "15135119874325/1071",
+            "1894939608925/119",
+            "2133341940125/119",
+            "84299828625/17",
+            "96735548025/17",
+            "110919117825/17",
+            "127081485225/17",
+            "1018372011975/119",
+            "1164870345375/119",
+            "1331338627575/119",
+            "217188154425/17",
+            "2230252183225/153",
+            "282495532825/17",
+            "321759766625/17",
+            "314025829695/68",
+            "91278180396/17",
+            "424212326577/68",
+            "246262220811/34",
+            "571417910019/68",
+            "9741948975",
+            "767403477621/68",
+            "444144237009/34",
+            "1027397958983/68",
+            "296832131794/17",
+            "1371019915705/68",
+            "72318491280/17",
+            "85347298836/17",
+            "100666262808/17",
+            "118665578988/17",
+            "139799268576/17",
+            "164595053700/17",
+            "193665642984/17",
+            "227721604572/17",
+            "802758065296/51",
+            "314211145204/17",
+            "368697275320/17",
+            "3874204890",
+            "4649045868",
+            "5576941854",
+            "6687653544",
+            "8016610338",
+            "9605960100",
+            "11505805542",
+            "13775658336",
+            "16486146666",
+            "19721017052",
+            "23579476910",
+            "3486784401",
+            "4261625379",
+            "5208653241",
+            "6366131739",
+            "7780827681",
+            "9509900499",
+            "11623211721",
+            "14206147659",
+            "17363069361",
+            "21221529219",
+            "25937424601"
+          ],
+          "degrees": [
+            18,
+            10
+          ],
+          "lower": "3486784401",
+          "upper": "25937424601"
+        },
+        "expression": "9*t**2*(t**2 + 1)**5*(3*X + t**6 + 3*t**4 + 3*t**2)**2/(2*X**4*(X + t**6 + 3*t**4 + 3*t**2)**6)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "45000000000",
+            "45000000000",
+            "45000000000",
+            "270000000000/7",
+            "270000000000/7",
+            "270000000000/7",
+            "225000000000/7",
+            "225000000000/7",
+            "225000000000/7",
+            "210600000000/7",
+            "216000000000/7",
+            "221400000000/7",
+            "32400000000",
+            "243000000000/7",
+            "259200000000/7",
+            "243000000000/7",
+            "270000000000/7",
+            "297000000000/7",
+            "328050000000/7",
+            "400950000000/7",
+            "490050000000/7",
+            "0",
+            "0",
+            "0"
+          ],
+          "degrees": [
+            7,
+            2
+          ],
+          "lower": "0",
+          "upper": "490050000000/7"
+        },
+        "order": 6,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_first_squared": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "500000/59049",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "810000",
+            "870000",
+            "2798000/3",
+            "998000",
+            "1066000",
+            "3410000/3",
+            "1210000",
+            "810000",
+            "870000",
+            "2798000/3",
+            "998000",
+            "1066000",
+            "3410000/3",
+            "1210000",
+            "810000",
+            "870000",
+            "2798000/3",
+            "998000",
+            "1066000",
+            "3410000/3",
+            "1210000",
+            "8893800/11",
+            "9558000/11",
+            "932040",
+            "10977200/11",
+            "11732360/11",
+            "1138000",
+            "1212200",
+            "8845200/11",
+            "9522000/11",
+            "930160",
+            "10974800/11",
+            "11751440/11",
+            "1142000",
+            "1218800",
+            "8748000/11",
+            "9450000/11",
+            "926400",
+            "10970000/11",
+            "11789600/11",
+            "1150000",
+            "1232000",
+            "60106050/77",
+            "65311650/77",
+            "70850130/77",
+            "76733010/77",
+            "3232670/3",
+            "24430450/21",
+            "8778550/7",
+            "8347050/11",
+            "9151650/11",
+            "10017930/11",
+            "10949010/11",
+            "35844190/33",
+            "3550450/3",
+            "1287550",
+            "729000",
+            "8904600/11",
+            "9872760/11",
+            "10929240/11",
+            "36240040/33",
+            "3635800/3",
+            "1335400",
+            "7597638/11",
+            "8581788/11",
+            "9678690/11",
+            "10898928/11",
+            "1113978",
+            "3751396/3",
+            "1401422",
+            "7085880/11",
+            "743580",
+            "9428400/11",
+            "986580",
+            "1133880",
+            "3903460/3",
+            "1490720",
+            "590490",
+            "699840",
+            "828630",
+            "980100",
+            "1157970",
+            "4099480/3",
+            "1610510",
+            "531441",
+            "649539",
+            "793881",
+            "970299",
+            "1185921",
+            "1449459",
+            "1771561"
+          ],
+          "degrees": [
+            12,
+            6
+          ],
+          "lower": "531441",
+          "upper": "1771561"
+        },
+        "expression": "9*t**2*(t**2 + 1)**5/(2*X**2*(X + t**6 + 3*t**4 + 3*t**2)**4)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "4500000",
+            "0"
+          ],
+          "degrees": [
+            1,
+            0
+          ],
+          "lower": "0",
+          "upper": "4500000"
+        },
+        "order": 6,
+        "u": "1/(1+t^2)"
+      },
+      "canonical_phi_second": {
+        "X_interval": [
+          "9/10",
+          "11/10"
+        ],
+        "bound": "5000/729",
+        "denominator_Bernstein": {
+          "coefficients": [
+            "9000",
+            "9500",
+            "10000",
+            "10500",
+            "11000",
+            "9000",
+            "9500",
+            "10000",
+            "10500",
+            "11000",
+            "9000",
+            "9500",
+            "10000",
+            "10500",
+            "11000",
+            "62775/7",
+            "66375/7",
+            "209975/21",
+            "73625/7",
+            "77275/7",
+            "62100/7",
+            "66000/7",
+            "209900/21",
+            "74000/7",
+            "78100/7",
+            "60750/7",
+            "65250/7",
+            "209750/21",
+            "74750/7",
+            "79750/7",
+            "117045/14",
+            "256005/28",
+            "9975",
+            "303995/28",
+            "165055/14",
+            "15795/2",
+            "35505/4",
+            "9950",
+            "44495/4",
+            "24805/2",
+            "7290",
+            "8505",
+            "9900",
+            "11495",
+            "13310",
+            "6561",
+            "8019",
+            "9801",
+            "11979",
+            "14641"
+          ],
+          "degrees": [
+            9,
+            4
+          ],
+          "lower": "6561",
+          "upper": "14641"
+        },
+        "expression": "3*(t**2 + 1)**2*(-6*X*t**2 - X + 6*t**8 + 17*t**6 + 15*t**4 + 9*t**2)/(4*X*(X + t**6 + 3*t**4 + 3*t**2)**3)",
+        "numerator_Bernstein": {
+          "coefficients": [
+            "45000",
+            "45000",
+            "31875",
+            "31875",
+            "18750",
+            "18750",
+            "6750",
+            "4500",
+            "-6750",
+            "-8250"
+          ],
+          "degrees": [
+            4,
+            1
+          ],
+          "lower": "-8250",
+          "upper": "45000"
+        },
+        "order": 3,
+        "u": "1/(1+t^2)"
+      }
+    }
+  },
+  "time_domain_certificates": {
+    "F0": {
+      "coefficients_ascending": [
+        "200",
+        "2400",
+        "13200",
+        "44000",
+        "99000",
+        "158400",
+        "184800",
+        "158400",
+        "99000",
+        "44000",
+        "13200",
+        "2400",
+        "200"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        12,
+        11
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "FX": {
+      "coefficients_ascending": [
+        "200",
+        "2400",
+        "13200",
+        "44000",
+        "99000",
+        "158400",
+        "184800",
+        "158400",
+        "99000",
+        "44000",
+        "13200",
+        "2400",
+        "200"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        12,
+        11
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "FXX": {
+      "coefficients_ascending": [
+        "4",
+        "32",
+        "112",
+        "224",
+        "280",
+        "224",
+        "112",
+        "32",
+        "4"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        8,
+        7
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "H": {
+      "coefficients_ascending": [
+        "1",
+        "1"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        1,
+        0
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "Lambda": {
+      "coefficients_ascending": [
+        "2",
+        "6",
+        "6",
+        "2"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        3,
+        2
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "Theta": {
+      "coefficients_ascending": [
+        "1",
+        "4",
+        "6",
+        "4",
+        "1"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        4,
+        3
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    },
+    "delta": {
+      "coefficients_ascending": [
+        "2",
+        "6",
+        "6",
+        "2"
+      ],
+      "lower": "0",
+      "roots": 0,
+      "signs_lower": [
+        1,
+        1
+      ],
+      "signs_upper": [
+        1,
+        1
+      ],
+      "sturm_degrees": [
+        3,
+        2
+      ],
+      "upper": "+infinity",
+      "variations_lower": 0,
+      "variations_upper": 0
+    }
+  }
+}

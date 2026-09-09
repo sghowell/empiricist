@@ -24,8 +24,9 @@ from empiricist.packs import (  # noqa: E402
     certify_pack_verifier,
     load_pack,
 )
+from empiricist.packs.cosmology import verifiers as cv  # noqa: E402
 from empiricist.packs.cosmology.replay import ReplayVerifier  # noqa: E402
-from empiricist.packs.cosmology.vendored import vendored_package  # noqa: E402
+from empiricist.packs.cosmology.vendored import CHECKERS, vendored_package  # noqa: E402
 
 # --- Task 1: the generic replay verifier over a fake checker -------------------------
 
@@ -142,9 +143,108 @@ def test_vendored_package_is_served_ahead_of_sys_path(tmp_path):
     assert Path(checker.__file__).name == "verify.py"
 
 
-# --- the manifest ----------------------------------------------------------------------
+# --- Task 2: the vendored families ---------------------------------------------------
+
+P8A = ["cosmo_p8a", "cosmo_p8a_radiation", "cosmo_p8a_reference", "cosmo_p8a_asymptotics",
+       "cosmo_p8a_backreaction", "cosmo_p8a_response", "cosmo_p8a_remainder"]
+P8_BASE = ["cosmo_p8_s0", "cosmo_p8_s1"]
+P8_CHAIN = ["cosmo_p8_chain"]   # replays the whole P8(b) chain: ~1 minute, marked slow
+
+
+@pytest.fixture(scope="module")
+def built(tmp_path_factory):
+    """name -> verifier, each constructed once: a replay is cached per instance, so every
+    golden case and the certification below cost one replay per verifier."""
+    cache: dict[str, ReplayVerifier] = {}
+
+    def get(name: str) -> ReplayVerifier:
+        if name not in cache:
+            cache[name] = cv.VERIFIERS[name](tmp_path_factory.mktemp("repo"))
+        return cache[name]
+
+    return get
+
+
+def _instance_factory(v):
+    return lambda repo: v
+
+
+def _certify_with_instances(names, built, repo, monkeypatch):
+    real = load_pack("cosmology")
+    manifest = PackManifest(
+        name="cosmology", version=real.version, problems=real.problems,
+        verifiers={n: _instance_factory(built(n)) for n in names},
+    )
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"cosmology": manifest})
+    out = {}
+    for n in names:
+        stamp, problems = certify_pack_verifier(repo, n)
+        assert problems == [], (n, problems)
+        assert stamp is not None and stamp.pack == "cosmology" and stamp.name == n
+        assert stamp.binary_hash == built(n).binary_hash
+        out[n] = stamp
+    return out
+
 
 def test_manifest_loads_as_the_cosmology_pack():
     m = load_pack("cosmology")
     assert m is not None and m.name == "cosmology"
-    assert m.problems.get("P8")
+    assert m.problems == {"P8": "problems-v1.1"}
+    assert set(m.verifiers) == set(P8A + P8_BASE + P8_CHAIN)
+    assert all(n.startswith("cosmo_") for n in m.verifiers)
+
+
+def test_vendored_checkers_are_what_runs(built):
+    built("cosmo_p8a")
+    import p8a
+    import p8a.verify
+
+    assert Path(p8a.__file__).resolve().is_relative_to(CHECKERS.resolve())
+    assert p8a.verify.REPORT.is_file() and p8a.verify.REPORT.is_relative_to(CHECKERS)
+
+
+@pytest.mark.parametrize("name", P8A + P8_BASE)
+def test_every_golden_yields_exactly_its_verdict(name, built):
+    v = built(name)
+    suite = v.golden_suite()
+    assert {c.expected for c in suite} == {Verdict.PASS, Verdict.FAIL}
+    for c in suite:
+        r = v.verify_bytes(c.payload)
+        assert r.verdict is c.expected, (c.label, r.details)
+        if c.expected is Verdict.FAIL:
+            assert "differs" in r.details["detail"]
+
+
+def test_fast_verifiers_certify_and_have_distinct_identities(built, tmp_path, monkeypatch):
+    stamps = _certify_with_instances(P8A + P8_BASE, built, tmp_path, monkeypatch)
+    hashes = {s.binary_hash for s in stamps.values()}
+    assert len(hashes) == len(stamps)
+    # a chain verifier's identity covers its predecessors' code: p8a_radiation hashes p8a
+    assert len({s.golden_suite_hash for s in stamps.values()}) == len(stamps)
+    reg = json.loads((tmp_path / "claims" / "verifiers.json").read_text())
+    assert set(reg["stamps"]) == set(P8A + P8_BASE)
+
+
+def test_run_reads_a_committed_certificate_from_the_repository(tmp_path):
+    v = cv.VERIFIERS["cosmo_p8a"](tmp_path)   # a verifier is bound to one repository
+    rel = "problems/P8/a/certificates/focusing.json"
+    (tmp_path / rel).parent.mkdir(parents=True)
+    (tmp_path / rel).write_bytes((CHECKERS / rel).read_bytes())
+    assert v.run(rel).verdict is Verdict.PASS
+    (tmp_path / rel).write_bytes(v.golden_suite()[-1].payload)
+    assert v.run(rel).verdict is Verdict.FAIL
+
+
+@pytest.mark.slow
+def test_the_p8b_chain_verifier_reproduces_all_six_certificates(built, tmp_path, monkeypatch):
+    v = built("cosmo_p8_chain")
+    suite = v.golden_suite()
+    assert sum(c.expected is Verdict.PASS for c in suite) == 6
+    for c in suite:
+        r = v.verify_bytes(c.payload)
+        assert r.verdict is c.expected, (c.label, r.details)
+    # the S0 anchor is checked inside the chain but is not one of its six reports
+    s0 = (CHECKERS / "problems/P8/certificates/s0-identities.json").read_bytes()
+    r = v.verify_bytes(s0)
+    assert r.verdict is Verdict.FAIL and "none of" in r.details["detail"]
+    _certify_with_instances(P8_CHAIN, built, tmp_path, monkeypatch)

@@ -1,0 +1,132 @@
+{
+  "A25_Sigma_derived_minus_printed": "-2*(12*H(t)**2*a1(t) + 3*H(t)**2*g1(t) + 3*H(t)**2 + 4*H(t)*Derivative(a1(t), t) + 7*H(t)*Derivative(g1(t), t) + 4*a1(t)*Derivative(H(t), t) + g1(t)*Derivative(H(t), t) + Derivative(H(t), t) + 2*Derivative(g1(t), (t, 2)))*g1(t)",
+  "A25_corrected_F": "(X - 1)**2*(9*H(t)**2*g1(t)**2/8 - 21*H(t)**2*g1(t)/4 - 27*H(t)**2/8 + 27*H(t)*Theta_target(t)*g1(t)/8 + 39*H(t)*Theta_target(t)/8 + 51*H(t)*g1(t)*Derivative(g1(t), t)/8 + 27*H(t)*Derivative(g1(t), t)/8 + Sigma_target(t)/2 - 15*Theta_target(t)*Derivative(g1(t), t)/8 + 3*g1(t)**2*Derivative(H(t), t)/8 - 15*g1(t)*Derivative(H(t), t)/4 + 9*g1(t)*Derivative(Theta_target(t), t)/8 + 15*g1(t)*Derivative(g1(t), (t, 2))/8 + 7*Derivative(H(t), t)/8 - 3*Derivative(Theta_target(t), t)/8 + 3*Derivative(g1(t), t)**2/8 + 3*Derivative(g1(t), (t, 2))/8)/2 + (X - 1)*(-3*(3*H(t)**2 + 2*Derivative(H(t), t))*g1(t)/2 - 3*H(t)**2/2 + 3*H(t)*Theta_target(t)/2 + 3*H(t)*Derivative(g1(t), t)/2 - Derivative(H(t), t)) - 3*H(t)**2 - 2*Derivative(H(t), t)",
+  "claim": "P8-1",
+  "coordinate_covariant_checks": {
+    "F2_R_boundary": true,
+    "L1": true,
+    "L2": true,
+    "L3": true,
+    "L4": true,
+    "L5": true,
+    "box": true
+  },
+  "exact_residuals": {
+    "A25_dictionary": {
+      "FT": "0",
+      "GT": "0",
+      "Lambda": "0",
+      "Theta": "0",
+      "background_EN": "0",
+      "background_Ea": "0"
+    },
+    "A25_independent_Sigma": {
+      "agreement": "0",
+      "auxiliary_remainder": "0",
+      "discrepancy_formula": "0"
+    },
+    "A25_reconstruction": {
+      "Sigma_target": "0",
+      "regular_FXX": "0"
+    },
+    "ADM": {
+      "Horndeski_locus_D": "0",
+      "Horndeski_locus_E": "0",
+      "Ia_kinetic_degeneracy": "0",
+      "Ia_lapse_gradient_cancellation": "0",
+      "corrected_D_dictionary": "0"
+    },
+    "CPS16": {
+      "Horndeski_boundary": "0",
+      "gradient_numerator": "0",
+      "kinetic": "0"
+    },
+    "coupled": {
+      "full_unreduced_action": "0",
+      "gradient_matter": "0",
+      "gradient_n_v": "0",
+      "gradient_v": "0",
+      "matter_lapse_velocity": "0",
+      "matter_velocity": "0",
+      "n_v_velocity": "0",
+      "shift_constraint": "0",
+      "v_velocity": "0"
+    },
+    "gamma_Hamiltonian": {
+      "lapse_constraint": "0",
+      "regular_Hamiltonian": "0",
+      "uneliminated_Hamiltonian": "0"
+    },
+    "gamma_principal": {
+      "kinetic_00": "0",
+      "kinetic_01": "0",
+      "kinetic_10": "0",
+      "kinetic_11": "0",
+      "momentum_Hessian": "0",
+      "regular_gradient_IBP": "0"
+    },
+    "gamma_without_J_division": {
+      "determinant": "0",
+      "kinetic_00": "0",
+      "kinetic_01": "0",
+      "kinetic_10": "0",
+      "kinetic_11": "0"
+    },
+    "luminal_matter_interface": {
+      "G_00": "0",
+      "G_01": "0",
+      "G_10": "0",
+      "G_11": "0",
+      "K_00": "0",
+      "K_01": "0",
+      "K_10": "0",
+      "K_11": "0"
+    },
+    "scalar": {
+      "IBP": "0",
+      "lapse_scalar_velocity": "0",
+      "lapse_velocity_shift": "0",
+      "lapse_velocity_squared": "0",
+      "unreduced_scalar_action": "0"
+    },
+    "strong_gravity": {
+      "FS": "0",
+      "GS": "0",
+      "Lambda": "0",
+      "Theta": "0",
+      "background_lapse": "0",
+      "background_scale": "0",
+      "tensor_integrand": "0",
+      "xi": "0"
+    },
+    "tensor": {
+      "tensor_R3": "0",
+      "tensor_gradient": "0",
+      "tensor_kinetic": "0"
+    },
+    "tilted_covariant_degeneracy": {
+      "determinant": "0"
+    }
+  },
+  "schema": 1,
+  "scope": "Covariant action through linear background, principal matrices and regular gamma charts; not full nonlinear Dirac formalization",
+  "strong_gravity": {
+    "F": "X*(-3*(t**2 + 1)**2*(-4*t*(atan(t) + pi/2)/(t**2 + 1)**3 + (t**2 + 1)**(-3))**2/(4*(atan(t) + pi/2)) + 3/((t**2 + 1)**4*(4*atan(t) + 2*pi)))",
+    "F2": "-(atan(t) + pi/2)/(2*(t**2 + 1)**2)",
+    "FS": "3*(2*atan(t) + pi)/(2*(t**2 + 1)**2)",
+    "FT": "(atan(t) + pi/2)/(t**2 + 1)**2",
+    "GS": "3*(2*atan(t) + pi)/(2*(t**2 + 1)**2)",
+    "GT": "(atan(t) + pi/2)/(t**2 + 1)**2",
+    "Lambda": "(atan(t) + pi/2)/(t**2 + 1)**2",
+    "Theta": "1/(2*(t**6 + 3*t**4 + 3*t**2 + 1))",
+    "a": "t**2 + 1",
+    "tensor_integral_primitive": "(atan(t) + pi/2)**2/2",
+    "total_tensor_integral": "pi**2/2",
+    "xi": "(2*atan(t) + pi)**2/2"
+  },
+  "unitary_metric_Hessian_minor": "-1024*(A1*Astar**2 - F2)**6",
+  "written_proofs": [
+    "notes/s1-derived-action.md",
+    "notes/s2-benchmarks.md"
+  ]
+}

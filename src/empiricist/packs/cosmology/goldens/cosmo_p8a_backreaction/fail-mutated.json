@@ -1,0 +1,255 @@
+{
+  "Einstein_clock_curvature_and_completion_identities": {
+    "H": "t/(-8*d*epsilon + 2*t**2)",
+    "Itt_exact": "-18*d*epsilon*(-4*d*epsilon + 7*t**2)/(-4*d*epsilon + t**2)**4",
+    "Itt_order_zero_coupling_linear_control": "-126*d/t**6",
+    "R_FK": "-12*d*epsilon/(-4*d*epsilon + t**2)**2",
+    "conformal_clock": "sqrt(2)*sqrt(t)*(-d*epsilon/(3*t**2) + 1)/sqrt(A)",
+    "correct_first_order_potential": "32*d/(A**2*eta**6)",
+    "d_definition": "hbar*kappa/(46080*pi**2)",
+    "first_order_conformal_scale": "A*eta - 8*d*epsilon/(3*A*eta**3)",
+    "first_order_relative_scale": "c_time/t - d/t**2",
+    "frozen_reference_defects": {
+      "EED": "9*z**2*(2 - z)/(4*t**2*(1 - z)**2)",
+      "density": "3*z**2*(2 - z)/(4*t**2*(1 - z)**2)",
+      "pressure": "5*z**2*(2 - z)/(4*t**2*(1 - z)**2)"
+    },
+    "incorrect_unperturbed_clock_potential_control": "48*d/(A**2*eta**6)",
+    "nonunique_all_order_completion": {
+      "first_order_SEE_fixes_all_higher_orders": false,
+      "relative_multiplier": "exp(epsilon^2*f(t))",
+      "second_order_density_change": "3*(t*Derivative(f(t), t) + f(t))/t**2",
+      "second_order_pressure_change": "-2*Derivative(f(t), (t, 2)) - 3*Derivative(f(t), t)/t + f(t)/t**2"
+    },
+    "radiation_normalization_mode": "delta_C*kappa/(12*A**2)",
+    "rescaled_minimal_mode_potential": "4*A*d*epsilon/(-4*d*epsilon + t**2)**(3/2)",
+    "residuals": {
+      "FK_I_conservation": "0",
+      "FK_I_trace": "0",
+      "FK_Ipressure_first_order": "0",
+      "FK_Itt_first_order": "0",
+      "FK_Itt_from_variation": "0",
+      "actual_conformal_derivative": "0",
+      "classical_radiation_conservation": "0",
+      "clock_derivative_to_first_order": "0",
+      "clock_inverse_to_first_order": "0",
+      "conformal_potential_to_first_order": "0",
+      "conformal_scale_to_first_order": "0",
+      "curvature_trace_equation": "0",
+      "exact_surrogate_00_equation": "0",
+      "exact_surrogate_hubble": "0",
+      "exact_surrogate_ii_equation": "0",
+      "frozen_EED_combination": "0",
+      "frozen_density_defect": "0",
+      "frozen_pressure_defect": "0",
+      "independent_linear_pressure_solution": "0",
+      "linear_density_ODE": "0",
+      "linear_density_solution": "0",
+      "loop_counterterm_no_linear_contribution": "0",
+      "nonunique_completion_no_linear_density_change": "0",
+      "nonunique_completion_no_linear_pressure_change": "0",
+      "nonunique_completion_second_density": "0",
+      "nonunique_completion_second_pressure": "0",
+      "pinned_reference_density_normalization": "0",
+      "pinned_reference_pressure_normalization": "0",
+      "radiation_normalization_mode": "0",
+      "scale_fourth_integrated_equation": "0",
+      "surrogate_FK_R": "0",
+      "surrogate_first_order_hubble": "0",
+      "surrogate_first_order_scale": "0",
+      "surrogate_quantum_conservation": "0",
+      "surrogate_reduction_coefficient": "0"
+    },
+    "scale_fourth": "-16*A**2*d*epsilon + 4*A**2*t**2"
+  },
+  "claim": "P8-A.5",
+  "date": "2026-09-05",
+  "finite_slab_arithmetic_example": {
+    "actual_z_max": "1/16",
+    "certified_z_cap": "1/4",
+    "clock_units": "normalized so d=1; not a cosmological parameter calibration",
+    "epsilon": "1/64",
+    "frozen_reference_defect_bounds": {
+      "EED": "7/256",
+      "density": "7/768",
+      "pressure": "35/2304"
+    },
+    "preparation": {
+      "past_time": "1/2",
+      "sufficient_radicand_lower_bound": "3/4",
+      "temporal_cutoff_is_one_on_target_slab": "required by the written construction"
+    },
+    "relative_scale_Taylor_error_bound": "1/2304",
+    "synthetic_conditional_response_interface": {
+      "actual_response_status": "CONDITIONAL_INPUT_NOT_DERIVED",
+      "assumption": "kappa*abs(rho_epsilon-rho_ref)<=epsilon*M_rho and likewise pressure throughout the slab",
+      "conditional_actual_EED_defect_bound": "231/8192",
+      "conditional_actual_density_defect_bound": "115/12288",
+      "conditional_actual_pressure_defect_bound": "289/18432",
+      "explicit_loop_curvature_terms": "absent, or their moved-to-source contribution (alpha*I+beta*J)/kappa is included in the supplied response bounds",
+      "numerical_actual_quantum_response_certified": false,
+      "supplied_M_pressure": "2",
+      "supplied_M_rho": "1"
+    },
+    "synthetic_response_inputs_are_claimed_actual_quantum_bounds": false,
+    "t_interval": [
+      "1",
+      "2"
+    ]
+  },
+  "first_order_mode_response_identity": {
+    "instantaneous_flat_modes_in_nonzero_potential_are_declared_Hadamard": false,
+    "momentum_domain": "k>0",
+    "preparation_potential_included_in_V1": true,
+    "residuals": {
+      "retarded_first_mode_equation": "0",
+      "retarded_first_mode_initial_value": "0",
+      "retarded_first_mode_initial_velocity": "0",
+      "zeroth_mode_wave_equation": "0"
+    },
+    "retarded_first_mode": "Integral(-sqrt(2)*V1(s)*exp(-I*k*(-eta_i + s))*sin(k*(eta - s))/(2*k**(3/2)), (s, eta_i, eta))",
+    "uniform_UV_or_actual_RSET_error_bound_derived_from_this_identity": false
+  },
+  "formulation": "FORMULATION.md",
+  "independent_rational_Taylor_and_defect_certificates": {
+    "Taylor_error_coefficients": {
+      "lower": "3/32",
+      "upper": "1/9"
+    },
+    "d_coefficient_in_kappa_hbar_over_pi2_units": "1/46080",
+    "frozen_defect_constants": {
+      "EED": "7",
+      "density": "7/3",
+      "pressure": "35/9"
+    },
+    "frozen_defect_ratio_maximum": "28/9",
+    "lower_root_polynomial": {
+      "Bernstein_coefficients": [
+        "5/72",
+        "67/1152",
+        "77797/1658880",
+        "1973/55296",
+        "137357/5598720",
+        "7547/559872",
+        "4271/1679616"
+      ],
+      "all_coefficients_nonnegative": true,
+      "domain": [
+        "0",
+        "1/4"
+      ],
+      "power_coefficients": [
+        "5/72",
+        "-13/48",
+        "37/6912",
+        "13/432",
+        "5/5832",
+        "-1/729",
+        "-1/6561"
+      ]
+    },
+    "positive_root_comparison_minima": [
+      "67/72",
+      "477/512"
+    ],
+    "root_at_z_quarter_enclosure": {
+      "lower": "9306048591/10000000000",
+      "strict": true,
+      "upper": "581628037/625000000"
+    },
+    "scale_fourth_ODE_epsilon_d_A4_coefficient": "256",
+    "surrogate_density_coefficient_in_epsilon_d_A4_over_kappa_a8_units": "48",
+    "upper_root_polynomial": {
+      "Bernstein_coefficients": [
+        "0",
+        "7/768",
+        "2233/122880",
+        "7119/262144",
+        "35441/983040",
+        "9028123/201326592",
+        "229838289/4294967296"
+      ],
+      "all_coefficients_nonnegative": true,
+      "domain": [
+        "0",
+        "1/4"
+      ],
+      "power_coefficients": [
+        "0",
+        "7/32",
+        "-7/512",
+        "-21/1024",
+        "0",
+        "27/32768",
+        "81/1048576"
+      ]
+    },
+    "wrong_scale_fourth_ODE_64_residual_coefficient": "192"
+  },
+  "not_established": [
+    "an exact SEE solution or a quantified distance to one",
+    "a numerical RSET derivative/response bound for the actual prepared state",
+    "a perturbed-metric QSEI constant, a frequency-uniform mode remainder, or an all-sampler H2 estimate",
+    "an order-zero curvature-squared model or an arbitrary family of Hadamard states",
+    "a global extrapolation to z=1, physical singularity/bounce, or validity at Planck curvature",
+    "a new focusing theorem, realistic-field cosmological calibration, or full P8(a) completion"
+  ],
+  "prior_A4_sha256": "05d8484a9f39cc4c47a6a6441d7ab589aea78ca449773bdc3cad72bd42dc5eec",
+  "schema": 1,
+  "scope": {
+    "FK_dictionary": "g_FK=-g_source; R_ab_FK=-R_ab_source; R_FK=+6*(Hdot+2*H^2)",
+    "QSEI_on_perturbed_metric_quantitatively_calibrated": false,
+    "actual_RSET_smooth_metric_parameter_dependence_derived": true,
+    "actual_SEE_residual_qualitatively_O_epsilon_squared_on_fixed_compact_slab": true,
+    "actual_state_family": "reference Hadamard state transported from an unchanged past neighborhood through a smooth temporally prepared FLRW metric",
+    "certified_Taylor_domain": "0<=z=4*epsilon*d/t^2<=1/4",
+    "classical_radiation": "rho=C_rad/a^4, p=rho/3, C_rad=3*A^2/kappa fixed",
+    "cosmological_term": "0",
+    "exact_order_reduced_surrogate_solution_established": true,
+    "field": "free real massless minimally coupled scalar",
+    "first_order_time_origin_and_normalization_modes": "displayed separately and fixed for the comparison",
+    "fixed_finite_loop_order_curvature_squared_couplings_allowed": true,
+    "fixed_h_QSEI_smoothness_promoted_from_diagonal_stress_alone": false,
+    "independent_order_zero_curvature_squared_couplings_allowed": false,
+    "loop_scaling": "G_FK+kappa*(T_rad+epsilon*RSET)=0; d=kappa*hbar/(46080*pi^2)",
+    "nearby_exact_SEE_solution_or_stability_theorem_established": false,
+    "numerical_actual_RSET_response_bound_derived": false,
+    "physical_singularity_at_surrogate_zero_established": false,
+    "prescription": "same fixed conserved locally covariant massless A.3 prescription, including its curvature terms on new metrics",
+    "surrogate_all_order_completion_uniquely_fixed_by_first_order_SEE": false,
+    "surrogate_source_identified_with_actual_RSET": false,
+    "target_metric": "a_OR on the compact target slab; smooth cutoff to a0 in the past and outside the preparation support",
+    "uniform_all_h_H2_QSEI_bound_established": false
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "dd3a0f1521c4234fee47f296768061cdd1d97e13d915c84967151983f27c64d9",
+    "README.md": "e9d75a59e12ef1e12f17c595507bb9495836d6d5c4227bfb27b6dbd66d7b0d89",
+    "notes/proof.md": "64f5e3c58433d655ffe53cd5dfc31307a2b24fa3cc984578e796a55576c11fff",
+    "notes/sources.md": "a70b6e4b58b38f8b2900fc2493e0dadafe2b00f78a7d4dea9be23dd46fba6abb",
+    "src/p8a_backreaction/__init__.py": "b0ecbea9f2591158606c52713692b4938f21749c83f70efd332870d09659f010",
+    "src/p8a_backreaction/bounds.py": "a1146eb934221014792fe3682a792c23c33c80d9113bec2564a3d03910da02b2",
+    "src/p8a_backreaction/dynamics.py": "b8c5fab4eb94d2f1e9eb2a3d28da104c6c0de46cc78aee0f05f7f94d06e4fde2",
+    "src/p8a_backreaction/independent.py": "6d2804aae08dc6e31a57ffb4c3d24532517c83ba4cb524d73d5590177224a9ec",
+    "src/p8a_backreaction/verify.py": "37e3e29f6978f0eaecf3b87a802fc0909f545529082866a8cc31b5a43eae1b9e",
+    "tests/conftest.py": "1624f5580712ca83ea40bcc2d0478c3716ec7ff6285171cdd923413606e978e5",
+    "tests/test_backreaction_bounds.py": "3c7c69b7a5e28573640d44f505eacc817d43d84673b85d9f5a556bdeb07ba2a7",
+    "tests/test_backreaction_dynamics.py": "06fbc5ad4205704560296c5e1d3e225ab3e1efe1fbe6ccbe035f4bbd415dc488",
+    "tests/test_backreaction_report.py": "10b3bec7861a38a3d221102228161491be652052e84aebf9036f9b600b837ffe"
+  },
+  "status": "MUTATED_FOR_EMPIRICIST_FAIL_FIXTURE",
+  "strongest_explicit_bounds": {
+    "Taylor": "3*z^2/32 <= 1-z/4-(1-z)^(1/4) <= z^2/9",
+    "actual_response": "qualitative O(epsilon^2) only; numerical bound conditional on supplied response constants",
+    "frozen_EED": "0<=(D_rho+3*D_p)/2<=7*z^2/t^2",
+    "frozen_density": "0<=D_rho<=7*z^2/(3*t^2)",
+    "frozen_pressure": "0<=D_p<=35*z^2/(9*t^2)"
+  },
+  "verification_boundary": [
+    "Hadamard propagation, state positivity under Cauchy evolution, and the Hollands-Wald smooth-state lemma are written theorem inputs",
+    "the local compact-causal-footprint argument and qualitative actual residual theorem are proved in notes/proof.md, not by finite arithmetic",
+    "rational Bernstein/root certificates and symbolic independent checks prove the stated reduced-model inequalities and identities",
+    "the reference quantum stress is imported only after unchanged A.4/A.3/A.2/A.1 replay"
+  ],
+  "written_proof": "notes/proof.md"
+}

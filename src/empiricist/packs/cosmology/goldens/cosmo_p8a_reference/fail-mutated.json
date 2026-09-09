@@ -1,0 +1,280 @@
+{
+  "absolute_QSEI_derivation": {
+    "absolute_Hardy_form": "-3*(Derivative(h(t), t)/t - 3*h(t)/(2*t**2))**2/8 + Derivative(h(t), (t, 2))**2 - 559*h(t)**2/(1280*t**4)",
+    "absolute_bound": "integral h^2*E_omega dt >= -hbar*B[h]/(16*pi^2)",
+    "absolute_functional_density": "Derivative(h(t), (t, 2))**2 - 3*Derivative(h(t), t)**2/(8*t**2) + 521*h(t)**2/(1280*t**4)",
+    "absolute_positive_log_form": "161*u(x)**2/1280 + 17*Derivative(u(x), x)**2/8 + Derivative(u(x), (x, 2))**2",
+    "assumed_short_duration": false,
+    "endpoint_jets": "h=hdot=0 at both endpoints",
+    "exact_comparison": "0 <= B[h] <= ||hddot||^2",
+    "logarithmic_clock": "x=log(t/t_star), t_star>0; h=t^(3/2)*u(x)",
+    "not_optimality": "evaluated source-based bound, not an optimal QEI over states",
+    "positive_log_coefficients": [
+      "1",
+      "17/8",
+      "161/1280"
+    ],
+    "reference_credit_in_hbar_over_16pi2_units": "1/320",
+    "residuals": {
+      "absolute_Hardy_IBP": "0",
+      "difference_to_absolute_reference_sign": "0",
+      "logarithmic_first_derivative": "0",
+      "logarithmic_positive_IBP": "0",
+      "logarithmic_second_derivative": "0",
+      "reference_plus_difference_credit": "0"
+    },
+    "sampling_domain": "real C_c^infinity(t>0), or H2_0(t_minus,t_plus) with 0<t_minus<t_plus<infinity",
+    "unconditional_absolute_multiplier_for_fixed_prescription": "1"
+  },
+  "claim": "P8-A.3",
+  "date": "2026-09-05",
+  "formulation": "FORMULATION.md",
+  "independent_rational_conformal_stress": {
+    "FK_EED_coefficient": "1/5120",
+    "FK_trace_coefficient": "-1/3840",
+    "conformal_density_coefficient": "1/960",
+    "conformal_pressure_coefficient": "1/576",
+    "conformal_units": "hbar/(pi^2*A^4*eta^8)",
+    "finite_curvature_coefficients": [
+      "0",
+      "0"
+    ],
+    "proper_density_coefficient": "1/15360",
+    "proper_pressure_coefficient": "1/9216",
+    "proper_units": "hbar/(pi^2*t^4)",
+    "reference_credit_in_hbar_over_16pi2_units": "1/320",
+    "source_trace_coefficient": "1/3840"
+  },
+  "independent_rational_sample": {
+    "exact_integrals": {
+      "absolute": [
+        "-1148777/19200",
+        "2799/32"
+      ],
+      "absolute_Hardy": [
+        "-1148777/19200",
+        "2799/32"
+      ],
+      "absolute_log_positive": [
+        "-1148777/19200",
+        "2799/32"
+      ],
+      "difference": [
+        "-75587/1280",
+        "2763/32"
+      ],
+      "flat": [
+        "4/5",
+        "0"
+      ],
+      "reference_credit": [
+        "3743/4800",
+        "-9/8"
+      ]
+    },
+    "integral_basis": [
+      "1",
+      "log(2)"
+    ],
+    "normalized_by": "hbar/(16*pi^2)",
+    "polynomial_coefficients_ascending": [
+      "4",
+      "-12",
+      "13",
+      "-6",
+      "1"
+    ],
+    "proper_interval": [
+      "1",
+      "2"
+    ],
+    "validated_absolute_enclosure": {
+      "lower": "398291/500000",
+      "strict": true,
+      "upper": "7965821/10000000"
+    },
+    "validated_ordering": "0 < absolute < difference < flat",
+    "validated_reference_credit_enclosure": {
+      "lower": "2177/2000000000",
+      "strict": true,
+      "upper": "5443/5000000000"
+    }
+  },
+  "not_established": [
+    "self-consistency of this metric with the reference field alone or field plus classical traceless radiation",
+    "a new SEE solution for any other target state or unspecified additional sources",
+    "a Ricci inequality without imposing the correctly matched SEE",
+    "general FLRW, tilted observers or all normals of arbitrary Cauchy surfaces",
+    "massive, nonminimal, interacting or additional-field absolute bounds",
+    "an optimal QEI over states or new cosmological incompleteness theorem",
+    "a realistic-field cosmological calibration, exclusion of P8(b) bounces or full P8(a) completion"
+  ],
+  "precision_bits": 192,
+  "prior_A2_sha256": "1a7369c03a25787c04fac0bf38189206e5331e43d3e48306a9ebb187763e9ed2",
+  "reference_stress_and_state_derivation": {
+    "Ricci_squared": "3/(4*t**4)",
+    "Riemann_squared": "3/(2*t**4)",
+    "general_trace_conservation_density": "hbar/(15360*pi**2*t**4) + C_radiation/(4*A**2*t**2)",
+    "independent_gravity_EED_shift": "-3*gamma/(4*t**2) - lambda",
+    "nonradiation_H1_tt_negative_control": "8/t**4",
+    "nonvacuum_negative_control": {
+      "Wick_square_excess": "hbar*s**2/(4*pi**2*A*t)",
+      "conformal_density_excess": "3*hbar*s**4/(4*pi**2*A**2*t**2)",
+      "minimal_minus_conformal_density_and_pressure": "hbar*s**2/(32*pi**2*A*t**3)",
+      "occupation": "n(k)=exp(-k/s), s>0"
+    },
+    "reference_SEE_trace_obstruction": "-hbar/(3840*pi**2*t**4)",
+    "reference_Wick_square": "0; source conformal transformation with both scalar curvatures zero",
+    "reference_radiation_integration_constant": "0; fixed by the mode calculation, not by conservation",
+    "reference_stress": {
+      "EED_FK": "hbar/(5120*pi**2*t**4)",
+      "pressure": "hbar/(9216*pi**2*t**4)",
+      "rho": "hbar/(15360*pi**2*t**4)",
+      "trace_FK": "-hbar/(3840*pi**2*t**4)"
+    },
+    "residuals": {
+      "FK_trace_from_curvature_invariants": "0",
+      "Gauss_Bonnet_Weyl_variational_input": "0",
+      "actual_mode_integral_fixes_C_zero": "0",
+      "conservation_does_not_fix_C": "0",
+      "direct_minimal_density": "0",
+      "direct_minimal_pressure": "0",
+      "explicit_gravity_EED_shift": "0",
+      "finite_curvature_pressure_coefficient": "0",
+      "finite_curvature_rho_coefficient": "0",
+      "nonvacuum_minimal_extra_pressure": "0",
+      "nonvacuum_minimal_extra_rho": "0",
+      "nonvacuum_occupation_Wick_square": "0",
+      "nonvacuum_occupation_rho": "0",
+      "pressure_from_conservation": "0",
+      "proper_time_density": "0",
+      "radiation_H1_tt_zero": "0",
+      "reference_conservation": "0",
+      "reference_mode_Wronskian": "0",
+      "reference_mode_integrand_pointwise_zero": "0",
+      "reference_mode_matches_direct_minimal_source": "0",
+      "same_minimal_and_conformal_operator": "0",
+      "trace_does_not_fix_C": "0",
+      "zero_reference_Wick_improvement_pressure": "0",
+      "zero_reference_Wick_improvement_rho": "0"
+    },
+    "standard_finite_stress_ambiguities": "m^4*g,m^2*G,I,J all vanish; I=0 from R=0, J=0 from C=0 and Gauss-Bonnet",
+    "state_selection": "specified positive-frequency modes make the subtracted conformal mode integrand zero at every k>0"
+  },
+  "schema": 1,
+  "scope": {
+    "absolute_QSEI_derived_for_this_prescription_and_background": true,
+    "arbitrary_dimensionful_lambda_g_or_gamma_G_included_in_matter_stress": false,
+    "background": "fixed spatially flat 4D radiation FLRW, a=A*eta, eta>0",
+    "field": "free real massless minimally coupled scalar",
+    "geodesic_coverage": "comoving lines; all normals only to constant-cosmic-time FLRW slices",
+    "independent_gravitational_couplings": "UNSPECIFIED; their displayed EED shift must be retained in a total source or SEE",
+    "prescription": "locally covariant conservation-preserving FK Hadamard prescription; standard massless scaling/analyticity class",
+    "reference_EED_computed_not_set_to_zero": true,
+    "reference_state": "Minkowski vacuum transported with phi=chi/a; zero occupations in the specified radiation modes",
+    "reference_state_SEE_solution_established": false,
+    "small_sampling_duration_assumed": false,
+    "target_state": "any Hadamard state on the fixed patch",
+    "usual_finite_stress_ambiguities_vanish_on_this_patch": true
+  },
+  "second_independent_rational_sample": {
+    "exact_integrals": {
+      "absolute": [
+        "-278033/19200",
+        "905/32"
+      ],
+      "absolute_Hardy": [
+        "-278033/19200",
+        "905/32"
+      ],
+      "absolute_log_positive": [
+        "-278033/19200",
+        "905/32"
+      ],
+      "difference": [
+        "-26105/1792",
+        "909/32"
+      ],
+      "flat": [
+        "36/7",
+        "0"
+      ],
+      "reference_credit": [
+        "-2911/33600",
+        "1/8"
+      ]
+    },
+    "integral_basis": [
+      "1",
+      "log(2)"
+    ],
+    "normalized_by": "hbar/(16*pi^2)",
+    "polynomial_coefficients_ascending": [
+      "4",
+      "-8",
+      "1",
+      "7",
+      "-5",
+      "1"
+    ],
+    "proper_interval": [
+      "1",
+      "2"
+    ],
+    "validated_ordering": "0 < absolute < difference < flat"
+  },
+  "sign_and_operator_dictionary": {
+    "FK_signature": "+---",
+    "central_term_dictionary": "P_FK=-P_source on R=0; Q_H_FK=-Q_H_source; g*Q_H invariant",
+    "covariant_stress_dictionary": "T_ab_FK=T_ab_source; rho=T_tt; p=T_ii/a^2",
+    "curvature_dictionary": "G_FK=-G_source; Ricci_ab_FK=-Ricci_ab_source; R_FK=R_source",
+    "residuals": {
+      "FK_EED_from_covariant_stress": "0",
+      "FK_isotropic_trace": "0",
+      "central_conservation_correction_invariant": "0",
+      "covariant_minimal_stress_00": "0",
+      "covariant_minimal_stress_01": "0",
+      "covariant_minimal_stress_02": "0",
+      "covariant_minimal_stress_03": "0",
+      "covariant_minimal_stress_10": "0",
+      "covariant_minimal_stress_11": "0",
+      "covariant_minimal_stress_12": "0",
+      "covariant_minimal_stress_13": "0",
+      "covariant_minimal_stress_20": "0",
+      "covariant_minimal_stress_21": "0",
+      "covariant_minimal_stress_22": "0",
+      "covariant_minimal_stress_23": "0",
+      "covariant_minimal_stress_30": "0",
+      "covariant_minimal_stress_31": "0",
+      "covariant_minimal_stress_32": "0",
+      "covariant_minimal_stress_33": "0",
+      "same_physical_density": "0",
+      "trace_flips_not_density": "0"
+    },
+    "source_signature": "-+++",
+    "trace_dictionary": "Tr_FK=rho-3p=-Tr_source"
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "8eae6abbfdacdf538cf542c3e71478824140ead5ea699e9f0d41d9b6af85ae95",
+    "README.md": "985925efd91d8bbee5f830de4fe1852b7fa968c6ad6c9216de7648776d13e85d",
+    "notes/derivation.md": "6093848a52e4a5d3786c73f3cc9d9ca76f533927adfa4729ffd04e93f1cc2a46",
+    "notes/sources.md": "a76f5f48880c6bb1c30af640a0114c343c12fcdb6017519c55f0c8c9e720bd03",
+    "src/p8a_reference/__init__.py": "1718740c46a43ee6e68d8e1140df7caa11b707a5e7b0ec003da465ac854d6d63",
+    "src/p8a_reference/bridge.py": "dd32634935f6277bd900204271d5df3dac19ff398f39c0ab58f5b728906bd461",
+    "src/p8a_reference/independent.py": "81d8d04a0574f0c4085194bb0bf5283897659112cf3c26ec4488f6144c7b019c",
+    "src/p8a_reference/stress.py": "46b334c85855a940b3802182bc54dfddc8e7bcdc993e0867defe73fb6fb1c830",
+    "src/p8a_reference/verify.py": "6b06da5ae4b3158016c2f8a5dfcdc755f172aff2ae8bf016069593956855162f",
+    "tests/conftest.py": "e80bab489e0b782a8e2c754ddfa58f550e38d49145b8cff93ee53891deec2f98",
+    "tests/test_reference_bridge.py": "a75a48c09ad8206075444349f3c48fb91f0c00d46b6a850d687accb42bedaa73",
+    "tests/test_reference_report.py": "9ca41258eac9ec35851281e49ac9e43d617bcdc018c4ceb4470b2fd4bfaf64ed",
+    "tests/test_reference_stress.py": "fa292097d2390eb73cbf26e6dc72c8d13cc57d2d59a2c0c343a7e9f75c337fcc"
+  },
+  "status": "MUTATED_FOR_EMPIRICIST_FAIL_FIXTURE",
+  "verification_boundary": [
+    "QFT Hadamard, conformal transformation and renormalization theorems are cited written-proof inputs, not proved by arithmetic replay",
+    "the spectral difference inequality is imported only after pinned A.2 and A.1 replay",
+    "symbolic/independent checks verify source specialization, signs, mode cancellation, constants and integral identities"
+  ],
+  "written_proof": "notes/derivation.md"
+}

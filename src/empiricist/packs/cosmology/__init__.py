@@ -17,11 +17,12 @@ import flint  # noqa: F401 - optional dependency: ImportError here means the pac
 import sympy  # noqa: F401
 
 from empiricist.packs import PackManifest
+from empiricist.packs.cosmology.verifiers import VERIFIERS
 
 #: The frozen problem document the research repository works against
 #: (`docs/problems/open-problems-theoretical-cosmology-2026.tex` at tag `problems-v1.1`).
 PROBLEMS = {"P8": "problems-v1.1"}
 
-MANIFEST = PackManifest(name="cosmology", version="0.1", verifiers={}, problems=PROBLEMS)
+MANIFEST = PackManifest(name="cosmology", version="0.1", verifiers=VERIFIERS, problems=PROBLEMS)
 
 __all__ = ["MANIFEST", "PROBLEMS"]

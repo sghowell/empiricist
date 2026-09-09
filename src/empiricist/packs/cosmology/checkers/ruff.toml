@@ -1,0 +1,4 @@
+# Everything below this directory is vendored verbatim from death_and_gravity (see
+# ../SOURCES.md). It is the code the certificates were produced against and is not
+# edited here, so it is not linted here either.
+exclude = ["*"]

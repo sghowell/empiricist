@@ -1,0 +1,243 @@
+{
+  "EED_scaling_and_SEE_derivation": {
+    "constant_coherent_state_difference": "B**2/(A**4*eta**6)",
+    "excluded_extra_source_control": {
+      "classical_radiation_C": "3*A**2*b/kappa",
+      "ell": "0",
+      "formal_complete_density_and_pressure_match": true,
+      "ordinary_traceless_radiation": false,
+      "pressure": "-hbar/(9216*pi**2*t**4)",
+      "rho": "-hbar/(15360*pi**2*t**4)",
+      "trace_FK": "hbar/(3840*pi**2*t**4)"
+    },
+    "independent_rational_scaling": {
+      "constant_mean": {
+        "coefficient": "1",
+        "eta_power": "-6"
+      },
+      "linear_mean": {
+        "coefficient": "0",
+        "eta_power": "-4"
+      },
+      "normalized_SEE_source_powers": [
+        4,
+        8
+      ],
+      "normalized_remainder_powers": [
+        2,
+        3,
+        4
+      ],
+      "point_split_Leibniz_allocations": [
+        {
+          "coefficient": "1",
+          "diagonal_eta_power": -6,
+          "left_F_derivatives": 0,
+          "right_F_derivatives": 0
+        },
+        {
+          "coefficient": "-1",
+          "diagonal_eta_power": -5,
+          "left_F_derivatives": 0,
+          "right_F_derivatives": 1
+        },
+        {
+          "coefficient": "-1",
+          "diagonal_eta_power": -5,
+          "left_F_derivatives": 1,
+          "right_F_derivatives": 0
+        },
+        {
+          "coefficient": "1",
+          "diagonal_eta_power": -4,
+          "left_F_derivatives": 1,
+          "right_F_derivatives": 1
+        }
+      ],
+      "proper_state_difference_terms": [
+        {
+          "A_power": "-1",
+          "eta_power": -6,
+          "t_power": "-3",
+          "two_power": "-3"
+        },
+        {
+          "A_power": "-3/2",
+          "eta_power": -5,
+          "t_power": "-5/2",
+          "two_power": "-5/2"
+        },
+        {
+          "A_power": "-2",
+          "eta_power": -4,
+          "t_power": "-2",
+          "two_power": "-2"
+        }
+      ],
+      "reference_conformal_coefficient_in_hbar_over_pi2_units": "1/320",
+      "reference_proper_coefficient_in_hbar_over_pi2_units": "1/5120",
+      "restricted_domain_mean": {
+        "coefficient": "4",
+        "eta_power": "-8"
+      }
+    },
+    "linear_coherent_state_difference": "0",
+    "non_bisolution_control": {
+      "admitted_as_state_difference": false,
+      "kernel": "1/(eta*eta_prime)",
+      "left_wave_residual": "2/(eta**3*eta_prime)",
+      "right_wave_residual": "2/(eta*eta_prime**3)"
+    },
+    "normalized_remainder": "eta**4*f2 - eta**3*f1 + eta**2*f0",
+    "proper_time_state_difference": "f0/(8*A*t**3) + f2/(4*A**2*t**2) - sqrt(2)*f1/(8*A**(3/2)*t**(5/2))",
+    "required_EED": "ell/kappa + (3*A**2*b/kappa - C)/(A**4*eta**4)",
+    "residuals": {
+      "actual_point_split_chain_rule": "0",
+      "clock_normalization_factor": "0",
+      "conformal_to_proper_difference": "0",
+      "constant_coherent_delta": "0",
+      "constant_coherent_mean_solves_wave": "0",
+      "constant_coherent_point_split_agrees": "0",
+      "excluded_negative_fluid_conservation": "0",
+      "excluded_negative_fluid_density_equation": "0",
+      "excluded_negative_fluid_pressure_equation": "0",
+      "linear_coherent_delta_cancels": "0",
+      "linear_coherent_mean_solves_wave": "0",
+      "linear_coherent_physical_mean_constant": "0",
+      "linear_coherent_point_split_agrees": "0",
+      "necessary_SEE_component_solution": "0",
+      "normalized_exact_jet_expression": "0",
+      "proper_reference_limit_coefficient": "0",
+      "required_normalized_limit": "0",
+      "restricted_domain_leading_delta": "0",
+      "restricted_domain_mean_solves_wave": "0"
+    },
+    "restricted_domain_control": {
+      "additional_leading_coefficient": "4*B**2",
+      "domain": "eta>0 and eta-x1>0, not the whole radiation patch",
+      "flat_mean": "B/(eta - x1)",
+      "smooth_on_full_spatial_Cauchy_slice": false
+    },
+    "state_difference": "(f2/eta**4 - f1/eta**5 + f0/eta**6)/A**4",
+    "universal_conformal_EED_coefficient": "hbar/(320*pi**2)",
+    "universal_proper_EED_coefficient": "hbar/(5120*pi**2)"
+  },
+  "claim": "P8-A.4",
+  "date": "2026-09-05",
+  "formulation": "FORMULATION.md",
+  "next_physical_gate": "an SEE-compatible backreacted testbed with quantitatively controlled QSEI/reference changes and relevant geodesic coverage",
+  "not_established": [
+    "a no-go theorem on a finite slab bounded away from eta=0 or on a smaller spatial domain",
+    "a no-go theorem with arbitrary traceful extra sources, time-dependent couplings or additional fields",
+    "exclusion of a controlled backreacted radiation-like metric or a general FLRW SEE solution",
+    "uniform state-independent pointwise positivity or an actual bound on arbitrary state's Cauchy data",
+    "validity of semiclassical gravity at arbitrarily high curvature",
+    "a new singularity theorem, realistic-field cosmological QEI calibration, or full P8(a) completion"
+  ],
+  "precision_bits": 192,
+  "prior_A3_sha256": "dc762112cdd2a5c0330f12d8bf157e27f5bae10d31cafa3b877cbce6eaa92b31",
+  "schema": 1,
+  "scope": {
+    "SEE": "b*G_FK+ell*g_FK+alpha*I+beta*J=-kappa*(T_omega+T_rad)",
+    "additional_sources": "only ordinary homogeneous comoving radiation rho=C/a^4, p=rho/3, finite C>=0",
+    "all_higher_n_point_or_Weyl_characteristic_regularity_assumed": false,
+    "all_state_pointwise_nonnegative_EED_at_all_times_established": false,
+    "background": "entire (0,infinity)_eta x R3, a=A*eta, A>0",
+    "couplings": "finite constants; b,kappa>0; ell,alpha,beta arbitrary; I=J=0 on this patch",
+    "field": "real free massless minimally coupled scalar",
+    "finite_slab_SEE_incompatibility_established": false,
+    "limit": "pointwise in space and locally spatially uniform for each fixed state",
+    "new_incompleteness_theorem_established": false,
+    "other_traceful_or_quantum_sources_included": false,
+    "physical_state_or_metric_extension_through_eta_zero_assumed": false,
+    "prescription": "unchanged pinned A.3 massless locally covariant conserved matter prescription",
+    "quasifree_homogeneous_isotropic_finite_energy_or_tempered_data_assumed": false,
+    "smooth_flat_bisolution_extension_is_derived": true,
+    "state": "any state with a microlocal Hadamard two-point distribution on the whole patch",
+    "uniform_over_states_rate_or_positive_onset_time_established": false,
+    "whole_patch_exact_SEE_incompatibility_established": true
+  },
+  "source_dictionary": "notes/sources.md",
+  "source_sha256": {
+    "FORMULATION.md": "0891f0a33a5c76eef3113e2667acaf726d64094674f5d500c651e502065a958b",
+    "README.md": "5be946c621e004a7439f7200fa90541bbb289429ce68aa4b41577b41a2b7aac8",
+    "notes/proof.md": "e11fd7bc4105dca34295af3e6946c55748ade183128b85dbf7c4606763aa7231",
+    "notes/sources.md": "83c744846f42325a96f06f51ec8cf586696c6d98ffe4c0cbefed726af797f870",
+    "src/p8a_asymptotics/__init__.py": "e73217cb21af6779a95f411cdd02314840b9663d7f1fb40a80fd3600af7fb5e9",
+    "src/p8a_asymptotics/bounds.py": "7ea18693f592a88528497070f71dab8ebf1445599821e3108f8f527540c9efef",
+    "src/p8a_asymptotics/extension.py": "e739a0226630118758c61622014c355cf4b57d122609b1595845f97d893eab32",
+    "src/p8a_asymptotics/independent.py": "3074726f48311aad7e62977f45442286b525103fcc11bc596ee33db2c6f184ac",
+    "src/p8a_asymptotics/scaling.py": "f8c2dbb28109f11b5776d9999d9d539e2a5b389915713c079ecf447b546a361a",
+    "src/p8a_asymptotics/verify.py": "e51261c0d65842acec3f3735b672dbbac59f1e09e6fa10bd4c954bf7459c4038",
+    "tests/conftest.py": "33d8421e621ec5bdcf440cd262477c5a6d8aa89670cfdc7ee179856bba35d1a8",
+    "tests/test_asymptotics_bounds.py": "b6fab17afe8e0254551edbe2f7db5f9de33e3162153f1f5bd8586a51c482146b",
+    "tests/test_asymptotics_extension.py": "64d80ac29934c2f9d90e2a475be76ac5070bb6e0d8f56e54cb42efe0737f9d36",
+    "tests/test_asymptotics_report.py": "e17ff764dd7aa9370d147b4d6acdfcd720f1a27b81c34d1d173dad881d281b44",
+    "tests/test_asymptotics_scaling.py": "784c91e883441ab07b5fa7b7030d95ad8f5face2910947d19ead78733b7adbb4"
+  },
+  "state_specific_quantitative_residual_example": {
+    "certified_interval": "0 < eta <= cutoff",
+    "coherent_flat_mean": "chi=1; F=1, f0=1, f1=f2=0 at all spatial points",
+    "conditional_on_the_supplied_state_jet_bounds": true,
+    "couplings": {
+      "a": "1",
+      "b": "1",
+      "ell": "0",
+      "hbar": "1",
+      "kappa": "1",
+      "radiation_c": "3"
+    },
+    "cutoff": "1/100",
+    "dimensionless_illustration_not_cosmological_parameter_fit": true,
+    "jet_bounds_derived_for_this_state": true,
+    "maximum_error": "1/10000",
+    "oversized_cutoff_1_over_50_rejected": true,
+    "positive_coefficient_error_polynomial": "eta**2",
+    "residual_lower_bound": "-1/10000 + 1/(320*pi**2)",
+    "residual_strictly_greater_than_half_leading_coefficient": true,
+    "supplied_jet_bounds": {
+      "eta_max": "1",
+      "m0": "1",
+      "m1": "0",
+      "m2": "0"
+    },
+    "validated_residual_lower_bound_enclosure": {
+      "lower": "21662869/100000000000",
+      "strict": true,
+      "upper": "2166287/10000000000"
+    }
+  },
+  "status": "MUTATED_FOR_EMPIRICIST_FAIL_FIXTURE",
+  "two_variable_Cauchy_benchmark": {
+    "independent_sparse_rational_checks": {
+      "both_variable_Cauchy_reconstruction_exact": true,
+      "both_wave_equations_exact": true,
+      "through_zero_value": "-16"
+    },
+    "initial_slice_eta": "2",
+    "matching_exact_coefficient_table_sha256": "43fe6cf057cb6c266c2f789fc56348ab7970ef79a12093e15df4c2a8ca2701a2",
+    "matching_monomial_count": 50,
+    "noncompact_polynomial_data": true,
+    "omitted_mixed_data_control_is_nonzero": true,
+    "polynomial_benchmark_proves_general_smooth_PDE_theorem": false,
+    "residuals": {
+      "both_variable_evolution_matches_original": "0",
+      "data_00": "0",
+      "data_01": "0",
+      "data_10": "0",
+      "data_11": "0",
+      "left_wave_equation": "0",
+      "right_wave_equation": "0",
+      "variable_evolution_order_commutes": "0"
+    },
+    "spatial_dimensions_each_variable": 3,
+    "through_zero_value": "-16"
+  },
+  "verification_boundary": [
+    "the general Hadamard smooth-difference and smooth wave Cauchy statements are written primary-source inputs, not finite arithmetic proofs",
+    "the noncompact-data, joint-bisolution extension and limit argument are supplied in notes/proof.md",
+    "independent exact polynomial and exponent calculations check identities and examples, not arbitrary state's data bounds",
+    "the absolute reference EED is imported only after hash-pinned A.3/A.2/A.1 replay"
+  ],
+  "written_proof": "notes/proof.md"
+}
