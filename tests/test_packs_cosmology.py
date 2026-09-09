@@ -235,13 +235,13 @@ def test_run_reads_a_committed_certificate_from_the_repository(tmp_path):
     assert v.run(rel).verdict is Verdict.FAIL
 
 
-# --- Task 3: the stopgap driver (core's CLI resolves no pack verifiers on this branch) --
+# --- Task 3: core's CLI certifies, promotes with, and reverifies by a pack verifier ------
 
-def test_driver_certifies_promotes_reverifies_and_respects_shadowing(tmp_path, capsys):
+def test_core_cli_certifies_promotes_reverifies_and_respects_shadowing(tmp_path, capsys):
     from empiricist.claims.check import check
     from empiricist.claims.model import load_all
     from empiricist.claims.promote import formulate
-    from empiricist.packs.cosmology.__main__ import main
+    from empiricist.cli import main
 
     repo = tmp_path
     rel = "problems/P8/certificates/s0-identities.json"
@@ -249,12 +249,12 @@ def test_driver_certifies_promotes_reverifies_and_respects_shadowing(tmp_path, c
     (repo / rel).write_bytes((CHECKERS / rel).read_bytes())
     formulate(repo, claim_id="P8-0", problem="P8(b)", formulation_version="v1",
               kind="statement", statement="S0 identities hold")
-    # promotion before certification: refused by core, not by the driver
-    promote_argv = ["promote", "--repo", str(repo), "--id", "P8-0", "--level", "CONJECTURED",
-                    "--verifier", "cosmo_p8_s0", "--evidence", rel]
+    promote_argv = ["claims", "promote", "--repo", str(repo), "--id", "P8-0", "--level",
+                    "CONJECTURED", "--verifier", "cosmo_p8_s0", "--evidence", rel]
+    # promotion before certification is refused by core
     assert main(promote_argv) == 1
     assert "no current stamp" in capsys.readouterr().err
-    assert main(["certify", "--repo", str(repo), "cosmo_p8_s0"]) == 0
+    assert main(["claims", "certify-verifier", "--repo", str(repo), "--name", "cosmo_p8_s0"]) == 0
     assert "cosmo_p8_s0 v1" in capsys.readouterr().out
     assert main(promote_argv) == 0
     c = load_all(repo)["P8-0"]
@@ -263,18 +263,19 @@ def test_driver_certifies_promotes_reverifies_and_respects_shadowing(tmp_path, c
     assert e.binary_hash and e.golden_suite_hash
     assert check(repo).ok and check(repo).standings == {"P8-0": "CURRENT"}
     # an elevated statement promotion still needs a receipt: core's rule, unchanged
-    assert main([*promote_argv[:6], "CERTIFIED", *promote_argv[7:]]) == 1
+    assert main([*promote_argv[:7], "CERTIFIED", *promote_argv[8:]]) == 1
     assert "requires a review receipt" in capsys.readouterr().err
-    # reverify by the pack verifier object
-    assert main(["reverify", "--repo", str(repo), "--id", "P8-0"]) == 0
+    # reverify resolves the pack verifier by name
+    assert main(["claims", "reverify", "--repo", str(repo), "--id", "P8-0"]) == 0
     assert "P8-0: re-verified" in capsys.readouterr().out
-    # a repository declaration of the same name shadows the pack verifier
+    # a repository declaration of the same name shadows the pack verifier (here an invalid
+    # one, so the command route refuses); an unknown name is refused outright
     (repo / "claims" / "verifiers").mkdir(exist_ok=True)
     (repo / "claims" / "verifiers" / "cosmo_p8_s0.yaml").write_text("name: cosmo_p8_s0\n")
-    assert main(["certify", "--repo", str(repo), "cosmo_p8_s0"]) == 1
-    assert "shadows" in capsys.readouterr().err
-    assert main(["promote", "--repo", str(repo), "--id", "P8-0", "--level", "CONJECTURED",
-                 "--verifier", "cosmo_nope", "--evidence", rel]) == 1
+    assert main(["claims", "certify-verifier", "--repo", str(repo), "--name", "cosmo_p8_s0"]) == 1
+    assert main(["claims", "promote", "--repo", str(repo), "--id", "P8-0", "--level",
+                 "CONJECTURED", "--verifier", "cosmo_nope", "--evidence", rel]) == 1
+    assert "unknown verifier" in capsys.readouterr().err
 
 
 @pytest.mark.slow
