@@ -15,5 +15,5 @@ def _no_claims_repo_from_env(monkeypatch):
 def _no_live_builtin_identities(monkeypatch):
     """Unit tests stamp stub identities for `lean` and the certificate checkers; the
     live verifiers installed on the developer's machine must not make those stamps
-    read as drift. The drift test patches `builtin_identity` itself."""
-    monkeypatch.setattr("empiricist.claims.check.builtin_identity", lambda name: None)
+    read as drift. The drift tests patch `identity_for` themselves."""
+    monkeypatch.setattr("empiricist.claims.check.identity_for", lambda name: None)

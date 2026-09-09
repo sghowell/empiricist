@@ -234,3 +234,6 @@ uv.lock.bak
 
 # Lean build artifacts (the pinned project's oleans/cache are fetched, not versioned)
 lean/EmpiricistLean/.lake/
+
+# Claude Code agent worktrees (local only)
+.claude/worktrees/

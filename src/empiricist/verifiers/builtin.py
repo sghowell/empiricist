@@ -48,3 +48,12 @@ def builtin_identity(name: str) -> tuple[str, str] | None:
         return str(v.version), str(v.binary_hash)
     except Exception:  # noqa: BLE001 - an uncomputable identity is unknown, not drift
         return None
+
+
+def identity_for(name: str) -> tuple[str, str] | None:
+    """(version, binary_hash) of the live verifier `name`: an installed pack's verifier
+    first (charter section 5), a built-in second, None when neither knows the name."""
+    from empiricist.packs import pack_identity
+
+    live = pack_identity(name)
+    return live if live is not None else builtin_identity(name)

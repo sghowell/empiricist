@@ -122,3 +122,104 @@ def test_two_packs_declaring_one_name_is_an_error(tmp_path, monkeypatch):
     monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": _manifest(), "other": other})
     with pytest.raises(PackError):
         resolve_pack_verifier(tmp_path, "toy_pack_check")
+
+
+# -- the claim ledger resolves pack verifiers (M24a Task 2) ----------------------------------
+
+
+def _repo_with_claim(tmp_path):
+    from empiricist.claims.promote import formulate
+
+    (tmp_path / "ev").mkdir()
+    (tmp_path / "ev" / "good.json").write_text('{"ok": true}')
+    (tmp_path / "ev" / "bad.json").write_text('{"ok": false}')
+    formulate(tmp_path, claim_id="P.x", problem="P", formulation_version="v1",
+              kind="statement", statement="x holds")
+    return tmp_path
+
+
+def test_promote_and_reverify_on_a_pack_verifier(tmp_path, monkeypatch):
+    from empiricist.claims.check import check
+    from empiricist.claims.promote import PromotionRefused, promote, reverify
+
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": _manifest()})
+    repo = _repo_with_claim(tmp_path)
+    with pytest.raises(PromotionRefused, match="no current stamp"):
+        promote(repo, claim_id="P.x", level="CONJECTURED", verifier="toy_pack_check",
+                evidence_path="ev/good.json")
+    stamp, _ = certify_pack_verifier(repo, "toy_pack_check")
+    c = promote(repo, claim_id="P.x", level="CONJECTURED", verifier="toy_pack_check",
+                evidence_path="ev/good.json")
+    assert c.level == "CONJECTURED" and c.evidence[0].verifier == "toy_pack_check"
+    assert c.evidence[0].binary_hash == "ab" * 32 and c.evidence[0].version == "2"
+    assert c.evidence[0].golden_suite_hash == stamp.golden_suite_hash
+    assert check(repo).ok
+    assert reverify(repo, claim_id="P.x") == {"P.x": "re-verified"}
+    with pytest.raises(PromotionRefused, match="unknown verifier"):
+        promote(repo, claim_id="P.x", level="VERIFIED_N", verifier="nope",
+                evidence_path="ev/good.json", n=1)
+
+
+def test_a_declaration_shadows_a_pack_verifier_of_the_same_name(tmp_path, monkeypatch):
+    import sys
+
+    import yaml
+
+    from empiricist.claims.command_verifier import CommandVerifier
+    from empiricist.claims.promote import _resolve_verifier
+
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": _manifest()})
+    (tmp_path / "tools").mkdir()
+    (tmp_path / "tools" / "check.py").write_text("import sys; sys.exit(0)\n")
+    (tmp_path / "certs").mkdir()
+    (tmp_path / "certs" / "good.json").write_text("{}")
+    (tmp_path / "certs" / "bad.json").write_text("{}")
+    (tmp_path / "claims" / "verifiers").mkdir(parents=True)
+    (tmp_path / "claims" / "verifiers" / "toy_pack_check.yaml").write_text(yaml.safe_dump({
+        "name": "toy_pack_check", "version": "1", "argv": [sys.executable, "tools/check.py"],
+        "inputs": ["tools"],
+        "fixtures": {"pass": ["certs/good.json"], "fail": ["certs/bad.json"]},
+    }))
+    assert isinstance(_resolve_verifier(tmp_path, "toy_pack_check"), CommandVerifier)
+
+
+def test_check_sees_pack_verifier_drift(tmp_path, monkeypatch):
+    from empiricist.claims import check as check_mod
+    from empiricist.claims.check import check, refresh_repo
+    from empiricist.claims.promote import promote
+
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": _manifest()})
+    monkeypatch.setattr(check_mod, "identity_for", packs.pack_identity)
+    repo = _repo_with_claim(tmp_path)
+    certify_pack_verifier(repo, "toy_pack_check")
+    promote(repo, claim_id="P.x", level="CONJECTURED", verifier="toy_pack_check",
+            evidence_path="ev/good.json")
+    refresh_repo(repo)
+    assert check(repo).standings["P.x"] == "CURRENT"
+
+    class _Edited(_Toy):
+        @property
+        def binary_hash(self) -> str:
+            return "cd" * 32
+
+    edited = PackManifest(name="toy", version="0.1", verifiers={"toy_pack_check": _Edited})
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": edited})
+    rep = check(repo)
+    assert rep.standings["P.x"] == "STALE"
+    assert any(i.code == "verifier_drift" and "toy_pack_check" in i.detail for i in rep.issues)
+
+
+def test_cli_packs_and_certify_verifier_on_a_pack(tmp_path, monkeypatch, capsys):
+    from empiricist.cli import main
+
+    monkeypatch.setattr(packs, "installed_packs", lambda: {"toy": _manifest()})
+    assert main(["claims", "packs"]) == 0
+    out = capsys.readouterr().out
+    assert "toy 0.1" in out and "toy_pack_check v2" in out
+    (tmp_path / "claims").mkdir()
+    argv = ["claims", "certify-verifier", "--repo", str(tmp_path), "--name", "toy_pack_check"]
+    assert main(argv) == 0
+    assert "toy_pack_check v2" in capsys.readouterr().out
+    assert current_stamp(tmp_path, "toy_pack_check").pack == "toy"
+    assert main(["claims", "certify-verifier", "--repo", str(tmp_path), "--name", "nope"]) == 1
+    assert "no installed pack" in capsys.readouterr().out
