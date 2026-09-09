@@ -21,11 +21,15 @@ from pydantic import ValidationError
 
 from empiricist.claims.check import check
 from empiricist.claims.model import load_all
+from empiricist.ledger.db import Ledger
+from empiricist.ledger.models import Run
+from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.roles import ROLES
 from empiricist.llm.schemas import json_schema_for
 from empiricist.packs import certify_pack_verifier
 from empiricist.packs.zx import MANIFEST, termination
 from empiricist.packs.zx import campaign as cp
+from empiricist.packs.zx.__main__ import fake_result, main
 from empiricist.packs.zx.rules import RULES
 
 VERIFIERS = ("zx_rule_sound", "zx_termination", "zx_critical_pairs", "zx_completeness")
@@ -445,3 +449,118 @@ def test_prompt_stays_under_budget_with_a_long_history():
     assert len(text.encode()) <= cp.PROMPT_BUDGET
     assert "### round 16 slot 1" in text and "### round 1 slot 0" in text
     assert "rule_16_1: {" in text                    # recent inline rules stay usable by name
+
+
+# ----------------------------------------------------------------------------- the loop
+
+
+def scripted(*items) -> FakeLLMClient:
+    return FakeLLMClient([fake_result(i) for i in items])
+
+
+def test_parse_proposal():
+    assert "no artifact" in cp.parse_proposal(None)
+    assert "no artifact" in cp.parse_proposal(fake_result(None))
+    assert cp.parse_proposal(fake_result({"rules": ["fusion"], "measure": ["vertices"],
+                                          "depth": 9, "rationale": ""})).startswith(
+        "invalid schema")
+    s = cp.parse_proposal(fake_result(system_a().model_dump()))
+    assert isinstance(s, cp.SystemOut) and s.depth == 2
+
+
+def test_campaign_stops_on_success(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    client = scripted(None, unsound_system().model_dump(), system_a().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=5, max_cost=10.0, k=1,
+                                 classes=[(1, 1, 1)], now="2026-09-09"))
+    assert report.stop_reason == "success" and report.rounds == 3
+    assert report.success is not None and report.success.cid == cp.candidate_id(system_a())
+    seed_cid = cp.candidate_id(cp.SEED)
+    assert [(e.round, e.slot, e.cid) for e in report.history] == [
+        (0, 0, seed_cid), (1, 0, None), (2, 0, cp.candidate_id(unsound_system())),
+        (3, 0, cp.candidate_id(system_a())),
+    ]
+    assert report.history[1].skipped.startswith("no artifact")
+    assert not report.history[2].serious and report.history[2].claims == []
+    win = cp.candidate_id(system_a())
+    assert report.claims == [
+        f"P6.cand_{seed_cid}_sound", f"P6.cand_{seed_cid}_terminates",
+        f"P6.cand_{seed_cid}_locally_confluent_d4_k2", f"P6.cand_{seed_cid}_complete_c111",
+        f"P6.cand_{win}_sound", f"P6.cand_{win}_terminates",
+        f"P6.cand_{win}_locally_confluent_d2_k2", f"P6.cand_{win}_complete_c111",
+    ]
+    claims = claim_files(repo)
+    assert set(claims) == set(report.claims)
+    assert claims[f"P6.cand_{seed_cid}_complete_c111"]["level"] == "REFUTED"
+    assert all(claims[c]["level"] == "VERIFIED_N" for c in report.claims if win in c)
+    assert check(repo).ok
+    # three fresh prompts, each the whole playbook, each carrying the history so far
+    assert [role for role, _ in client.calls] == ["proposer"] * 3
+    p1, p2, p3 = (prompt for _, prompt in client.calls)
+    assert "round 1" in p1 and "## Prior candidates" not in p1 and "measured outcome" in p1
+    assert "not evaluated: no artifact" in p2
+    assert "colour_change_no_flip" in p3 and "REJECTED (not serious) at sound" in p3
+    assert len({p1, p2, p3}) == 3 and all(len(p.encode()) < cp.PROMPT_BUDGET
+                                          for p in (p1, p2, p3))
+    # the log: seed, three candidates, three rounds, one stop
+    events = [json.loads(line) for line in (run_dir / "campaign.jsonl").read_text().splitlines()]
+    assert [e["event"] for e in events] == [
+        "seed", "candidate", "round", "candidate", "round", "candidate", "round", "stop",
+    ]
+    assert events[-1]["reason"] == "success" and events[-1]["winner"] == win
+    assert events[-1]["spent_usd"] == 0.0             # FakeLLMClient records no runs
+    assert cp.load_history(run_dir) == report.history
+    assert report.spent_usd == 0.0
+
+
+def test_campaign_budget_stop_before_any_call(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    ledger = Ledger(run_dir / "ledger.db")
+    ledger.start_run(Run(run_id="r1", move="SAMPLE", role="proposer", provider="anthropic"))
+    ledger.finish_run("r1", exit_code=0, wall_s=1.0, cost_usd=5.0)
+    ledger.close()
+    client = scripted(system_a().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=5, max_cost=5.0, k=1,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "budget" and report.rounds == 0 and report.spent_usd == 5.0
+    assert client.calls == [] and report.history == [] and claim_files(repo) == {}
+    events = [json.loads(line) for line in (run_dir / "campaign.jsonl").read_text().splitlines()]
+    assert [e["event"] for e in events] == ["stop"] and events[0]["reason"] == "budget"
+
+
+def test_campaign_round_limit_and_resume(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    client = scripted(unsound_system().model_dump(), unsound_system().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=1, max_cost=10.0, k=2,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "rounds" and report.rounds == 1 and report.success is None
+    assert [e.round for e in report.history] == [0, 1, 1]
+    assert "duplicate of cand_" in report.history[2].skipped      # the second slot repeats
+    assert len(client.calls) == 2 and len(report.claims) == 4      # the seed's claims only
+    # a second run in the same directory picks the history up: no seed re-evaluation, the
+    # prior candidate in the prompt, the round counter continuing
+    client2 = scripted(system_a().model_dump())
+    report2 = run(cp.run_campaign(client2, repo, run_dir, max_rounds=2, max_cost=10.0, k=1,
+                                  classes=[(1, 1, 1)]))
+    assert report2.stop_reason == "success" and report2.rounds == 2
+    assert [e.round for e in report2.history] == [0, 1, 1, 2]
+    assert "cand_" + cp.candidate_id(unsound_system()) in client2.calls[0][1]
+    assert len(report2.claims) == 8 and check(repo).ok
+
+
+def test_driver_runs_a_scripted_campaign(repo, tmp_path, capsys):
+    script = tmp_path / "fake.json"
+    script.write_text(json.dumps([None, system_a().model_dump()]))
+    rc = main(["campaign", "--repo", str(repo), "--run-dir", str(tmp_path / "run"),
+               "--max-cost", "1", "--max-rounds", "3", "--k", "1", "--classes", "1,1,1",
+               "--fake", str(script)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "stop: success after 2 round(s)" in out and "winner: cand_" in out
+    assert "round 1 slot 0: skipped (no artifact" in out
+    assert (tmp_path / "run" / "campaign.jsonl").is_file()
+    assert len(claim_files(repo)) == 8 and check(repo).ok
+    # a bad class is refused before anything runs
+    rc = main(["campaign", "--repo", str(repo), "--run-dir", str(tmp_path / "run2"),
+               "--classes", "9,9,9", "--fake", str(script)])
+    assert rc == 2 and "outside the verifier's limits" in capsys.readouterr().err
