@@ -1,0 +1,45 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: c10fddd2a6aaac4b7f29888b7176b48b339f04a42fd987516eabb3942bd343b6
+  golden_suite_hash: 416ed6e90406ac7324b3e5a4ce12f0a3d400b27f3c9a09b92fd83ff6b6e48922
+  note: 'argv=None cwd=None exit=None env_sha256=None reason=''a critical pair of
+    identity_z and zero_merge is not joinable within depth 4: not joinable at instance
+    b_2=0: no common diagram within depth 4'''
+  path: claims/evidence/p6/cand_dda1f96c55/cp_depth4_arity2.json
+  stamped: '2026-09-09T08:46:15+00:00'
+  verdict: FAIL
+  verifier: zx_critical_pairs
+  version: '1'
+formulation_version: p6-zx-v1
+id: P6.cand_dda1f96c55_locally_confluent_d4_k2
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: 'Minted by the P6 completion campaign (M25b) for candidate cand_dda1f96c55.
+  Verifier: a critical pair of identity_z and zero_merge is not joinable within depth
+  4: not joinable at instance b_2=0: no common diagram within depth 4 Witness: {"rule1":"identity_z","rule2":"zero_merge","reason":"not
+  joinable at instance b_2=0: no common diagram within depth 4","host":{"vertices":[[0,"B","0"],[1,"Z","0"],[2,"B","0"],[3,"Z","1"],[4,"Z","b_2"],[5,"B","0"]],"edges":[[0,1,false],[1,2,false],[4,5,false]],"inputs":[],"outputs":[0,2,5]},"result1":{"vertices":[[0,"B","0"],[2,"B","0"],[3,"Z","1"],[4,"Z","b_2"],[5,"B","0"]],"edges":[[0,2,false],[4,5,false]],"inputs":[],"outputs":[0,2,5]},"result2":{"vertices":[[0,"B","0"],[2,"B","0"],[5,"B","0"],[6,"Z","1"],[7,"Z","0"]],"edges":[[0,7,false],[2,7,false],[5,7,false]],"inputs":[],"outputs":[0,2,5]}}'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 41-rule system {fusion, fusion_x, identity_z, identity_z_h, identity_z_hh,
+  identity_x, identity_x_h, identity_x_hh, colour_change, hopf_h, loop_z, loop_z_h,
+  loop_x, loop_x_h, h_state_q, h_state_t, plugone_pi, plugone_q, plugone_t, plugzero_pi,
+  plugzero_q, plugzero_t, scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi, scalar_z_0,
+  scalar_z_1_2, scalar_z_3_2, zero_cup_h, zero_fuse, zero_merge, zero_unh, zp_pi,
+  zp_q, zp_t, zz_h_a0, zz_h_api, zz_h_qq, zz_h_tt, zz_h_zero} (library rules oriented
+  left-to-right; the inline rules h_state_q, h_state_t, plugone_pi, plugone_q, plugone_t,
+  plugzero_pi, plugzero_q, plugzero_t, scalar_x_0, scalar_x_1_2, scalar_x_3_2, scalar_x_pi,
+  scalar_z_0, scalar_z_1_2, scalar_z_3_2, zero_cup_h, zero_fuse, zero_merge, zero_unh,
+  zp_pi, zp_q, zp_t, zz_h_a0, zz_h_api, zz_h_qq, zz_h_tt, zz_h_zero are given by their
+  JSON in claims/evidence/p6/cand_dda1f96c55/cp_depth4_arity2.json) is locally confluent
+  within depth 4 at residual arity <= 2 over the stabilizer phases (formulation p6-zx-v1,
+  section 3): every critical overlap of every pair of its rules, with star vertices
+  carrying up to 2 context legs of each type, is joinable within 4 forward steps on
+  each side (search budget max_nodes = 20000).'
+substatus: null
+supersedes: []
+updated: '2026-09-09'
