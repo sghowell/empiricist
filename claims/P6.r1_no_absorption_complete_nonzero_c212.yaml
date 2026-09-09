@@ -1,0 +1,37 @@
+coverage: exhaustive
+depends_on: []
+evidence:
+- binary_hash: 93962274cb0100a515194d6f1f39f6a735056b27f45734d68657aa7082f08f87
+  golden_suite_hash: e5f06d11acb5dbd469e35f995fbd1307ec01f7593a7fb1ddd1b2e719aa592586
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r1_no_absorption_completeness_nonzero_c212.json
+  stamped: '2026-09-09T10:04:05+00:00'
+  verdict: PASS
+  verifier: zx_completeness
+  version: '1'
+formulation_version: p6-zx-v2
+id: P6.r1_no_absorption_complete_nonzero_c212
+kind: statement
+legacy_level: null
+level: VERIFIED_N
+n: 391
+notes: 'Groundwork under p6-zx-v2 (M26a). The same 19-rule system is REFUTED for C(2,
+  1, 2) under p6-zx-v1 (P6.r1_no_absorption_complete_c212): the zero-absorption rule
+  R1 needs there only normalises the zero class, which p6-zx-v2 asks to be recognised,
+  not normalised. zx_completeness on claims/evidence/p6/r1_no_absorption_completeness_nonzero_c212.json
+  (391 diagrams, 55 non-zero classes, 48 zero diagrams, at most 4 steps).'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 19-rule system R1 minus its zero-absorption rule (R0core minus the
+  fusion rules plus colour_change, six scalar-elimination rules and two Hadamard-on-a-state
+  rules; the inline rules are given in claims/evidence/p6/r1_no_absorption_completeness_nonzero_c212.json),
+  applied first-applicable in the listed order, is complete for the class C(2, 1,
+  2) of stabilizer diagrams with zero recognised (at most 2 boundary wires, 1 interior
+  spider, 2 edges; formulation p6-zx-v2, section 3): all 391 diagrams reduce within
+  4 steps, each of the 55 non-zero semantic classes has one normal form, and each
+  of the 48 zero diagrams reduces to a syntactically zero normal form.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

@@ -1,0 +1,39 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 93962274cb0100a515194d6f1f39f6a735056b27f45734d68657aa7082f08f87
+  golden_suite_hash: e5f06d11acb5dbd469e35f995fbd1307ec01f7593a7fb1ddd1b2e719aa592586
+  note: argv=None cwd=None exit=None env_sha256=None reason='two semantically equal
+    diagrams of C(2, 2, 4) on 0 inputs and 0 outputs have different normal forms (found
+    after reducing 2 of 89367 diagrams)'
+  path: claims/evidence/p6/r0core_completeness_nonzero_c224.json
+  stamped: '2026-09-09T10:04:00+00:00'
+  verdict: FAIL
+  verifier: zx_completeness
+  version: '1'
+formulation_version: p6-zx-v2
+id: P6.r0_core_complete_nonzero_c224
+kind: statement
+legacy_level: null
+level: REFUTED
+n: null
+notes: 'Groundwork under p6-zx-v2 (M26a). Witness: the empty diagram and the legless
+  Z(0) are semantically equal non-zero scalars and both normal forms, the same obstruction
+  as under p6-zx-v1 (P6.r0_core_complete_c224): scalars count under either bar. zx_completeness
+  on claims/evidence/p6/r0core_completeness_nonzero_c224.json (89,367 diagrams, found
+  after reducing 2).'
+problem: P6
+receipts: []
+source: null
+standing: CURRENT
+statement: 'The 12-rule system R0core = {fusion, fusion_x, identity_z, identity_x,
+  identity_z_h, identity_x_h, identity_z_hh, identity_x_hh, loop_z, loop_x, loop_z_h,
+  loop_x_h}, applied first-applicable in the listed order, is complete for the class
+  C(2, 2, 4) of stabilizer diagrams with zero recognised (at most 2 boundary wires,
+  2 interior spiders, 4 edges; formulation p6-zx-v2, section 3): every diagram of
+  the class reduces to a normal form, a normal form is syntactically zero (a legless
+  spider of phase pi) exactly when the diagram denotes the zero map, and semantically
+  equal non-zero diagrams share one normal form.'
+substatus: null
+supersedes: []
+updated: '2026-09-09'

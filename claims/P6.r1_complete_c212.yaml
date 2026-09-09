@@ -17,6 +17,22 @@ evidence:
   verdict: PASS
   verifier: zx_rule_sound
   version: '1'
+- binary_hash: 93962274cb0100a515194d6f1f39f6a735056b27f45734d68657aa7082f08f87
+  golden_suite_hash: e5f06d11acb5dbd469e35f995fbd1307ec01f7593a7fb1ddd1b2e719aa592586
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r1_completeness_c212.json
+  stamped: '2026-09-09T09:58:33+00:00'
+  verdict: PASS
+  verifier: zx_completeness
+  version: '1'
+- binary_hash: eee177b6d342718bdb1440597baf151ff1f06f5ab06e800f0942d6f5a51f8390
+  golden_suite_hash: 5fba4469b3b24e3e330770a0eebbd72cdcd9734d3395aef4c9c7af33f17f355d
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/r1_rules_sound_k1.json
+  stamped: '2026-09-09T09:58:33+00:00'
+  verdict: PASS
+  verifier: zx_rule_sound
+  version: '1'
 formulation_version: p6-zx-v1
 id: P6.r1_complete_c212
 kind: statement

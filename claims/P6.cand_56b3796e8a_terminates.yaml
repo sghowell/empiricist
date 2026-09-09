@@ -9,6 +9,14 @@ evidence:
   verdict: PASS
   verifier: zx_termination
   version: '1'
+- binary_hash: c0252a0372c8100925c6f53a3da8c90a334136942eda01f75f571710317a7524
+  golden_suite_hash: 4d8f65fbe158a0ac954268bfcc7a00292b78baeeddfff1846eaa3112d0e06023
+  note: reverify; argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p6/cand_56b3796e8a/termination_vertices_edges_x_vertices.json
+  stamped: '2026-09-09T09:57:57+00:00'
+  verdict: PASS
+  verifier: zx_termination
+  version: '1'
 formulation_version: p6-zx-v1
 id: P6.cand_56b3796e8a_terminates
 kind: statement
