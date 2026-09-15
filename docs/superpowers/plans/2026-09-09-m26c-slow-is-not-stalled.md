@@ -36,8 +36,12 @@
 ### Task 3: the record and the relaunch
 
 - [x] Science note `docs/science/2026-09-15-p6-slow-is-not-stalled.md` (a note of its own; the M25b note carries a correction): the measured rates, the thirteen killed calls, the estimate, the corrected spend picture for runs 1–3.
-- [ ] Relaunch: `campaign --run-dir runs/p6-completion --max-cost 100 --max-rounds 16 --k 2 --classes "2,2,4;3,2,4;2,2,6" --proposer-timeout 1500`; the cap now includes the estimate for the earlier killed calls.
+- [x] Relaunch: `campaign --run-dir runs/p6-completion --max-cost 100 --max-rounds 16 --k 2 --classes "2,2,4;3,2,4;2,2,6" --proposer-timeout 1500`; the cap now includes the estimate for the earlier killed calls.
 
 ## Outcome (2026-09-15)
 
 Tasks 1–2 done in one commit on `feat/m26c-slow-is-not-stalled` (the two tasks touch the same functions): `killed_proposer_runs`, `generation_rate` (totals over totals, so short cache-heavy calls do not skew it), `unrecorded_estimate`; the cap on recorded plus estimate; `timeouts` per round, `timeout_rounds`, stop reason `proposer_timeout`; driver default 1500 s, exit code 3 for both stall reasons, the rate printed; the playbook's names-not-JSON sentence. Three new tests. Measured on `runs/p6-completion`: 78.5 output tokens/s, $0.0057/s; 15 killed calls (12,601 s), estimate $71.78, effective $88.01. Run 3 (2026-09-09) minted nothing: rounds 10–11 were four 600 s kills. Task 3: the note, the correction in the M25b note and the charter row, the relaunch with `--proposer-timeout 1500`.
+
+### Run 4 (2026-09-15)
+
+Rounds 12–13 under the corrected cap, then `budget` (recorded $26.34; sixteen killed calls charged $84.28). Two serious candidates (44 and 42 rules), both REFUTED at local confluence before completeness ran; six claims, ledger 138 green. One successful call emitted 106k output tokens in 1,441 s ($6.54) while its sibling died at 1,500 s; the next round's two calls took 50–65 s. Follow-ups: streaming token accounting in the transport so a killed call records its cost; a deliberation cap in the proposer role card. See the note's run-4 section.
