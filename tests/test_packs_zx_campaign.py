@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shutil
+import uuid
 from pathlib import Path
 
 import pytest
@@ -23,7 +24,7 @@ from pydantic import ValidationError
 from empiricist.claims.check import check
 from empiricist.claims.model import load_all
 from empiricist.ledger.db import Ledger
-from empiricist.ledger.models import Run
+from empiricist.ledger.models import Run, now_iso
 from empiricist.llm.client import FakeLLMClient
 from empiricist.llm.roles import ROLES
 from empiricist.llm.schemas import json_schema_for
@@ -430,6 +431,7 @@ def test_build_prompt_is_the_playbook(monkeypatch):
         in text
     assert "### round 1 slot 1" in text and "not evaluated: invalid schema: depth" in text
     assert "## Your task" in text and "SystemOut" in text
+    assert "never re-emit its JSON" in text
     assert "round 2" in text
     assert len(text.encode()) < cp.PROMPT_BUDGET
     assert "transcript" not in text.lower()
@@ -610,6 +612,7 @@ def test_driver_exit_code_and_proposer_timeout_flag(repo, tmp_path, capsys):
     args = build_parser().parse_args(["campaign", "--run-dir", str(tmp_path / "r"),
                                       "--proposer-timeout", "600"])
     assert args.proposer_timeout == 600.0
+    assert build_parser().parse_args(["campaign", "--run-dir", "r"]).proposer_timeout == 1500.0
     fake = tmp_path / "fake.json"
     fake.write_text(json.dumps([None, None, None, None]))
     rc = main(["campaign", "--repo", str(repo), "--run-dir", str(tmp_path / "run"),
@@ -697,3 +700,74 @@ def test_driver_rebaseline_subcommand(repo, tmp_path, capsys):
     rc = main(["rebaseline", "--repo", str(repo), "--run-dir", str(run_dir), "--classes",
                "9,9,9"])
     assert rc == 2 and "outside the verifier's limits" in capsys.readouterr().err
+
+
+# -- slow is not stalled (M26c) --------------------------------------------------------------
+
+
+def _proposer_row(ledger: Ledger, rid: str, *, exit_code: int, wall: float, cost: float = 0.0,
+                  tokens_out: int = 0) -> None:
+    ledger.start_run(Run(run_id=rid, move="SAMPLE", role="proposer", model="fake",
+                         provider="fake", started=now_iso()))
+    ledger.finish_run(rid, exit_code=exit_code, wall_s=wall, cost_usd=cost,
+                      tokens_out=tokens_out)
+
+
+def test_unrecorded_estimate_charges_killed_calls_at_the_observed_rate(tmp_path):
+    lg = Ledger(tmp_path / "ledger.db")
+    assert cp.unrecorded_estimate(lg) == 0.0 and cp.killed_proposer_runs(lg) == []
+    _proposer_row(lg, "k1", exit_code=-9, wall=600.0)
+    assert cp.unrecorded_estimate(lg) == 0.0            # no successful call yet: no rate
+    _proposer_row(lg, "ok1", exit_code=0, wall=400.0, cost=2.0, tokens_out=32000)
+    _proposer_row(lg, "ok2", exit_code=0, wall=600.0, cost=3.0, tokens_out=45000)
+    usd_s, tok_s = cp.generation_rate(lg)
+    assert usd_s == pytest.approx(0.005) and tok_s == pytest.approx(77.0)   # 77000 / 1000
+    assert cp.unrecorded_estimate(lg) == pytest.approx(3.0)
+    assert [r[0] for r in cp.killed_proposer_runs(lg)] == ["k1"]
+    lg.close()
+
+
+class KillingClient(FakeLLMClient):
+    """Every call dies at the timeout: a killed runs row, no result."""
+
+    def __init__(self, timeout_s: float = 600.0) -> None:
+        super().__init__([])
+        self.timeout_s = timeout_s
+
+    async def complete_many(self, role, prompts, *, schema=None, ledger=None):
+        out = []
+        for prompt in prompts:
+            self.calls.append((role.name, prompt))
+            _proposer_row(ledger, f"proposer-{uuid.uuid4().hex}", exit_code=-9,
+                          wall=self.timeout_s)
+            out.append(None)
+        return out
+
+
+def test_campaign_stops_with_proposer_timeout_when_calls_die_at_the_timeout(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    client = KillingClient()
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=8, max_cost=10.0, k=2,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "proposer_timeout" and report.rounds == 2
+    assert report.timeouts == 4 and report.unrecorded_usd == 0.0   # no rate yet: nothing charged
+    events = [json.loads(line) for line in (run_dir / "campaign.jsonl").read_text().splitlines()]
+    rounds = [e for e in events if e["event"] == "round"]
+    assert [e["timeouts"] for e in rounds] == [2, 2]
+    assert events[-1]["reason"] == "proposer_timeout" and events[-1]["timeout_rounds"] == 2
+    assert events[-1]["timeouts"] == 4
+
+
+def test_budget_stop_counts_the_estimate_for_killed_calls(repo, tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    lg = Ledger(run_dir / "ledger.db")
+    _proposer_row(lg, "ok1", exit_code=0, wall=100.0, cost=1.0, tokens_out=8000)   # $0.01/s
+    _proposer_row(lg, "k1", exit_code=-9, wall=900.0)                                # charged $9
+    lg.close()
+    client = scripted(system_a().model_dump())
+    report = run(cp.run_campaign(client, repo, run_dir, max_rounds=3, max_cost=10.0, k=1,
+                                 classes=[(1, 1, 1)]))
+    assert report.stop_reason == "budget" and client.calls == []
+    assert report.spent_usd == pytest.approx(1.0) and report.unrecorded_usd == pytest.approx(9.0)
+    assert report.timeouts == 1
