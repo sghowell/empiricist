@@ -87,3 +87,12 @@ known to the model at every round, and each serious candidate leaves four claims
 passing system would establish is bounded exactly as before — sound, terminating, locally
 confluent at residual arity ≤ 2 within the stated depth, complete for the stated finite classes —
 and the critical-pair lemma for star rules remains the gap between that and a confluence proof.
+
+## Correction (2026-09-15)
+
+The spend figures above ($6.64, $9.60, $16.24) are *recorded* spend. Every call this note calls a
+hang or a stall was in fact killed by the transport at its own timeout while still generating
+(the proposals had outgrown 600 s at 78.5 output tokens/s), and a killed call records $0 while
+the API bills for what it generated. The conservative estimate for the fifteen killed calls of
+runs 1–3 is $71.78, for an effective $88 of the $100 authorised; the true figure is probably
+$50–65. See `docs/science/2026-09-15-p6-slow-is-not-stalled.md` (M26c).

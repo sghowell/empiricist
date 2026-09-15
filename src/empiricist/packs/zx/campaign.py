@@ -67,6 +67,7 @@ from empiricist.verifiers.base import VerifierResult
 PROBLEM = "P6"
 FORMULATION = "p6-zx-v2"
 ZERO_MODE = "recognised"
+KILLED_EXIT = -9                # the executor's exit code for a call killed at its timeout
 FRAGMENT = "clifford"
 EVIDENCE_ROOT = "claims/evidence/p6"
 ROLE = "proposer"
@@ -798,7 +799,9 @@ def build_prompt(
         "name> | {\"reverse\": <library name>} | <rule JSON> | <name of a rule proposed "
         "earlier>], \"measure\": [<components in order>], \"depth\": int 1.."
         f"{MAX_PROPOSED_DEPTH}, \"rationale\": str (why every rule is sound, why the measure "
-        "orients every rule, how the last witness is now handled; under 600 characters)}.\n"
+        "orients every rule, how the last witness is now handled; under 600 characters)}. "
+        "Reuse a rule listed under 'Inline rules proposed so far' by its name; never re-emit "
+        "its JSON. Give JSON only for a rule that is new.\n"
         f"nonce: {nonce}"
     )
 
@@ -839,6 +842,8 @@ class CampaignReport:
     claims: list[str]
     success: Evaluation | None
     history: list[Evaluation]
+    unrecorded_usd: float = 0.0     # the estimate for calls killed at the timeout (M26c)
+    timeouts: int = 0               # how many proposer calls the transport killed, in all
 
 
 def parse_proposal(result: LLMResult | None) -> SystemOut | str:
@@ -881,6 +886,43 @@ def _log(run_dir: Path, event: str, **fields: Any) -> None:
     with (Path(run_dir) / LOG_NAME).open("a", encoding="utf-8") as f:
         f.write(json.dumps({"ts": now_iso(), "event": event, **fields}, sort_keys=True,
                            separators=(",", ":")) + "\n")
+
+
+# ----------------------------------------------------------------------------- spend (M26c)
+
+
+def killed_proposer_runs(ledger: Ledger) -> list[tuple[str, float, str]]:
+    """(run_id, wall_s, started) of every proposer call the transport killed at its
+    timeout: exit code -9, no recorded cost, positive wall time. Such a call was billed
+    for whatever it generated before the kill; the ledger's `spent()` is a lower bound
+    without it (its docstring says so)."""
+    rows = ledger.conn.execute(
+        "SELECT run_id, wall_s, started FROM runs WHERE role = ? AND exit_code = ? "
+        "AND COALESCE(cost_usd, 0) = 0 AND COALESCE(wall_s, 0) > 0 ORDER BY started",
+        (ROLE, KILLED_EXIT)).fetchall()
+    return [(r["run_id"], float(r["wall_s"]), str(r["started"])) for r in rows]
+
+
+def generation_rate(ledger: Ledger) -> tuple[float, float]:
+    """(USD per second, output tokens per second) over the successful proposer calls of
+    this run directory -- total cost and total output tokens over total wall time, so a
+    short cache-heavy call does not skew the rate; (0, 0) before the first."""
+    r = ledger.conn.execute(
+        "SELECT COALESCE(SUM(cost_usd), 0) AS usd, COALESCE(SUM(tokens_out), 0) AS tok, "
+        "COALESCE(SUM(wall_s), 0) AS wall FROM runs WHERE role = ? AND cost_usd > 0 "
+        "AND COALESCE(wall_s, 0) > 0", (ROLE,)).fetchone()
+    if not r["wall"]:
+        return 0.0, 0.0
+    return r["usd"] / r["wall"], r["tok"] / r["wall"]
+
+
+def unrecorded_estimate(ledger: Ledger) -> float:
+    """A conservative charge for the killed proposer calls: each for its whole wall time
+    at the observed cost per second of generation (an upper bound, since generation may
+    have ended before the kill). Counted against `--max-cost` together with the
+    recorded spend."""
+    usd_per_s, _ = generation_rate(ledger)
+    return usd_per_s * sum(w for _, w, _ in killed_proposer_runs(ledger))
 
 
 def rebaseline(
@@ -934,11 +976,14 @@ async def run_campaign(
 ) -> CampaignReport:
     """Rounds of `k` proposals until a candidate passes every check on every class, the
     recorded spend in the run directory's ledger reaches `max_cost`, or `max_rounds` rounds
-    have run. The seed is evaluated first (no model call) unless the log already has it;
-    a duplicate rule set is fed back as such, never re-evaluated. A transport that returns
-    no artifact from every call of `max_empty_rounds` consecutive rounds (hung or
-    rate-limited calls) stops the run with `transport_stall` rather than spending the round
-    budget on nothing."""
+    have run. The spend compared with `max_cost` is the recorded spend plus
+    `unrecorded_estimate` for calls killed at the timeout (M26c). The seed is evaluated
+    first (no model call) unless the log already has it; a duplicate rule set is fed back
+    as such, never re-evaluated. A round whose calls all produced no artifact is *empty*;
+    `max_empty_rounds` consecutive empty rounds stop the run with `proposer_timeout` when
+    the transport killed calls at its timeout in each of them (the proposals outgrew the
+    timeout: raise it) and with `transport_stall` otherwise (hung or rate-limited calls),
+    rather than spending the round budget on nothing."""
     repo, run_dir = Path(repo), Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     role = ROLES[ROLE]
@@ -962,13 +1007,17 @@ async def run_campaign(
     rounds = max((e.round for e in history), default=0)
     stop = "rounds"
     empty_rounds = 0
+    timeout_rounds = 0
+    unrecorded = 0.0
+    killed: list[tuple[str, float, str]] = []
     winner: Evaluation | None = next((e for e in history if e.success), None)
     try:
         if winner is not None:
             stop = "success"
         while winner is None:
             spent = ledger.spent().cost_usd
-            if spent >= max_cost:
+            unrecorded = unrecorded_estimate(ledger)
+            if spent + unrecorded >= max_cost:
                 stop = "budget"
                 break
             if rounds >= max_rounds:
@@ -982,9 +1031,11 @@ async def run_campaign(
                 claims.extend(ev.claims)
                 _log(run_dir, "seed", round=0, evaluation=ev.to_json())
             rounds += 1
+            round_started = now_iso()
             prompts = [build_prompt(history, seed, classes, uuid.uuid4().hex, round_no=rounds,
                                     **budgets) for _ in range(k)]
             results = await client.complete_many(role, prompts, schema=SystemOut, ledger=ledger)
+            timeouts = sum(1 for _, _, s in killed_proposer_runs(ledger) if s >= round_started)
             artifacts = 0
             for slot in range(k):
                 result = results[slot] if slot < len(results) else None
@@ -1021,22 +1072,34 @@ async def run_campaign(
                 if ev.success and winner is None:
                     winner = ev
             spent = ledger.spent().cost_usd
-            _log(run_dir, "round", round=rounds, spent_usd=spent, proposals=k,
+            unrecorded = unrecorded_estimate(ledger)
+            _log(run_dir, "round", round=rounds, spent_usd=spent, unrecorded_usd=unrecorded,
+                 timeouts=timeouts, proposals=k,
                  evaluated=sum(1 for e in history if e.round == rounds and not e.skipped),
                  claims_total=len(claims), success=winner is not None)
             if winner is not None:
                 stop = "success"
-            empty_rounds = empty_rounds + 1 if artifacts == 0 else 0
+            empty = artifacts == 0
+            empty_rounds = empty_rounds + 1 if empty else 0
+            timeout_rounds = timeout_rounds + 1 if empty and timeouts > 0 else 0
+            if winner is None and timeout_rounds >= max_empty_rounds:
+                stop = "proposer_timeout"
+                break
             if winner is None and empty_rounds >= max_empty_rounds:
                 stop = "transport_stall"
                 break
         spent = ledger.spent().cost_usd
-        _log(run_dir, "stop", reason=stop, rounds=rounds, spent_usd=spent, claims=len(claims),
-             winner=winner.cid if winner else None, empty_rounds=empty_rounds)
+        unrecorded = unrecorded_estimate(ledger)
+        killed = killed_proposer_runs(ledger)
+        _log(run_dir, "stop", reason=stop, rounds=rounds, spent_usd=spent,
+             unrecorded_usd=unrecorded, timeouts=len(killed), claims=len(claims),
+             winner=winner.cid if winner else None, empty_rounds=empty_rounds,
+             timeout_rounds=timeout_rounds)
     finally:
         ledger.close()
     return CampaignReport(rounds=rounds, stop_reason=stop, spent_usd=spent, claims=claims,
-                          success=winner, history=history)
+                          success=winner, history=history, unrecorded_usd=unrecorded,
+                          timeouts=len(killed))
 
 
 __all__ = [
@@ -1045,7 +1108,8 @@ __all__ = [
     "MAX_PROPOSED_DEPTH", "PROBLEM", "PROMPT_BUDGET", "R0CORE", "ROLE", "SEED", "ZERO_MODE",
     "SEED_INLINE_RULES", "CampaignReport", "Class", "Evaluation", "InvalidSystem", "Step",
     "SystemOut", "build_prompt", "candidate_id", "canonical_order", "canonical_rule_json",
-    "class_name", "class_tag", "describe_system", "evaluate", "is_library", "load_history",
-    "parse_classes", "parse_proposal", "payload_specs", "rebaseline", "register",
-    "resolve_rules", "reversed_rule", "rules_payload", "run_campaign", "write_payloads",
+    "class_name", "class_tag", "describe_system", "evaluate", "generation_rate", "is_library",
+    "killed_proposer_runs", "load_history", "parse_classes", "parse_proposal", "payload_specs",
+    "rebaseline", "register", "resolve_rules", "reversed_rule", "rules_payload", "run_campaign",
+    "unrecorded_estimate", "write_payloads",
 ]

@@ -11,8 +11,10 @@ resume; it makes no model call. Exit status 0 when it ran (2 on a bad class list
 `--fake` runs the loop offline against a scripted `FakeLLMClient`: the file holds a JSON
 list whose entries are `SystemOut` objects (or null for a call that yields no artifact),
 consumed in order, one per proposal slot. Without it the real `ClaudeCodeClient` is used
-and every call is a `runs` row in `<run-dir>/ledger.db`, from which the cost cap is read.
-Exit status 0 when a candidate passed every check on every class, 1 otherwise.
+and every call is a `runs` row in `<run-dir>/ledger.db`, from which the cost cap is read
+(recorded spend plus the estimate for calls killed at the timeout, M26c). Exit status 0
+when a candidate passed every check on every class, 3 when the run stopped itself on
+`transport_stall` or `proposer_timeout`, 1 otherwise.
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ import json
 import sys
 from pathlib import Path
 
+from empiricist.ledger.db import Ledger
 from empiricist.llm.client import FakeLLMClient, LLMClient
 from empiricist.llm.models import LLMResult
 from empiricist.packs.zx.campaign import (
@@ -35,6 +38,7 @@ from empiricist.packs.zx.campaign import (
     CampaignReport,
     Evaluation,
     class_name,
+    generation_rate,
     parse_classes,
     rebaseline,
     run_campaign,
@@ -74,8 +78,10 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--k", type=int, default=2, help="proposals per round")
     c.add_argument("--fake", type=Path, default=None,
                    help="a JSON list of scripted proposals (offline, no model calls)")
-    c.add_argument("--proposer-timeout", type=float, default=600.0, dest="proposer_timeout",
-                   help="seconds per proposer call before the transport gives up on it")
+    c.add_argument("--proposer-timeout", type=float, default=1500.0, dest="proposer_timeout",
+                   help="seconds per proposer call before the transport kills it (a killed "
+                        "call is billed but records no cost; proposals run 20k-56k output "
+                        "tokens at ~78 tokens/s, so 600 s was too short)")
     c.add_argument("--max-empty-rounds", type=int, default=2, dest="max_empty_rounds",
                    help="consecutive rounds with no artifact from any call before the run "
                         "stops with transport_stall")
@@ -106,12 +112,24 @@ def _line(ev: Evaluation) -> str:
             f"[{steps}] claims={len(ev.claims)} {ev.seconds:.1f}s")
 
 
-def _print_report(report: CampaignReport, classes) -> None:
+def _print_report(report: CampaignReport, classes, run_dir: Path | None = None) -> None:
     for ev in report.history:
         print(_line(ev))
-    print(f"stop: {report.stop_reason} after {report.rounds} round(s); recorded spend "
-          f"${report.spent_usd:.4f}; {len(report.claims)} claim(s) minted; classes "
+    line = (f"stop: {report.stop_reason} after {report.rounds} round(s); recorded spend "
+            f"${report.spent_usd:.4f}")
+    if report.timeouts:
+        line += (f" (+${report.unrecorded_usd:.2f} estimated for {report.timeouts} call(s) "
+                 "killed at the timeout)")
+    print(line + f"; {len(report.claims)} claim(s) minted; classes "
           + ", ".join(class_name(c) for c in classes))
+    if report.stop_reason == "proposer_timeout" and run_dir is not None:
+        ledger = Ledger(run_dir / "ledger.db")
+        try:
+            _usd_s, tok_s = generation_rate(ledger)
+        finally:
+            ledger.close()
+        print("proposer_timeout: every call of the last rounds died at --proposer-timeout; "
+              f"raise it (measured generation rate {tok_s:.0f} output tokens/s)")
     if report.success is not None:
         print(f"winner: cand_{report.success.cid} -> " + ", ".join(report.success.claims))
 
@@ -134,10 +152,10 @@ def _cmd_campaign(args: argparse.Namespace) -> int:
         max_instances=args.max_instances, max_diagrams=args.max_diagrams,
         max_steps=args.max_steps, max_empty_rounds=args.max_empty_rounds,
     ))
-    _print_report(report, classes)
+    _print_report(report, classes, args.run_dir)
     if report.success is not None:
         return 0
-    return 3 if report.stop_reason == "transport_stall" else 1
+    return 3 if report.stop_reason in ("transport_stall", "proposer_timeout") else 1
 
 
 def _cmd_rebaseline(args: argparse.Namespace) -> int:
