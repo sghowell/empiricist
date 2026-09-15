@@ -52,3 +52,24 @@ and stand as such; the console is the only place the true number lives.
 `--max-cost 100 --proposer-timeout 1500`: with $88 effective spend the loop has room for two
 or three more rounds before the cap. Raising the cap is the author's call, informed by the
 console; the loop now reports what it cannot see.
+
+## Run 4 (2026-09-15, rounds 12–13): two rounds under the corrected cap, then `budget`
+
+| round | candidate | rules | certified | outcome | the calls |
+|---|---|---|---|---|---|
+| 12 | `cand_d6ab5ce3b3` | 44: the round-7 base plus two Euler moves (`euler_qq`, `euler_ss`), three Hadamard-on-a-graph-state moves (`hzq`, `hzt`, `hh_pi`) aimed at the two-output witness | sound (1,984 instances), terminating | **REFUTED** at local confluence, depth 5: `euler_qq` against `zp_t` has no common diagram within 5 steps (found at the 113th overlap) | one proposal of 106,496 output tokens in 1,441 s ($6.54); its sibling killed at 1,500 s |
+| 13 | `cand_b1435bf5cb` | 42: round 12 minus the two Euler moves, depth 6 | sound (1,982), terminating | **REFUTED** at local confluence, depth 6: `hh_pi` overlapping *itself* at the instance a₁ = 0, a₂ = 1 (found at the 4,351st overlap) | two identical proposals of 4–5k tokens in 50–65 s ($1.81, $1.75); the second a duplicate |
+
+Six claims (three per candidate; ledger 138, `check` green), no completeness progress: the model
+aimed at the copy-shaped witness with graph-state Hadamard moves and both times broke local
+confluence before the completeness check ran. The stop was `budget`: recorded $26.34, sixteen
+killed calls charged $84.28 at the now $0.0060/s weighted rate, $110.62 against the $100 cap.
+
+Two things worth knowing about the calls themselves. First, the deliberation varies by a factor
+of twenty between proposals of the same shape (106k tokens for the 44-rule system, 4–5k for the
+42-rule one), so no fixed timeout fits: the killed sibling in round 12 was almost certainly a
+second 100k-token deliberation, not a hang. Second, the killed calls are the dominant cost of
+this campaign under any accounting: sixteen of twenty-eight proposer calls died at a timeout.
+The remedy is not a longer timeout but a transport that reports tokens as they stream (so a
+killed call records what it cost) and a cap on deliberation in the role card; both are core
+changes and are recorded as follow-ups. Whether to fund more rounds is the author's call.
