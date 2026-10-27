@@ -10,10 +10,10 @@ the paper's tagged commit is named in the arXiv comments field. `SHA256SUMS` lis
 | The model characterization (`dh_characterization`), the forward direction (`dh_forward`, `dh_min_fusions`), the center-merge (`ghz3CenterMerge_iso_addFalseTwin`), the true-twin identity (`addPendant_localComplement_center`), the lower bound (`fusion_cost_lower_bound`), trees (`tree_min_fusions`) | `lean/EmpiricistLean/*.lean`, checked by `lean/Paper/LibraryAxioms.lean` | `lean/check_axioms.sh` |
 | Paths, stars, complete graphs, complete bipartite graphs | `lean/Paper/PathGraph.lean`, `Star.lean`, `Complete.lean`, `CompleteBipartite.lean` | `lean/check_axioms.sh` |
 | The over-approximating schedule model (`floor_schedule_iff_dh`, the remark after the proof of the main theorem) | `lean/Paper/FloorBridge.lean` | `lean/check_axioms.sh` |
-| Table I, the 585 orbits, distance-hereditary = extremal on every orbit | `data/tablebase.json` | `python3 scripts/table_facts.py data/tablebase.json` (standard library only); output in `scripts/table_facts.log` |
-| The nineteen exact values above the bound | `data/tablebase.json` (sixteen rows from Tier 1 and the bound), `data/certified_orbits/*` (the nine later constructions and their ledger records) | `scripts/replay_constructions.py` (needs the repository); output in `scripts/replay_constructions.log` |
-| Rank-width does not determine F above the bound | `data/tablebase.json` | `cd scripts && python3 rankwidth_check.py ../data/tablebase.json`; output in `scripts/rankwidth_check.log` |
-| Tier 1 is unchanged by single-qubit Cliffords on the fused qubits | `scripts/rotated_tier1.py` | needs the repository; output in `scripts/rotated_tier1.log` |
+| Table I, the 585 orbits, distance-hereditary = extremal on every orbit | `data/tablebase.json` | `python3 scripts/table_facts.py data/tablebase.json` (standard library only); output in `scripts/table_facts.out.txt` |
+| The nineteen exact values above the bound | `data/tablebase.json` (sixteen rows from Tier 1 and the bound), `data/certified_orbits/*` (the nine later constructions and their ledger records) | `scripts/replay_constructions.py` (needs the repository); output in `scripts/replay_constructions.out.txt` |
+| Rank-width does not determine F above the bound | `data/tablebase.json` | `cd scripts && python3 rankwidth_check.py ../data/tablebase.json`; output in `scripts/rankwidth_check.out.txt` |
+| Tier 1 is unchanged by single-qubit Cliffords on the fused qubits | `scripts/rotated_tier1.py` | needs the repository; output in `scripts/rotated_tier1.out.txt` |
 
 ## Lean
 

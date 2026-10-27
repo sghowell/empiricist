@@ -1,0 +1,9 @@
+P5.n6_orbit_0000000000f8         n=6 fusions=9 resources=8 -> PASS
+P5.n7_orbit_00000000009c         n=7 fusions=10 resources=9 -> PASS
+P5.n7_orbit_0000000000e8         n=7 fusions=10 resources=9 -> PASS
+P5.n8_orbit_0000000000b0         n=8 fusions=8 resources=8 -> PASS
+P5.n8_orbit_0000000000bc         n=8 fusions=8 resources=8 -> PASS
+P5.n8_orbit_0000000000d2         n=8 fusions=8 resources=8 -> PASS
+P5.n8_orbit_0000000000e8         n=8 fusions=8 resources=8 -> PASS
+P5.n8_orbit_0000000000f4         n=8 fusions=8 resources=8 -> PASS
+P5.n8_orbit_0000000000f4_2       n=8 fusions=8 resources=8 -> PASS
