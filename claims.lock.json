@@ -721,37 +721,37 @@
       }
     },
     "claims/evidence/p3_moment/k0_m4_p_avg_bound.json": {
-      "sha256": "93ac424e523cda48676a00577505f4929b5608bc5d72d96c566149fe74c74a85",
+      "sha256": "dd3b6ce9a76bcd9dc45a5ccb0b3261aed621a8bc17eb8faf3eb61449e13f9e1e",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a",
-          "golden_suite_hash": "9eab4d3da7d1b61605eb496d09465462cf997e5fb603f553c668133473f3e238",
+          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
           "version": "1.0"
         }
       }
     },
     "claims/evidence/p3_moment/k1_m5_p_avg_bound.json": {
-      "sha256": "aea2972861d4aea0369ae195a7bc5397c6fd802fdd0e677e3061253d92a68b9d",
+      "sha256": "ec1355e2d96cb525382c6394bfcd237a15d15df3e9ad99c916ae32c531e43263",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a",
-          "golden_suite_hash": "9eab4d3da7d1b61605eb496d09465462cf997e5fb603f553c668133473f3e238",
+          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
           "version": "1.0"
         }
       }
     },
     "claims/evidence/p3_moment/k1_m6_p_avg_bound.json": {
-      "sha256": "2b600a8eb3960e1ab3d823b40013639c445d30db55c7b9b38b5737de39737b31",
+      "sha256": "42909157e6e655f08eed76efbd5371b72b97cb87bc95f42570443f842e0458c3",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a",
-          "golden_suite_hash": "9eab4d3da7d1b61605eb496d09465462cf997e5fb603f553c668133473f3e238",
+          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
           "version": "1.0"
         }
       }
     },
     "claims/evidence/p3_moment/one_body_usd_lemma.json": {
-      "sha256": "c5f673a49ac3c1c866e5a62e27a522cdc0fc39af2722141cc5d993080657d15d",
+      "sha256": "4dcad293ce13e1e90ca2abc836617536517e685c12ed173cf9e4f63ae4d64de2",
       "verifiers": {
         "sos_certificate": {
           "binary_hash": "68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014",

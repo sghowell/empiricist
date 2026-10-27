@@ -9,6 +9,15 @@ evidence:
   verdict: PASS
   verifier: sos_certificate
   version: '1.0'
+- binary_hash: 68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014
+  golden_suite_hash: b3428ce273da423a6932d87eb956939c0d6eecd4ae694aebd9db9f6e193c4575
+  note: 'reverify; pack verifier details {"bound": "0", "detail": "", "failure": "",
+    "gram_dim": 128, "n_constraints": 18}'
+  path: claims/evidence/p3_moment/one_body_usd_lemma.json
+  stamped: '2026-10-27T02:41:39+00:00'
+  verdict: PASS
+  verifier: sos_certificate
+  version: '1.0'
 formulation_version: p3-sos-certificate-v1
 id: P3.one_body_usd_lemma
 kind: statement

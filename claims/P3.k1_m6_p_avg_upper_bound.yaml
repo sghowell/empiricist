@@ -10,6 +10,15 @@ evidence:
   verdict: PASS
   verifier: p3_moment_bound
   version: '1.0'
+- binary_hash: 53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3
+  golden_suite_hash: e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685
+  note: 'reverify; pack verifier details {"bound": "2/3", "detail": "96 identities;
+    bound 2/3", "failure": ""}'
+  path: claims/evidence/p3_moment/k1_m6_p_avg_bound.json
+  stamped: '2026-10-27T02:41:38+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.0'
 formulation_version: p3-moment-bound-v1
 id: P3.k1_m6_p_avg_upper_bound
 kind: statement
