@@ -1,0 +1,70 @@
+{
+  "claim_id": "P3.one_body_usd_lemma",
+  "closes": [],
+  "created": "2026-10-27T02:27:50+00:00",
+  "evidence_sha256": [
+    "c5f673a49ac3c1c866e5a62e27a522cdc0fc39af2722141cc5d993080657d15d"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "blocking",
+      "text": "The final clause of the bound text, \"the bound is attained at a = b = |0>, s_A = s_B\", has no evidence on record: the certificate proves only the inequality (\"objective = sum_B lam_B - sA - sB - 4c; bound = 0\" establishes an upper bound, never equality), the evidence's own \"statement\" field contains no attainment text, and \"verification_boundary\" discloses no written analytic step covering attainment. CERTIFIED binds the receipt to the full exact statement text, so one clause sits outside both machine replay and the disclosed boundary; the certificate does not establish THIS statement. [Statement final sentence vs claims/evidence/p3_moment/one_body_usd_lemma.json fields \"objective_and_bound\", \"statement\", \"verification_boundary\"]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "blocking",
+      "text": "Charter section 3 requires CERTIFIED evidence to be \"a certificate that a certified verifier replays with PASS\". The committed declaration for the sole evidence line reads \"sos_certificate: not a command verifier declared in this repository; registry stamp v1.0\", and the replay record carries \"argv=None cwd=None exit=None env_sha256=None\". No committed artifact establishes that the PASS was produced by a certified verifier, nor how the replay was executed; the defining precondition of the target level cannot be attested from the record. [\"Verifiers named above\" entry for sos_certificate; evidence entry note on claims/evidence/p3_moment/one_body_usd_lemma.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "The text the checked artifact binds internally diverges from the ledger statement precisely where the ledger claims most: the JSON \"statement\" field carries only the inequality (alpha/beta naming, no \"(that is, is positive semidefinite)\" gloss, no \"Exact SOS certificate over 47 real variables; the bound is attained...\" sentence). The ledger text also embeds evidence metadata (\"Exact SOS certificate over 47 real variables\") inside the statement the receipt must bind. Additionally, Notes name the builder \"certificates/p3_moment.py\" while about.builder records \"src/empiricist/certificates/p3_moment.py\". [one_body_usd_lemma.json \"statement\" field vs ledger Statement; Notes builder path vs about.builder]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "The attainment clause names only \"a = b = |0>, s_A = s_B\" with no witness values for lambda_B, c, W and no sign condition, while the statement quantifies s_A, s_B over all reals. Any equality point with a = b = |0> must satisfy Tr(Y E) = 0 for the dual Y = diag(0,1,1,2), forcing E = 2 s_A |00><00| with lam_phi\u00b1 = c and lam_psi\u00b1 = s_A + c, hence s_A = s_B >= 0. The scope condition s_A = s_B >= 0 (and the witnessing multiplier values) is a hidden hypothesis missing from the clause as written. [Statement phrase \"attained at a = b = |0>, s_A = s_B\"]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "The disclosed boundary delegates hypothesis-encoding correctness to \"the builder's contract, pinned by tests/test_p3_moment.py\" (20 random points at 1e-10 plus corruption rejections) and Notes cite \"docs/science/2026-10-26-p3-moment-bounds.md\", but neither artifact nor any hash of them appears in the evidence record, so the contract leg of the boundary is asserted rather than auditable from the ledger. (Independent spot-check against the record: the 18 constraints, the objective, the Bell entries in {0, \u00b11/2}, all 18 multipliers against Y = |a_perp><a_perp|(x)I + I(x)|b_perp><b_perp|, and the two norm-constraint multipliers reproduce the stated encoding and the scalar identity exactly \u2014 the defect is auditability of the pinning artifacts, not encoding correctness.) [one_body_usd_lemma.json \"verification_boundary\" (tests/test_p3_moment.py reference); Notes science-note path]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "warning",
+      "text": "A level names the strongest evidence for the exact statement text as a whole. The strongest on-record evidence for the final sentence is none (statement-only, HEURISTIC-grade under charter section 3), while the inequality alone carries certificate-grade evidence; granting CERTIFIED to the composite text overclaims what the evidence warrants. [\"promotion requested: CERTIFIED\" against Statement final sentence and charter section 3 level definitions]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The PASS stamp \"2026-10-27T02:11:17+00:00\" post-dates, in UTC, the 2026-10-26 date of the promotion request and of the cited science note; with argv/cwd/exit/env_sha256 all None, the stamp's clock provenance cannot be cross-checked against any execution record (a timezone offset could explain it, but nothing on record does). [Evidence entry timestamp for claims/evidence/p3_moment/one_body_usd_lemma.json; Notes science-note date]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "\"(two qubits, Bell basis)\" and \"the four Bell states B\" leave the basis convention implicit in the statement; the certificate fixes one convention (\"|B> are (|00> +- |11>)/sqrt2 and (|01> +- |10>)/sqrt2\", index \"2j + k\", \"the repo's dual-rail Bell states\") and checks only that convention. [Statement phrase \"(two qubits, Bell basis)\" vs one_body_usd_lemma.json \"variables\" and \"verification_boundary\"]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "warning",
+      "text": "With the sole verifier undeclared in-repo and one clause of the bound text outside the disclosed verification boundary, the CERTIFIED gate \u2014 certified-verifier replay plus a receipt attesting the certificate establishes THIS statement within its disclosed boundary \u2014 is not satisfiable for this text now. The record (Notes, empty dependency list) shows no coupling or deadline that makes promotion at this time necessary rather than premature. [\"promotion requested: CERTIFIED\"; charter section 3 CERTIFIED clause; \"Verifiers named above\" entry; Dependencies \"(none)\"]"
+    }
+  ],
+  "id": "P3.one_body_usd_lemma.20261027.model.2",
+  "provenance": {
+    "cost_usd": "2.6456",
+    "model": "claude-fable-5",
+    "request_digest": "7b250462a30430a2902a1f43a704957e62df47c169db766841b763d585ebe927",
+    "response_digest": "f08f1ffb32de46c42759b2cfe543c89b775fbd273fa14c6106139d99d0cf7033",
+    "run_id": "review-P3.one_body_usd_lemma-e4f304-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "4f658ed4e8292eb803690d3e62f86984998350470b7e20792a98956ae3cacffb",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "BLOCK",
+  "waivers": []
+}

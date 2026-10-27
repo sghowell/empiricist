@@ -1,0 +1,75 @@
+{
+  "claim_id": "P3.k1_m5_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T02:37:36+00:00",
+  "evidence_sha256": [
+    "aea2972861d4aea0369ae195a7bc5397c6fd802fdd0e677e3061253d92a68b9d"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "blocking",
+      "text": "Promotion to CERTIFIED exceeds the charter's level cap: the sole dependency P3.one_body_usd_lemma is recorded at CONJECTURED, and section 3 states a claim's level may not exceed the lowest level among the claims it depends on; CERTIFIED > CONJECTURED. The evidence's internal re-check of the lemma certificate (machine_checked item (a)) does not change the dependency's recorded level. [Dependencies entry \"P3.one_body_usd_lemma [CONJECTURED, standing CHALLENGED]\" vs header \"promotion requested: CERTIFIED\"; charter rule \"A claim's level may not exceed the lowest level among the claims it depends on.\"]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "blocking",
+      "text": "The dependency lemma is load-bearing \u2014 the written step \"the lemma gives tr Lambda_i <= s_A(i) + s_B(i) + 4 c_i\" is the only route from the machine-checked identities to the bound \u2014 and that lemma's standing is CHALLENGED. While the challenge is open, a review receipt attesting that this certificate establishes the statement cannot be issued, so the promotion cannot happen now regardless of this claim's own evidence. [Dependency standing \"[CONJECTURED, standing CHALLENGED]\"; evidence JSON about.written_steps, step \"the lemma gives tr Lambda_i <= s_A(i) + s_B(i) + 4 c_i\".]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "blocking",
+      "text": "CERTIFIED names \"a certificate that a certified verifier replays with PASS\", but the recorded verifier p3_moment_bound is \"not a command verifier declared in this repository\" (registry stamp only), and the PASS record carries argv=None cwd=None exit=None env_sha256=None. Although the binary_hash in the evidence entry matches the registry stamp hash (8e5c8c5d...978f7a), there is no committed command, invocation, or environment record from which the claimed replay can be reproduced or audited, so the certified-replay leg of the level is not evidenced. [Verifier declaration \"p3_moment_bound: not a command verifier declared in this repository\"; evidence entry note \"argv=None cwd=None exit=None env_sha256=None\" for claims/evidence/p3_moment/k1_m5_p_avg_bound.json.]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "The statement's final clause \"hence the problem's p = min_B p_B is at most 2/3 as well\" lies outside the certificate's disclosed content: the evidence's own statement field stops at \"(1/4) sum_B p_B <= 2/3\", and the min<=average inference appears in neither about.machine_checked nor about.written_steps. The charter permits written analytic steps only when disclosed in the evidence; this step is undisclosed, so the certificate as recorded does not cover the full bound statement text. [Evidence JSON about.statement (\"...(1/4) sum_B p_B <= 2/3.\") vs claim statement clause \"hence the problem's p = min_B p_B is at most 2/3 as well\".]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "The disclosed derivation has labeling gaps indicating missing content: about.written_steps runs \"Step 1\", \"Step 2\", then \"Step 5\" with no Steps 3-4, and machine_checked item (b) announces \"two polynomial identities\" labeled \"(I1)\" and \"(I3)\" with no \"(I2)\". The record therefore cannot confirm that the disclosed verification boundary (machine checks plus written steps) is the complete argument rather than an excerpt. [Evidence JSON about.written_steps labels \"Step 2:\" then \"Step 5:\"; about.machine_checked item (b) labels \"(I1)\" and \"(I3)\".]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "In \"hence the problem's p = min_B p_B is at most 2/3 as well\", the referent of \"the problem's p\" carries no architecture scope words, while the evidence covers only one ancilla photon and five modes (fields \"k\":1, \"m\":5). The clause silently assumes the problem's optimization ranges over exactly the U(5), k=1 class quantified earlier in the sentence; if formulation p3-moment-bound-v1 defines p over any wider resource class, the clause overreaches the evidence. [Statement phrase \"the problem's p = min_B p_B\"; evidence JSON fields \"k\":1 and \"m\":5.]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "Two conventions the bound depends on are fixed only in the evidence, not in the statement text: the rail convention (qubit A = columns U_i0,U_i1, qubit B = columns U_i2,U_i3, ancilla weight c_i = |U_i4|^2) and the allowance of unassigned/inconclusive patterns (Step 1's \"D_i - Lambda_i = sum_{other n} n_i G(n)\" treats non-assigned patterns as permitted), whereas the statement reads as quantifying over assignments of \"the three-photon detection patterns\" without stating partial assignments are in scope. [Evidence JSON about.machine_checked item (b) (\"c_i = |U_i4|^2\", \"qubit A's rails\") and about.written_steps Step 1, vs statement phrase \"every unambiguous assignment of the three-photon detection patterns\".]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "warning",
+      "text": "CERTIFIED overstates the strongest evidence on record: the pivotal inequality is imported from a lemma whose strongest recorded evidence is CONJECTURED (replayed, unreviewed, and currently challenged), and the entire bridge from the machine-checked polynomial identities to the probability bound lives in non-machine-checked written_steps. A level is \"the strongest machine or review evidence on record\"; this record supports at most the dependency's level for the chain as a whole. [Dependency level \"[CONJECTURED, standing CHALLENGED]\"; evidence JSON split between about.machine_checked and about.written_steps.]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The PASS is stamped 2026-10-27T02:11:56+00:00, which postdates the review date 2026-10-26 under the ledger's own UTC convention; the recorded run cannot be ordered before this review without unstated local-clock assumptions. [Evidence entry timestamp \"PASS at 2026-10-27T02:11:56+00:00\" for claims/evidence/p3_moment/k1_m5_p_avg_bound.json.]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "about.science_note cites \"docs/science/2026-10-26-p3-moment-bounds.md\", which is not among the evidence files on record for this promotion, so the cited supporting document cannot be checked against the receipt. [Evidence JSON about.science_note field.]"
+    }
+  ],
+  "id": "P3.k1_m5_p_avg_upper_bound.20261027.model.2",
+  "provenance": {
+    "cost_usd": "2.0057",
+    "model": "claude-fable-5",
+    "request_digest": "b4ec6808d3306c712c487a13ba380f3ec4d375e35c5eb3ac69d903e20c507c2c",
+    "response_digest": "27d6603f2afff0188523d1e2be232e2e3fea2a44dde5aef11276e22fbea0d48d",
+    "run_id": "review-P3.k1_m5_p_avg_upper_bound-e2305b-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "2dae77d22e3dc63ad874ba29ac7ae1a694486f2f7a876006c0b0bb874882fa33",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "BLOCK",
+  "waivers": []
+}
