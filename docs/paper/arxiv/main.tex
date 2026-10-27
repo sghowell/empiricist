@@ -38,18 +38,19 @@ states by destructive two-qubit measurements called fusions. We study the minimu
 fusions needed to produce the graph state of a graph $G$ on $n$ vertices from three-qubit
 Greenberger-Horne-Zeilinger states, with Bell-type fusions on arbitrary pairs of qubits and free
 single-qubit Clifford operations. We prove that $\F(G)\ge n+3\,\rw(G)-6$ for every connected graph
-on $n\ge 3$ vertices, where $\rw(G)$ is the rank-width. The proof bounds the Schmidt rank of the
-output across each cut of a tree decomposition by the cycle rank of the network formed by the
-resources and the fusions. The bound is attained at rank-width one, and $\F(G)=n-3$ holds if and only
-if $G$ is distance-hereditary. Both directions of this characterization can be assembled from
-published results on Schmidt-rank width and split decompositions, but we have not found it stated,
-and the graph-theoretic core of its constructive direction is verified in Lean 4. An exhaustive
+on $n\ge 3$ vertices, where $\rw(G)$ is the rank-width. The proof turns a spanning tree of the
+network formed by the resources and the fusions into a rank decomposition of $G$ and bounds the Schmidt
+rank of the output across each of its cuts in terms of the cycle rank of the network. The bound is
+attained at rank-width one, so that for $n\ge 3$ we have $\F(G)=n-3$ if and only if $G$ is
+distance-hereditary. Both directions of this characterization can be assembled from published results
+on Schmidt-rank width and split decompositions, although we have not found it stated in the literature.
+The graph-theoretic core of its constructive direction is verified in Lean 4. An exhaustive
 search over the 585 connected local-complementation orbits on three to nine vertices, with every
 construction checked by two independently implemented stabilizer simulators, gives nineteen exact
 values of $\F$ above the minimum. The sixteen orbits with $\F=n$ attain the rank-width bound, whereas
-three orbits of rank-width two require $n+3$ fusions, so the fusion cost is not determined by
-rank-width. For 25 orbits of rank-width three whose minimum is not known, the bound raises the lower
-bound from $n$ to $n+3$.
+three orbits of rank-width two require $n+3$ fusions, so above rank-width one the fusion cost is not
+determined by rank-width. For 25 orbits of rank-width three whose minimum is not known, we improve the
+lower bound from $n$ to $n+3$.
 \end{abstract}
 
 \maketitle
@@ -61,12 +62,13 @@ identical entangled resource states that are joined by fusions, destructive join
 qubits~\cite{Bartolucci2023fusion}. The three-qubit Greenberger-Horne-Zeilinger (GHZ) state is a basic
 resource in several photonic proposals~\cite{GimenoSegovia2015three,Zaidi2015near}, and the number of
 fusions is a main cost in such architectures, which raises the question of how few fusions suffice to
-prepare a given entangled state. For graph states, the stabilizer states associated with simple
-graphs~\cite{Hein2004multiparty,Hein2006entanglement}, this becomes a combinatorial optimization over
-graphs. It has been approached with graph-theoretical heuristics for GHZ resources~\cite{Lee2023graph},
+prepare a given entangled state. For graph states, the stabilizer states in one-to-one correspondence
+with simple graphs~\cite{Hein2004multiparty,Hein2006entanglement}, this becomes a combinatorial
+optimization over graphs. It has been approached with graph-theoretical heuristics for GHZ resources~\cite{Lee2023graph},
 with dynamic programming over local-complementation orbits for caterpillar states produced by a single
 quantum emitter~\cite{Lobl2025generating}, and through the design of fusion networks built from linear
-cluster states and other small motifs~\cite{Staudacher2026adaptive,Cashman2025finding,Ji2026towards}.
+cluster states~\cite{Staudacher2026adaptive,Cashman2025finding} or from ring, star and linear motifs joined
+by type-I fusion~\cite{Ji2026towards}.
 
 We take the resource to be the three-qubit GHZ state, whose graph is the path $P_3$. A fusion is the
 destructive measurement of a commuting pair of two-qubit Pauli operators that distinguishes the four Bell
@@ -97,18 +99,23 @@ fusion cost to an entanglement measure of $|G\rangle$ that is invariant under lo
 
 Kumabe, Mori and Yoshimura~\cite{Kumabe2026complexity} proved the analogous results for Clifford
 circuits, where preparing a connected graph state requires at least $n+\rw(G)-2$ two-qubit gates, and
-exactly $n-1$ when the rank-width is one. For caterpillar resources, L\"obl
-\emph{et al.}~\cite{Lobl2025generating} showed that the number of fusions is at least the linear
-rank-width minus one. Theorem~\ref{thm:rw} is the counterpart of these bounds for fusions of GHZ states.
+exactly $n-1$ when the rank-width is one. For caterpillar states produced by a single quantum emitter,
+L\"obl \emph{et al.}~\cite{Lobl2025generating} computed the exact minimum number of fusions for all graph
+states on up to eight qubits and showed that it is at least the linear rank-width minus one. The graphs
+that need no fusion in their model are those locally equivalent to caterpillars, which are the connected
+graphs of linear rank-width one~\cite{BuiXuan2013note}, and both the minimum fusion counts and the class
+of graphs at the minimum differ from ours. Theorem~\ref{thm:rw} is the counterpart of these two bounds for
+fusions of three-qubit GHZ states.
 Both directions of Theorem~\ref{thm:main} can also be assembled from published results. The implication
 from $\F(G)=n-3$ to distance-heredity follows from the equality of Schmidt-rank width and
-rank-width~\cite{VandenNest2007classical} once one observes that the fusion network of an optimal
-schedule is a tree. The converse follows from the pendant-and-twin construction of Bandelt and
+rank-width~\cite{VandenNest2007classical} once one observes that the fusion network of a schedule with
+$n-3$ fusions is a tree. The converse follows from the pendant-and-twin construction of Bandelt and
 Mulder~\cite{Bandelt1986distance} together with the graph rule for fusion~\cite{Zaidi2015near,Lee2023graph},
 or from the construction of distance-hereditary graph states by fusions along their split decomposition
 by Connolly \emph{et al.}~\cite{Connolly2026efficient}, combined with the preparation of star graph states
-from GHZ states by Lee and Jeong~\cite{Lee2023graph}. We have not found Theorem~\ref{thm:main}, the bound
-of Theorem~\ref{thm:rw}, or exact minimum fusion counts for this model in the literature.
+from GHZ states by Lee and Jeong~\cite{Lee2023graph}. We make the characterization explicit for this
+resource model and prove the more general bound of Theorem~\ref{thm:rw}, and we have not found either
+statement, or a classification of minimum fusion counts in this model, in the literature.
 
 Other preparation costs have been studied in related settings. Davies and Jena~\cite{Davies2025preparing}
 bound the number of two-qubit gates needed to prepare graph states from classes closed under
@@ -127,7 +134,7 @@ particular targets~\cite{Dahlberg2020how,Dahlberg2020transforming}. Counting the
 an orbit under local complementation alone, without identifying isomorphic graphs, is
 \#P-complete~\cite{Dahlberg2020counting}. For distance-hereditary graphs, Connolly, Nishio and
 Nemoto~\cite{Connolly2026local} derived the sizes of the local-equivalence classes of several families.
-The local-equivalence classes of graph states were classified by Hein
+The local-complementation orbits of graph states were classified by Hein
 \emph{et al.}~\cite{Hein2004multiparty} for $n\le 7$ and by Danielsen and
 Parker~\cite{Danielsen2006classification} for $n\le 12$, and they were mapped by Adcock
 \emph{et al.}~\cite{Adcock2020mapping}.
@@ -139,14 +146,16 @@ been verified with the Lean~4 proof assistant~\cite{deMoura2021lean} and its mat
 library~\cite{Mathlib2020lean}. The Lean development shows that a graph on $k+3$ vertices is reachable
 from $P_3$ by $k$ pendant and false-twin additions interleaved with local complementations if and only if
 it belongs to the class generated from the connected three-vertex graphs by pendant and twin additions and
-local complementation, which is the class of connected distance-hereditary graphs on at least three
-vertices (Sec.~\ref{sec:lean}). In Sec.~\ref{sec:table} we report an exhaustive search over the $585$
+local complementation (Sec.~\ref{sec:lean}). By results of Bandelt and Mulder~\cite{Bandelt1986distance}
+and of Oum~\cite{Oum2005rank}, which are not part of the formalization, this class consists of the
+connected distance-hereditary graphs on at least three vertices. In Sec.~\ref{sec:table} we report an exhaustive search over the $585$
 connected local-complementation orbits with $3\le n\le 9$, which agrees with Theorem~\ref{thm:main} on
-every orbit and determines nineteen values of $\F$ above the minimum. The characterization was first
-conjectured by a language model from the labeled orbits with $3\le n\le 7$, within an automated system
-that accepts a claim only after machine verification, and the same model wrote the Lean proofs. Given the
-results cited above, the characterization is within reach of standard techniques, and we describe how it
-was found in Sec.~\ref{sec:method}.
+every orbit and determines nineteen values of $\F$ above the minimum. The search was run with an
+automated system that accepts a claim only after machine verification. The coding assistant used to build
+the system first noticed the characterization in the table of all $585$ orbits, and a language model
+working within the system then re-derived it from the labeled orbits with $3\le n\le 7$ alone and wrote
+the Lean proofs. A specialist could derive the characterization from the results cited above without
+difficulty, and Sec.~\ref{sec:method} describes how it was found.
 
 \section{Graph states and fusions}\label{sec:model}
 
@@ -179,8 +188,8 @@ pairs of qubits, with arbitrary single-qubit Clifford gates, and it produces $G$
 outcome the state of the surviving qubits is $\LC$-equivalent to $|G\rangle$. The outcomes of a fusion on a
 stabilizer state give post-measurement states that differ by Pauli
 operators~\cite{Lee2023graph,Lobl2025transforming}, so this condition does not depend on the outcomes. We
-therefore treat fusions as deterministic and leave the probabilistic success of linear-optical
-fusion~\cite{Browne2005resource} to a layer above the present problem. The cost of a schedule is its number
+therefore treat fusions as deterministic and do not model the probabilistic success of linear-optical
+fusion~\cite{Browne2005resource}. The cost of a schedule is its number
 of fusions, and $\F(G)$ is the least cost of a schedule that produces $G$.
 
 \begin{lemma}[Fusion of disjoint graph states]\label{lem:merge}
@@ -226,8 +235,8 @@ is connected. The same count over all of $H$, whose other components have all th
 $3g-2f=n$ and hence $f\equiv n\pmod 3$.
 \end{proof}
 
-A counting form of the bound, in a model of schedules that also tracks fusions which split or consume a
-component, is the Lean theorem \code{fusion\_cost\_lower\_bound}.
+The Lean theorem \code{fusion\_cost\_lower\_bound} proves a counting form of this bound in a merge model of
+schedules that also tracks fusions which split or consume a component.
 
 \section{The rank-width bound and the characterization}\label{sec:main}
 
@@ -259,7 +268,7 @@ of $G$, once the surviving qubits are identified with the vertices of $G$.
 Each edge of $T'$ arises from a path in $T$, and all edges of that path induce the same cut of the
 surviving qubits. If the path is a single leaf edge, the cut separates one vertex and has cut-rank at most
 one. Otherwise the path contains an edge $e$ of $S$. Removing $e$ splits the resources of $H_0$ into two
-sets $X$ and $Y$, and the surviving qubits into $A$ and $B$, and the fusions joining $X$ and $Y$ are $e$
+sets $X$ and $Y$ and the surviving qubits into $A$ and $B$. The fusions joining $X$ and $Y$ are $e$
 together with some of the $t$ fusions outside $S$. After contracting the fusions inside $X$ and inside $Y$,
 each remaining bra $\langle\beta|$ is a two-qubit state and hence a sum of two product bras. Expanding them
 writes $\psi$ as a sum of at most $2^{1+t}$ products of a state on $A$ and a state on $B$, so the Schmidt
@@ -269,7 +278,7 @@ $\rw(G)\le 1+t$, and Proposition~\ref{prop:count} gives $\F(G)=f\ge n-3+3t\ge n-
 \end{proof}
 
 The argument is the fusion analogue of bounding the Schmidt-rank width of a tensor network by its bond
-structure~\cite{VandenNest2006universal,VandenNest2007classical}, and it is close in spirit to the bound
+structure~\cite{VandenNest2006universal,VandenNest2007classical}. It is related to the bound
 $\F\ge\mathrm{lrw}(G)-1$ in terms of the linear rank-width in Ref.~\cite{Lobl2025generating} and to the gate
 bound of Ref.~\cite{Kumabe2026complexity}. Since only the cycle rank of the fusion network enters, the bound
 holds for any destructive two-qubit measurement with pure outcomes, of which Bell-type fusions are a special
@@ -290,7 +299,7 @@ with $n-3$ fusions, and Proposition~\ref{prop:count} gives $\F(G)=n-3$.
 At the minimum, the proof of Theorem~\ref{thm:rw} shows that $t=0$, so the fusion network is a tree on
 $n-2$ resources whose $n-3$ fusions each join two components. The constructive direction can also be
 obtained from the split decomposition. Every node of the split decomposition of a distance-hereditary graph
-is a star or a complete graph~\cite{Bouchet1988transforming,Hammer1990completely,Gioan2012split}, Connolly
+is a star or a complete graph~\cite{Bouchet1988transforming,Hammer1990completely,Gioan2012split}. Connolly
 \emph{et al.}~\cite{Connolly2026efficient} assemble the graph state from the graph states of the nodes by
 type-II fusions along the split tree, and Lee and Jeong~\cite{Lee2023graph} build an $m$-vertex star from
 $m-2$ GHZ states with $m-3$ fusions. Together these again use $n-2$ resources and $n-3$ fusions.
@@ -336,19 +345,19 @@ Theorem~\ref{thm:model} to a schedule model with one additional constructor, whi
 graph by an arbitrary graph with two fewer vertices at the cost of one fusion. This over-approximates a
 fusion of two qubits of the same component, and at the minimum a count of vertices excludes it.
 
-Before the general theorem, the development proves constructions at the minimum for several families, each
-stated together with the general lower bound so that no family theorem can hold vacuously. Paths, stars
-and all trees are handled by induction on the removal of leaves, $K_n$ is one local complementation away
-from a star, and $K_{m,n}$ is three local complementations away from a double star. All of these graphs are
+Before the general theorem, the development treats several families separately. For each family, the
+Lean theorem states both the general lower bound and the existence of a construction that attains it.
+Paths, stars and all trees are treated by induction on the removal of leaves. One local complementation
+turns a star into $K_n$, and three local complementations turn a double star into $K_{m,n}$. All of these graphs are
 distance-hereditary.
 
 \begin{remark}\label{rem:concrete}
 Although every statement about $\F$ is invariant under local complementation, the inductions cannot be
 carried out on $\sim_{\LC}$ classes, because pendant addition does not descend to them. The graphs $P_3$
-and $K_3$ are $\LC$-equivalent, yet a pendant at the center of $P_3$ gives the four-vertex star, while a
-pendant at a vertex of $K_3$ gives the paw, which is $\LC$-equivalent to the path $P_4$ and not to the star.
-The development therefore carries concrete graphs through every induction and applies local
-complementation only where it is needed. An earlier production model contained only the leaf-merge and
+and $K_3$ are $\LC$-equivalent. A pendant at the center of $P_3$ gives the four-vertex star, whereas a
+pendant at a vertex of $K_3$ gives the paw, which is $\LC$-equivalent to the path $P_4$ and lies in a
+different orbit from the star. The development therefore carries concrete graphs through every induction
+and applies local complementation as an explicit step. An earlier production model contained only the leaf-merge and
 therefore generated only trees. It reaches the minimum only on the local-complementation classes of trees,
 which make up $93$ of the $175$ distance-hereditary orbits with $3\le n\le 9$, one for each tree on $3$ to
 $9$ vertices, since locally equivalent trees are isomorphic~\cite{Bouchet1988transforming}. Adding the
@@ -369,16 +378,18 @@ and grow a single component, and that single-qubit Cliffords on the qubits of a 
 local complementations. Every fusion in the search is computed in the fixed basis of Sec.~\ref{sec:model}.
 For the single fusion inside the component in Tier~1 we repeated the search with each of the six classes of
 single-qubit Clifford on one of the two fused qubits, which together with the symmetry of the measured pair
-covers all choices on both qubits, and for $n\le 5$ we tried all $36$ pairs. No orbit changed.
+covers all choices on both qubits, and for $n\le 5$ we tried all $36$ pairs. The additional Clifford
+choices did not change the set of orbits reached by Tier~1.
 
-Each recorded construction is replayed by two stabilizer simulators with independent implementations of
-fusion and of graph extraction, a tableau simulator built on \textsc{stim}~\cite{Gidney2021stim} and an
-implementation over $\mathrm{GF}(2)$. The two share the code that replays a construction, the graph-level
+Each recorded construction is replayed by two stabilizer simulators, a tableau simulator built on
+\textsc{stim}~\cite{Gidney2021stim} and an implementation over $\mathrm{GF}(2)$, whose implementations of
+fusion and of graph extraction are independent. The two share the code that replays a construction, the graph-level
 local complementation and the canonicalization of orbits, which uses \textsc{nauty}~\cite{McKay2014practical}.
 The closed-form merge rule used in the inner loop of the search agrees with both simulators on randomized
-inputs. The resulting table has one row for each of the $585$ orbits, with an orbit representative and
-either an exact value with a witness schedule or a lower bound, and it is stored as a single
-content-addressed file. Nine exact values above the minimum were added later from constructions proposed
+inputs. The resulting table has one row for each of the $585$
+orbits, giving an orbit representative and either an exact value with a witness schedule or a lower
+bound. Following Ref.~\cite{Lobl2025generating} we call it a tablebase, and it is stored as a single file
+identified by a hash of its contents. Nine exact values above the minimum were added later from constructions proposed
 by the language model.
 
 \begin{table}[t]
@@ -402,8 +413,8 @@ open orbits with $n=7$ have $\F\ge n+3$ from the exhaustive Tier~1 search.}
 \label{tab:counts}
 \end{table}
 
-Table~\ref{tab:counts} summarizes the results. An independent pendant-and-twin elimination~\cite{Bandelt1986distance}
-on all $585$ representatives confirms that the orbits with $\F=n-3$ are exactly the distance-hereditary
+Table~\ref{tab:counts} gives the number of orbits in each class. An independent pendant-and-twin
+elimination~\cite{Bandelt1986distance} on all $585$ representatives confirms that the orbits with $\F=n-3$ are exactly the distance-hereditary
 ones. Nineteen orbits have exact values above the minimum. For the sixteen orbits with $\F=n$, the upper
 bounds come from constructions and the lower bounds from Theorem~\ref{thm:main}. The three orbits with
 $\F=n+3$ are a six-vertex orbit with $\F=9$, realized with eight resources, nine fusions and three local
@@ -414,40 +425,41 @@ To test the rank-width bound, we computed the rank-width of every orbit above th
 enumerating all rank decompositions. Every orbit with $n\le 7$ that is not distance-hereditary has
 rank-width two, and so do all sixteen orbits with $\F=n$, which therefore attain the bound $\F\ge n$ of
 Theorem~\ref{thm:rw}. The three orbits with $\F=n+3$ also have rank-width two, and the bound falls short of
-their cost by three. Above rank-width one, therefore, the fusion cost is not a function of rank-width. The
-bound improves the table for $25$ open orbits, one with $n=8$ and $24$ with $n=9$, which have rank-width
-three and hence $\F\ge n+3$, whereas the search had established only $\F\ge n$.
+their cost by three. Above rank-width one, therefore, the fusion cost is not a function of rank-width. For
+$25$ open orbits of rank-width three, one with $n=8$ and $24$ with $n=9$, Theorem~\ref{thm:rw} strengthens
+the bound $\F\ge n$ established by the search to $\F\ge n+3$.
 
 \section{Computational methods}\label{sec:method}
 
 The search and the formal proofs were produced with Empiricist, an open-source system in which a language
-model proposes conjectures, constructions and complete Lean modules as structured output and never
-executes code. Each proposal is recorded with a status that can rise only when a verifier accepts it, a
-claim supported only by the model's assertion stays at the lowest status, and a refuted claim remains
-refuted.
-Each verifier must first pass a fixed suite of test cases, and claims and verifiers are identified by
-content hashes. Fusion outcomes are computed by the two simulators described in Sec.~\ref{sec:table}, and a
+model proposes conjectures, constructions and complete Lean modules as structured output. The model never
+executes code, and the system runs every check in a sandbox. It records each claim as heuristic,
+conjectured, verified up to a given size, certified or formalized, in increasing order of strength, or as
+refuted, which is a separate and permanent status. A claim reaches a stronger status only when a verifier
+accepts evidence for it, and an assertion of the model alone supports at most the status heuristic. Each
+verifier must pass a fixed suite of test cases before use. Artifacts are identified by hashes of their
+contents, and each verifier by the hashes of its code and of its test suite. Fusion outcomes are computed by the two simulators described in Sec.~\ref{sec:table}, and a
 construction is accepted only when both agree on the resulting state up to local Clifford equivalence.
-Lean modules are elaborated in a sandbox without network or process creation, against a frozen copy of
-\textsc{mathlib}. The kernel result is checked again, the axioms must lie within
+Lean modules are elaborated in a sandbox without network or process creation, against a frozen,
+read-only copy of \textsc{mathlib}. The kernel result is checked again, the axioms must lie within
 $\{\code{propext},\code{Classical.choice},\code{Quot.sound}\}$, every import must belong to a fixed trusted
-set, and the build directory is cleared after elaboration. This checker was tested against adversarial
-submissions, including tampered compiled files, substitution of files between checking and use, and
-elaborators that hide axioms, before it was used.
+set, and the build directory is cleared after elaboration. Before it was used, the checker was revised in
+response to adversarial submissions, including tampered compiled files, substitution of files between
+checking and use, and elaborators that hide axioms.
 
-For Theorem~\ref{thm:main}, the model was given the $44$ orbits with $3\le n\le 7$ as edge lists, each marked
-according to whether it attains $\F=n-3$, with no invariant or class name and with only the information
-that the property is invariant under local complementation. It proposed that the orbits attaining the
+The distance-hereditary pattern was first noticed by the coding assistant used to build the system, when
+it examined the table of all $585$ orbits. Working within the system, the model was then given only the
+$44$ orbits with $3\le n\le 7$, as edge lists labeled by whether they attain $\F=n-3$. Its prompt named no
+invariant or class and said only that the property is invariant under local complementation. It proposed that the orbits attaining the
 minimum are the distance-hereditary graphs, recalled the standard equivalent characterizations, and
 identified the orbit of $C_5$ as the unique orbit on five vertices that does not attain it. The proposal was
 recorded as a conjecture, and a deterministic test for distance-heredity on all $585$ orbits, including the
 $541$ orbits on eight and nine vertices that the model had not seen, agreed with it in every case. The
-model then wrote the Lean proofs in a loop in which the checker returns the remaining proof obligations and
-the model revises the module, without running Lean itself. These checks caught several errors during the
-work, among them an arithmetic slip in an early hand-written count of the extremal orbits ($185/400$ instead
-of $175/410$), a family theorem whose first statement had its construction built into the claim, and, while
-this paper was being prepared, a note that reported the linear rank-width of the six-vertex orbit with
-$\F=9$ as its rank-width. Related uses of machine learning in mathematics include conjectures guided by
+model then wrote the Lean proofs, revising each module in response to the remaining proof obligations
+returned by the checker, without running Lean itself. A review of the first statement of a family theorem
+found that it had its construction built into the claim. Such a statement is well typed, so the Lean
+checker could not detect the error. While preparing this paper, we computed the rank-widths exactly and
+found that a note had given the linear rank-width of the six-vertex orbit with $\F=9$ as its rank-width. Related uses of machine learning in mathematics include conjectures guided by
 data~\cite{Davies2021advancing}, new constructions in combinatorics and analysis found by program search with
 language models~\cite{RomeraParedes2024mathematical,Novikov2025alphaevolve,Georgiev2025mathematical}, and
 machine-generated proofs checked by a symbolic deduction engine~\cite{Trinh2024solving} or by the Lean
@@ -455,40 +467,40 @@ kernel~\cite{Hubert2026olympiad}.
 
 \section{Discussion}\label{sec:discussion}
 
-The combinatorial part of the constructive direction of Theorem~\ref{thm:main} is verified in Lean, while
-the steps that involve quantum states, Lemma~\ref{lem:merge} and the proof of Theorem~\ref{thm:rw}, are
-written proofs supported by the two simulators and by the exhaustive search. A complete formalization
-would require definitions of graph states, Pauli measurements and schedules in Lean, and rank-width is not
-yet available in \textsc{mathlib}.
+Extending the formal verification from the combinatorial core of the constructive direction of
+Theorem~\ref{thm:main} to Lemma~\ref{lem:merge} and to the proof of Theorem~\ref{thm:rw} would require
+definitions of graph states, Pauli measurements and schedules in Lean, and rank-width is not yet
+available in \textsc{mathlib}.
 
-Several questions remain open. The data of Sec.~\ref{sec:table} show that $\F$ is not a function of
-rank-width beyond rank-width one, and it would be interesting to find the invariant that separates $\F=n$
-from $\F=n+3$ among graphs of rank-width two. Theorem~\ref{thm:main} makes the decision problem
-$\F(G)=n-3$ polynomial, since distance-hereditary graphs are recognized by pendant-and-twin
-elimination~\cite{Bandelt1986distance}, but the complexity of computing $\F$ in general is open. It is also
-natural to ask whether analogous characterizations hold for larger GHZ states or for linear cluster states
-as resources.
+The data of Sec.~\ref{sec:table} show that $\F$ is not a function of rank-width beyond rank-width one, and
+it is not known which invariant separates $\F=n$ from $\F=n+3$ among graphs of rank-width two.
+Theorem~\ref{thm:main} gives a polynomial-time test for $\F(G)=n-3$, since distance-hereditary graphs are
+recognized by pendant-and-twin elimination~\cite{Bandelt1986distance}, but the complexity of computing $\F$
+in general is open, as is the question whether analogous characterizations hold for larger GHZ states or
+for linear cluster states as resources.
 
 \section*{Data and code availability}
 
 The repository \url{https://github.com/sghowell/empiricist} (MIT license) contains the system, the Lean
 development, the table of minimum fusion counts and the record of claims. The ancillary files of this
-paper contain the Lean modules behind every declaration in Table~\ref{tab:lean}, as a self-contained Lake
-project with a script that builds them and prints their axioms, as well as the table, the nine later
-constructions, and scripts that recompute every number in Sec.~\ref{sec:table}, including the exact
-rank-widths, replay the constructions with both simulators, and repeat Tier~1 with single-qubit Cliffords on
-the fused qubits. A README maps each statement of the paper to a file, and a SHA-256 manifest lists every
+paper contain a self-contained Lake project with the Lean modules for all declarations in
+Table~\ref{tab:lean} and a script that builds the modules and prints their axioms. They also contain the
+table, the nine later constructions and the scripts used to check them. The scripts recompute every number
+in Sec.~\ref{sec:table}, including the exact rank-widths, replay the constructions with both simulators and
+repeat Tier~1 with single-qubit Cliffords on the fused qubits. A README maps each statement of the paper to a file, and a SHA-256 manifest lists every
 file.
 
 \begin{acknowledgments}
-This work was carried out with AI systems working under my direction. Within Empiricist, the language
-model Fable~5 (Anthropic) classified the orbits, proposed the distance-hereditary characterization and wrote
-the Lean proofs, emitting only machine-checkable output and never executing code. Claude Code (Anthropic,
-model Claude Opus 5.5) surveyed the literature, proved Theorem~\ref{thm:rw}, wrote the remaining proofs,
-recomputed every number from the committed data and drafted the manuscript. Codex (OpenAI, model
-gpt-6-astra) independently checked the proofs, the claims and the relation to previous work, and confirmed
-that a later rewording of the text did not change its content; the errors it found have been corrected. I
-chose the problem and take full responsibility for the content of this paper.
+This work was carried out with AI systems working under my direction. Claude Code (Anthropic, model
+Claude Opus~4.8) built the first version of Empiricist, including its exhaustive search, and first noticed
+the distance-hereditary pattern in the resulting table. Within Empiricist, the language model Fable~5
+(Anthropic) proposed the nine later constructions, re-derived the distance-hereditary characterization from
+the orbits with $3\le n\le 7$ and wrote the Lean proofs, emitting only machine-checkable output and never
+executing code. Claude Code (Anthropic, model Claude Opus~5.5) surveyed the literature, proved
+Theorem~\ref{thm:rw}, wrote the remaining proofs, recomputed every number from the committed data and
+drafted the manuscript. Codex (OpenAI, model gpt-6-astra) independently checked the proofs, the claims and
+the relation to previous work; the errors it found have been corrected. I chose the problem and take full
+responsibility for the content of this paper.
 \end{acknowledgments}
 
 \appendix

@@ -6,7 +6,7 @@
 %Control: page (0) single
 %Control: year (1) truncated
 %Control: production of eprint (0) enabled
-\begin{thebibliography}{46}%
+\begin{thebibliography}{47}%
 \makeatletter
 \providecommand \@ifxundefined [1]{%
  \@ifx{#1\undefined}
@@ -106,6 +106,9 @@
 \bibitem [{\citenamefont {Kumabe}\ \emph {et~al.}(2026)\citenamefont {Kumabe}, \citenamefont {Mori},\ and\ \citenamefont {Yoshimura}}]{Kumabe2026complexity}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {S.}~\bibnamefont {Kumabe}}, \bibinfo {author} {\bibfnamefont {R.}~\bibnamefont {Mori}},\ and\ \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont {Yoshimura}},\ }\bibfield  {title} {\bibinfo {title} {Complexity of graph-state preparation by {Clifford} circuits},\ }\href {https://doi.org/10.22331/q-2026-07-18-2165} {\bibfield  {journal} {\bibinfo  {journal} {Quantum}\ }\textbf {\bibinfo {volume} {10}},\ \bibinfo {pages} {2165} (\bibinfo {year} {2026})},\ \Eprint {https://arxiv.org/abs/2402.05874} {arXiv:2402.05874 [quant-ph]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Bui-Xuan}\ \emph {et~al.}(2013)\citenamefont {Bui-Xuan}, \citenamefont {Kant{\'e}},\ and\ \citenamefont {Limouzy}}]{BuiXuan2013note}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.-M.}\ \bibnamefont {Bui-Xuan}}, \bibinfo {author} {\bibfnamefont {M.~M.}\ \bibnamefont {Kant{\'e}}},\ and\ \bibinfo {author} {\bibfnamefont {V.}~\bibnamefont {Limouzy}},\ }\href {https://doi.org/10.48550/arXiv.1306.1345} {\bibinfo {title} {A note on graphs of linear rank-width 1}} (\bibinfo {year} {2013}),\ \Eprint {https://arxiv.org/abs/1306.1345} {arXiv:1306.1345 [cs.DM]} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Connolly}\ \emph {et~al.}(2026{\natexlab{a}})\citenamefont {Connolly}, \citenamefont {Nishio}, \citenamefont {Browne}, \citenamefont {Munro},\ and\ \citenamefont {Nemoto}}]{Connolly2026efficient}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {N.}~\bibnamefont {Connolly}}, \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont {Nishio}}, \bibinfo {author} {\bibfnamefont {D.~E.}\ \bibnamefont {Browne}}, \bibinfo {author} {\bibfnamefont {W.~J.}\ \bibnamefont {Munro}},\ and\ \bibinfo {author} {\bibfnamefont {K.}~\bibnamefont {Nemoto}},\ }\href {https://doi.org/10.48550/arXiv.2603.23892} {\bibinfo {title} {Efficient preparation of graph states using the quotient-augmented strong split tree}} (\bibinfo {year} {2026}{\natexlab{a}}),\ \Eprint {https://arxiv.org/abs/2603.23892} {arXiv:2603.23892 [quant-ph]} \BibitemShut {NoStop}%

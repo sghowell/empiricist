@@ -2,6 +2,8 @@
 
 Everything here is also in the repository https://github.com/sghowell/empiricist (MIT license);
 the paper's tagged commit is named in the arXiv comments field. `SHA256SUMS` lists every file.
+The repository's record of claims (the ledger, `claims/`) is part of the system described in Sec. VI of
+the paper; a ledger artifact is a file that a claim's evidence points to, identified by its content hash.
 
 ## Map from the paper to the files
 
@@ -9,8 +11,8 @@ the paper's tagged commit is named in the arXiv comments field. `SHA256SUMS` lis
 |---|---|---|
 | The model characterization (`dh_characterization`), the forward direction (`dh_forward`, `dh_min_fusions`), the center-merge (`ghz3CenterMerge_iso_addFalseTwin`), the true-twin identity (`addPendant_localComplement_center`), the lower bound (`fusion_cost_lower_bound`), trees (`tree_min_fusions`) | `lean/EmpiricistLean/*.lean`, checked by `lean/Paper/LibraryAxioms.lean` | `lean/check_axioms.sh` |
 | Paths, stars, complete graphs, complete bipartite graphs | `lean/Paper/PathGraph.lean`, `Star.lean`, `Complete.lean`, `CompleteBipartite.lean` | `lean/check_axioms.sh` |
-| The over-approximating schedule model (`floor_schedule_iff_dh`, the remark after the proof of the main theorem) | `lean/Paper/FloorBridge.lean` | `lean/check_axioms.sh` |
-| The 585 orbits on 3 to 9 vertices and distance-hereditary = extremal on every orbit (the tablebase as recorded, before the later constructions) | `data/tablebase.json` | `python3 scripts/table_facts.py data/tablebase.json` (standard library only); output in `scripts/table_facts.out.txt` |
+| The over-approximating schedule model (`floor_schedule_iff_dh`, Sec. IV, the paragraph after Theorem 5) | `lean/Paper/FloorBridge.lean` | `lean/check_axioms.sh` |
+| The 585 orbits on 3 to 9 vertices, and on every one of them F = n - 3 exactly when the orbit is distance-hereditary (the tablebase as recorded, before the later constructions) | `data/tablebase.json` | `python3 scripts/table_facts.py data/tablebase.json` (standard library only); output in `scripts/table_facts.out.txt` |
 | The nineteen exact values above the minimum | `data/tablebase.json` (ten exact rows above the minimum, from Tier 1), `data/certified_orbits/*` (the nine later constructions and their ledger records) | `scripts/replay_constructions.py` (needs the repository); output in `scripts/replay_constructions.out.txt` |
 | Table I as printed (the tablebase, the nine later constructions matched to their orbits, and the rank-width improvements of 25 open rows) | `data/tablebase.json`, `data/certified_orbits/` | `scripts/final_table.py` (needs the repository); output in `scripts/final_table.out.txt` |
 | Exact rank-widths of every orbit above the minimum; the rank-width bound is attained by the sixteen orbits with F = n, missed by the three with F = n + 3, and raises 25 open orbits of rank-width three to F >= n + 3 | `data/tablebase.json`, `data/certified_orbits/` | `cd scripts && python3 rankwidth_check.py ../data/tablebase.json ../data/certified_orbits` (standard library, about two minutes); output in `scripts/rankwidth_check.out.txt` |
@@ -20,8 +22,9 @@ the paper's tagged commit is named in the arXiv comments field. `SHA256SUMS` lis
 
 `lean/` is a self-contained Lake project pinned to Lean `v4.31.0` and mathlib `v4.31.0`
 (`lake-manifest.json`). The library modules are copied unchanged from
-`lean/EmpiricistLean/EmpiricistLean/` of the repository; `Paper/*.lean` are the gate-certified
-modules recorded in the repository's claims ledger (`claims/evidence/`), copied unchanged:
+`lean/EmpiricistLean/EmpiricistLean/` of the repository; `Paper/*.lean` are the modules
+accepted by the repository's Lean checker (Sec. VI of the paper) and recorded in its ledger
+(`claims/evidence/`), copied unchanged:
 
 | File | Ledger artifact |
 |---|---|
@@ -49,7 +52,7 @@ minute.
 
 ## Data
 
-`data/tablebase.json` is the certified tablebase artifact (`claims/evidence/dc8649519e5f8694.json`
+`data/tablebase.json` is the tablebase as recorded in the ledger (`claims/evidence/dc8649519e5f8694.json`
 in the repository): one row per connected local-complementation orbit with 3 to 9 vertices, with
 `F` and `exact` (an exact value, with a `witness` schedule), or `lower_bound` (an open row). A
 witness lists the number of resources (copies of the three-qubit GHZ state, qubits numbered

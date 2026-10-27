@@ -54,6 +54,14 @@ error. The true split from the tablebase is **175 extremal / 410 open**, matchin
 per-`n` extremal counts exactly (1+2+3+8+15+42+104 = 175). The characterization itself was
 never in doubt — only the tally was wrong; the deterministic recheck fixes it.
 
+**Correction (2026-10-26).** This count correction is wrong. "185 exact / 400 open" in the M17 note
+was the correct exact/open split of the tablebase: 185 exact rows (175 Tier-0 rows at `F=N−3` and 10
+Tier-1 rows at `F=N`) and 400 open rows. 175/410 is the split into orbits that do and do not attain
+`F=N−3`, as the table above shows. Nothing was mis-tallied in the M17 note. The `count_correction`
+field of the content-addressed evidence artifact `claims/evidence/85e7a63cdadb48c2.json` repeats the
+error and is left unedited; this note is the correction of record. Found by the fidelity review of the
+DH paper's prose revision (`docs/paper/arxiv/reviews/prose-fidelity/RECHECK.md`, item N2).
+
 ## Status of the two directions (unchanged)
 
 - **DH ⟹ F=N−3** — a general construction (pendant = the formalized leaf-merge; twin = the

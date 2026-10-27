@@ -5,6 +5,14 @@
 > `2026-07-15-p5-dh-characterization-fable.md`. Also: the exact/open split below is
 > **175/410**, not 185/400 (arithmetic error; the characterization is unaffected).
 
+> **CORRECTION (2026-10-26):** the 2026-07-15 count correction above is itself wrong, and this
+> note's original figures were right. The tablebase (`dc8649…f25`) has **185 exact rows** (175 at
+> `F=N−3` from Tier 0 and 10 at `F=N` from Tier 1) and **400 open rows**; 175/410 is a different
+> split, the orbits that do and do not attain `F=N−3`. The original sentence ("185/185 exact rows
+> satisfy `F=N−3 ⟺ DH`, and 0/400 open rows are distance-hereditary") is correct, and the edited
+> "175/175 … 0/410" below is not. Found by the fidelity review of the DH paper's prose revision
+> (`docs/paper/arxiv/reviews/prose-fidelity/RECHECK.md`, item N2).
+
 
 **Date:** 2026-07-12 · **Problem:** P5(ii)/(iii), structure · **Method:** data-mining
 the VERIFIED_N tablebase (585 LC-orbits, n≤9) for an LC-invariant characterizing
