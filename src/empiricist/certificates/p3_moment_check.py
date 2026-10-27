@@ -72,6 +72,9 @@ F = Fraction
 
 @dataclass(frozen=True)
 class MomentCheck:
+    """`n_identities` counts (output mode, ordered Bell pair) cases; each case is checked
+    against both (I1) and (I2), each in its real and imaginary part."""
+
     ok: bool
     detail: str
     n_identities: int
@@ -308,7 +311,12 @@ def check_moment_bound(payload: Any) -> BoundCheck:
         return BoundCheck(False, "identity", f"{type(exc).__name__}: {exc}")
     if not ident.ok:
         return BoundCheck(False, "identity", ident.detail)
-    return BoundCheck(True, "", f"{ident.n_identities} identities; bound {theorem}", theorem)
+    detail = (
+        f"{ident.n_identities} (output mode, ordered Bell pair) cases, each checked against both "
+        f"(I1) and (I2) in real and imaginary parts ({2 * ident.n_identities} complex "
+        f"identities); bound {theorem}"
+    )
+    return BoundCheck(True, "", detail, theorem)
 
 
 @cache

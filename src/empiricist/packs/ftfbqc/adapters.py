@@ -87,7 +87,8 @@ class P3MomentBoundAdapter(BytesFileVerifier):
     average-success bound is at least (k + 1)/(k + 2)."""
 
     name = "p3_moment_bound"
-    version = "1.0"
+    # 1.1: the PASS detail states the counting convention (cases x two identities).
+    version = "1.1"
 
     @property
     def binary_hash(self) -> str:
