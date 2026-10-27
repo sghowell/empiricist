@@ -1,0 +1,68 @@
+{
+  "claim_id": "P3.one_body_usd_lemma",
+  "closes": [
+    "P3.one_body_usd_lemma.20261027.model",
+    "P3.one_body_usd_lemma.20261027.model.2"
+  ],
+  "created": "2026-10-27T02:54:28+00:00",
+  "evidence_sha256": [
+    "4dcad293ce13e1e90ca2abc836617536517e685c12ed173cf9e4f63ae4d64de2"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The first replay record carries no execution provenance ('argv=None cwd=None exit=None env_sha256=None'), so that PASS is not re-executable from its own record; auditability rests on the pinned binary_hash 68a61a8d... matching claims/verifiers.json and on the 02:41:39 reverify entry, whose pack details do match the file contents (bound '0' = the file's 'bound' field, gram_dim 128 = length of 'gram_basis', n_constraints 18 = number of 'constraints' objects). [claims/evidence/p3_moment/one_body_usd_lemma.json, entry 2026-10-27T02:11:17+00:00, note 'argv=None cwd=None exit=None env_sha256=None']"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The step the certificate declares outside machine replay ('Not replayed, disclosed here: that the 18 constraint polynomials are the entries of the stated matrix equation and the objective is the stated functional') was re-derived by hand against the 'constraints', 'objective', 'multipliers', and 'variables' fields and is correct: constraints[0..1] are |a|^2-1 and |b|^2-1; constraints[2..5] are Re E_rr with the Bell diagonals ('11':'-1/2','12':'-1/2' on E_00; '13','14' on E_11/E_22); the corner entries carry the phi-/psi- signs ('11':'-1/2','12':'1/2' in Re E_03; '13':'-1/2','14':'1/2' in Re E_12); the a- and b-cross terms ('0,2,8','1,3,8'; '4,6,9','5,7,9') and W-row pairings (e.g. '23,39' in Re E_13) match the 2j+k indexing; the objective {'8':'-1','9':'-1','10':'-4', lambdas:'1'} with bound '0' is exactly the claimed inequality; the multipliers equal Y's entries (empty {} precisely on Re/Im E_03 and E_12 where Y vanishes) and the two norm-constraint multipliers match 'proof_inside_the_certificate'. The machine-replayed identity therefore establishes the exact statement within the disclosed boundary, which is what CERTIFIED requires this receipt to attest. [claims/evidence/p3_moment/one_body_usd_lemma.json fields 'verification_boundary', 'constraints', 'objective', 'multipliers', 'variables']"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The formal content is fully scoped in the bound text (unit vectors in C^2, real s_A, s_B, c, real lambda_B, Bell basis defined explicitly, tensor slots written out), and the evidence's 'statement_note' correctly records that no sign hypotheses on s_A, s_B, c, lambda_B are needed or used. The one interpretive element is the title phrase 'unambiguous-discrimination', an application label whose operational content is neither asserted after the colon nor established by the evidence. [statement phrase 'One-body unambiguous-discrimination lemma (two qubits)'; evidence field 'statement_note']"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Checked token-for-token: the evidence file's 'statement' field equals the ledger statement, as the Notes assert ('the certificate's statement field is this text verbatim'). The Notes' dual Y = |a_perp><a_perp|(x)I + I(x)|b_perp><b_perp| matches 'proof_inside_the_certificate'; 'objective_and_bound' ('objective = sum_B lam_B - sA - sB - 4c; bound = 0') matches the conclusion 'sum_B lambda_B <= s_A + s_B + 4c'; the reverify details match the file. No discrepancy found between statement, evidence, and notes. [evidence 'statement' field vs ledger statement; Notes line 'the certificate's statement field is this text verbatim']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The evidence JSON contains no claim-id or formulation_version field; its binding to P3.one_body_usd_lemma / p3-sos-certificate-v1 is only via the verbatim 'statement' text (the charter's binding mechanism) and the file path. Dependencies '(none)' make the level-cap rule vacuous. The certification record in claims/verifiers.json (binary_hash 68a61a8d..., golden_suite_hash b3428ce2..., stamped 2026-10-27T02:11:09) matches the live verifier and precedes both replays (02:11:17, 02:41:39), so both PASSes postdate certification. [claims/evidence/p3_moment/one_body_usd_lemma.json (absence of id/formulation_version fields); claims/verifiers.json record for sos_certificate v1.0]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Builder (src/empiricist/certificates/p3_moment.py), verifier (sos_certificate, certificates/core.py), and the tests pinning the encoding contract (tests/test_p3_moment.py) all ship in the same ftfbqc pack, so every pre-review machine check shares one author surface; under the charter's CERTIFIED definition the independence requirement is supplied solely by this review receipt, which is why the disclosed encoding was re-checked by hand here rather than taken from those same-repo tests. [verifier declaration 'shipped by the installed ftfbqc pack (empiricist.packs.ftfbqc)'; 'verification_boundary' sentence 'pinned by tests/test_p3_moment.py']"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "CERTIFIED does not overclaim relative to the evidence: after the round-1 removal recorded in the Notes ('an unsupported attainment clause and evidence metadata removed'), the bound text asserts only the weak-duality inequality that the replayed identity proves, with no tightness or attainment claim; and the golden suite's three expected-FAIL cases (sos-2, sos-3, sos-4) show the verifier's PASS is discriminating rather than vacuous. [Notes 'an unsupported attainment clause and evidence metadata removed'; golden suite listing 'sos-2 -> FAIL, sos-3 -> FAIL, sos-4 -> FAIL']"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Promoting now is the prescribed CONJECTURED -> CERTIFIED step under charter section 3: two post-certification PASS replays of the single certificate file exist, the round-1 review's defects are already reflected in the current bound text per the Notes, and with dependencies '(none)' there is nothing upstream to wait for; the only missing CERTIFIED component was this independent review receipt. ['promotion requested: CERTIFIED' and 'current level: CONJECTURED' vs charter section 3 CERTIFIED definition]"
+    }
+  ],
+  "id": "P3.one_body_usd_lemma.20261027.model.4",
+  "provenance": {
+    "cost_usd": "2.2179",
+    "model": "claude-fable-5",
+    "request_digest": "c3d43073f58965eab3ce5d5521af538542fa62bcae437fa6ea5a7bfd4513800a",
+    "response_digest": "2d00a7ce0579eb61b3ab867bcd6d19093934eed20ddb07bba17e37a7b666f1eb",
+    "run_id": "review-P3.one_body_usd_lemma-af8cae-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "585ed62a51f6c50af66d8d623287d830a9f6015395bb300e7b6afac82753b265",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "PASS",
+  "waivers": []
+}
