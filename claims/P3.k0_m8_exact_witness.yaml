@@ -1,0 +1,25 @@
+coverage: null
+depends_on: []
+evidence: []
+formulation_version: p3-exact-witness-v1
+id: P3.k0_m8_exact_witness
+kind: statement
+legacy_level: null
+level: HEURISTIC
+n: null
+notes: M27b follow-up; the referee's two-branch witness V = (1/sqrt2)[H; H X_A] (docs/science/reviews/2026-10-26-p3-moment-bound/REVIEW.md);
+  evidence claims/evidence/p3_k0_m8/two_branch_witness.json, which also refutes P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0
+  through p3_k0_min_zero; at m = 4 the minimum is 0 (P3.Empiricist.p3_at_most_three)
+problem: P3
+receipts: []
+source: null
+standing: CURRENT
+statement: There is an unambiguous passive linear-optical Bell-measurement scheme
+  with k=0 ancilla photon(s) on 8 modes (an isometry over the 4 dual-rail input modes,
+  vacuum on the other four inputs) whose exact per-Bell-state success vector is (phi+,
+  phi-, psi+, psi-) = (1/4, 1/4, 1/4, 1/4); hence, when auxiliary vacuum modes are
+  allowed, the problem's p*(0) = sup min_B p_B is at least 1/4 (exact evaluation in
+  Q(i)(sqrt d)).
+substatus: null
+supersedes: []
+updated: '2026-10-27'

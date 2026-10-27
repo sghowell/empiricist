@@ -17,7 +17,16 @@ level: CONJECTURED
 n: null
 notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186;
   title: Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0; no canonical
-  claim row (pre-hardening record; statement is the artifact title)'
+  claim row (pre-hardening record; statement is the artifact title)
+
+  2026-10-26 (M27b, referee report docs/science/reviews/2026-10-26-p3-moment-bound/REVIEW.md):
+  the statement omits the four-mode restriction its own evidence states (''For every
+  passive 4-mode ancilla-free dual-rail unambiguous scheme''). As written -- k = 0
+  with any number of modes -- it is false: claims/evidence/p3_k0_m8/two_branch_witness.json
+  is an exact k = 0 witness on eight modes (vacuum auxiliary inputs) with success
+  (1/4, 1/4, 1/4, 1/4); p3_exact_witness PASSes it and the predicate verifier p3_k0_min_zero
+  FAILs it. The four-mode version is true and FORMALIZED: P3.Empiricist.p3_at_most_three
+  (no U in U(4) identifies all four Bell states, so min_B p_B = 0 at m = 4).'
 problem: P3
 receipts: []
 source:
