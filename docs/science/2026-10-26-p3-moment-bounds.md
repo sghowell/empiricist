@@ -41,6 +41,13 @@ Consequences for the problem's open parts (average metric unless stated):
 - **P3(i)** at k = 1: p*_avg(1) ≤ 2/3 (conjecture 1/2), the brief's target B beaten for
   every m, not only m = 5.
 
+**Status and caution.** The general statement is HEURISTIC in the ledger (a paper proof,
+five steps, below); its one lemma and three instances are CERTIFIED. The argument is short,
+and its consequences are stronger than the "open" status the problem statement gives (ii)
+and (iii). Before it is cited outside this repository it needs a literature check — the
+Calsamiglia–Lütkenhaus first-detection argument (2001) is its k = 0 ancestor, and an
+ancilla version may exist — and the Lean formalization (Next steps).
+
 ## The proof
 
 Notation. Dual-rail qubit A on input modes 0, 1 (rail 0 ↔ |0⟩), qubit B on 2, 3; the four
