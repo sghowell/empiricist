@@ -60,7 +60,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
 
 ### Task 0: this plan
 
-- [ ] Commit `M27b: plan`.
+- [x] Commit `M27b: plan`.
 
 ### Task 1: feasibility and sizing (recorded, no ledger effect)
 
@@ -71,7 +71,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
   (pairs with Σ_j Λ_ij = (k + 1) Λ_i), values on the standard BSM, Grice, the k = 1 witnesses,
   random U; per-solve timings; projected-ascent maximisation over U(5) of the level-2 sum and
   min relaxations.
-- [ ] Record the table in the science note (Task 6) and in this plan's outcome.
+- [x] Record the table in the science note (Task 6) and in this plan's outcome.
 
 ### Task 2: exact k ≥ 1 amplitudes (`domain/p3/poly.py`)
 
@@ -83,7 +83,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
   unchanged).
 - Tests: evaluated at random unitaries, |amp|²/(2·n!) reproduces both engines'
   distributions to 1e-10 for every 3-photon pattern at m = 5 and m = 6.
-- [ ] Commit `M27b: exact k=1 amplitudes, engine cross-validated`.
+- [x] Commit `M27b: exact k=1 amplitudes, engine cross-validated`.
 
 ### Task 3: the one-body USD lemma certificate (`certificates/p3_moment.py`)
 
@@ -99,7 +99,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
 - Tests: the certificate PASSes `check_certificate`; a numeric spot check that the constraint
   polynomials vanish exactly when D − Λ = WW† is built from random data; must-fail
   mutations (bound coefficient 4c → 3c, a dropped constraint, a Bell sign flip) are rejected.
-- [ ] Commit `M27b: exact SOS certificate for the one-body USD lemma`.
+- [x] Commit `M27b: exact SOS certificate for the one-body USD lemma`.
 
 ### Task 4: the moment identity at (k, m) = (1, 5)
 
@@ -109,7 +109,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
   and imaginary part) and checked by `core.py`; the target polynomials are the Task 2 ones.
 - Tests: the D_i polynomials match `S_i + |v_i|² I` built from row data; certificates PASS;
   a mutated identity (ancilla term dropped) FAILs.
-- [ ] Commit `M27b: moment identity at k=1, m=5 certified exactly`.
+- [x] Commit `M27b: moment identity at k=1, m=5 certified exactly`.
 
 ### Task 5: level 2 and the min metric (targets A, B → 1/2)
 
@@ -117,7 +117,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
   if a value above the conjecture appears, the relaxation is too weak at level 2 and the
   finding is recorded; if it plateaus at 2 (sum) or 1/4 (min), extract duals and look for
   closed forms (the level-1 lemma's analogue).
-- [ ] Record outcome; mint HEURISTIC claims only where the evidence is numeric.
+- [x] Record outcome; mint HEURISTIC claims only where the evidence is numeric.
 
 ### Task 6: claims, note, PR
 

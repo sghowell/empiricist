@@ -171,19 +171,46 @@ level-2 solve at m = 5 is 22 ms.
   p₍₁₎ + p₍₂₎ ≤ 1/2 stays HEURISTIC.
 - **B (p_avg ≤ c < 1 at k = 1, m = 5):** **c = 2/3, CERTIFIED** (beats the 3/4 milestone),
   and the paper proof gives it for every m.
-- **C (reduction lemma):** subsumed for the average (the theorem covers interfering and
-  non-interfering ancillas alike). For a non-interfering ancilla at m = 5 (column 5 = e_r),
-  the success vector equals that of the k = 0 scheme on the other four modes, so
-  min = 0 (`p3_at_most_three`) and p_avg ≤ 1/2 (`P3.k0_m4_p_avg_upper_bound`, now for every
-  assignment); the identity itself was not separately certified.
+- **C (reduction lemma):** done exactly, as a test rather than a claim
+  (`tests/test_p3_poly_k1.py::test_non_interfering_ancilla_reduces_to_k0_exactly`). At
+  m = 5 with the ancilla column e_r (row r is then e_4^T by unitarity), every k = 1 Bell
+  amplitude equals, as an exact polynomial after substitution, the k = 0 amplitude of the
+  4 × 4 block on the other modes at the pattern with the mode-r photon removed, and every
+  pattern with n_r ≠ 1 has amplitude 0 — for each r. Such a scheme has exactly the k = 0
+  success vector, so min = 0 (`p3_at_most_three`, FORMALIZED) and p_avg ≤ 1/2
+  (`P3.k0_m4_p_avg_upper_bound`, every assignment). The average half is anyway subsumed
+  by the theorem's k = 1 bound only up to 2/3; the reduction gives the sharp 1/2 for this
+  subclass.
 
 ## Next steps
 
-1. **Lean.** Formalize the theorem for general k and m: the moment identity is the
-   photon-number expectation Γ(U)†N_iΓ(U) = Σ Ū_ij U_il a_j†a_l (or, at fixed small m,
-   a `ring` identity over the existing `perm3` definitions); the lemma is 4 × 4 linear
-   algebra (three expectation values); Steps 1, 2, 5 are finite sums. Not started here
-   (no mathlib build in this worktree).
+1. **Lean.** Not started here (no mathlib build in this worktree). The first target is the
+   k = 1, m = 5 instance on the existing definitions of `P3K1Witness.lean` (`perm3`,
+   `rawAmp3`, `BellLabel`), stated for an arbitrary assignment:
+
+   ```lean
+   /-- An unambiguous assignment of the three-photon patterns (sorted row triples). -/
+   structure Assign3 (V : Matrix (Fin 5) (Fin 5) ℂ) where
+     f : Fin 5 → Fin 5 → Fin 5 → Option BellLabel
+     unamb : ∀ i j k μ, f i j k = some μ → ∀ ν, ν ≠ μ → rawAmp3 V i j k ν = 0
+
+   /-- Success of Bell state μ: Σ over sorted triples i ≤ j ≤ k assigned to μ of
+   ‖rawAmp3 V i j k μ‖² / (2 · multFact i j k)  (multFact = product of multiplicity factorials). -/
+   def succ3 (V) (A : Assign3 V) (μ : BellLabel) : ℝ := …
+
+   theorem p3_k1_m5_avg_le_two_thirds (V : Matrix (Fin 5) (Fin 5) ℂ)
+       (hV : V ∈ Matrix.unitaryGroup (Fin 5) ℂ) (A : Assign3 V) :
+       (∑ μ, succ3 V A μ) / 4 ≤ 2 / 3
+   ```
+
+   Proof plan in four lemmas: (i) the one-body lemma on `Matrix (Fin 4) (Fin 4) ℂ`
+   (expectations in three product vectors; mathlib's `PosSemidef`); (ii) for each output
+   mode i, Σ_patterns n_i · rawAmp3 μ · conj(rawAmp3 ν)/(2·multFact) = the one-body matrix
+   entry, from unitarity — 80 polynomial identities modulo `star V * V = 1`, best proved
+   structurally (expansion of `perm3` along row i plus the 2 × 2 Cauchy–Binet identity) rather
+   than by brute `ring`; (iii) identified patterns give Bell-diagonal rank-one terms
+   (`Assign3.unamb`); (iv) the sum over modes with column norms. The general-(k, m)
+   theorem needs a Fock-space permanent library and is the second target.
 2. **k = 2 instance** (Grice optimality at, e.g., m = 6, certified): extend the checker to
    4-photon patterns and a general two-photon ancilla.
 3. **k = 1 conjecture 1/2 and min ≤ 1/4:** a closed-form level-2 dual, or level 2 plus
