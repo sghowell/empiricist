@@ -128,3 +128,54 @@ def test_rejects_bad_arguments():
         bell_amp_poly(5, "phi+", (1, 1, 0, 0, 0), ancilla_mode=4)  # 2 photons, k=1 needs 3
     with pytest.raises(ValueError):
         bell_amp_poly(5, "chi", (1, 1, 1, 0, 0), ancilla_mode=4)
+
+
+def _substitute(poly, assign: dict[int, Fraction], rename: dict[int, int]):
+    """Exact substitution: variables in `assign` become constants, the rest are renamed."""
+    from empiricist.certificates.core import poly_add
+
+    out: dict = {}
+    for mono, c in poly.items():
+        coef = c
+        rest = []
+        for v in mono:
+            if v in assign:
+                coef = coef * assign[v]
+            else:
+                rest.append(rename[v])
+        if coef:
+            out = poly_add(out, {tuple(sorted(rest)): coef})
+    return out
+
+
+@pytest.mark.parametrize("r", range(5))
+def test_non_interfering_ancilla_reduces_to_k0_exactly(r):
+    """Target C (M27b), exactly: at m = 5, if the ancilla column is e_r (so, by unitarity,
+    row r is e_4^T), every k = 1 amplitude equals the k = 0 amplitude of the 4 x 4 block on
+    the other modes at the pattern with the mode-r photon removed, and every pattern with
+    n_r != 1 has amplitude 0. Hence the k = 1 scheme's success vector IS that k = 0 scheme's:
+    min_B p_B = 0 (p3_at_most_three) and p_avg <= 1/2 (P3.k0_m4_p_avg_upper_bound)."""
+    m = 5
+    rows = [i for i in range(m) if i != r]           # output modes of the k = 0 block
+    assign: dict[int, Fraction] = {}
+    for i in range(m):                               # column 4 = e_r
+        assign[var_x(i, 4, m)] = Fraction(int(i == r))
+        assign[var_y(i, 4, m)] = Fraction(0)
+    for j in range(4):                               # row r = e_4^T
+        assign[var_x(r, j, m)] = Fraction(0)
+        assign[var_y(r, j, m)] = Fraction(0)
+    rename = {}
+    for a, i in enumerate(rows):
+        for j in range(4):
+            rename[var_x(i, j, m)] = var_x(a, j, 4)
+            rename[var_y(i, j, m)] = var_y(a, j, 4)
+    for n in patterns(3, m):
+        for label in BELL_LABELS:
+            (re, im), scale = bell_amp_poly(m, label, n, ancilla_mode=4)
+            re_s, im_s = _substitute(re, assign, rename), _substitute(im, assign, rename)
+            if n[r] != 1:
+                assert re_s == {} and im_s == {}, (n, label)
+                continue
+            n0 = tuple(n[i] for i in rows)
+            (re0, im0), scale0 = bell_amp_poly(4, label, n0, ancilla_mode=None)
+            assert scale == scale0 and re_s == re0 and im_s == im0, (n, label)
