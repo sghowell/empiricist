@@ -23,11 +23,27 @@ evidence:
   verdict: FAIL
   verifier: p3_k0_min_zero
   version: '1.0'
+- binary_hash: a6a840ba603b97f2646835b799ecd388761e7a5c29e61c800325403e4658651e
+  golden_suite_hash: 6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84
+  note: 'pack verifier details {"detail": "valid exact k = 0 scheme with every Bell
+    state at positive exact success: min_B p_B > 0 at k = 0 (a counterexample to ''k
+    = 0 forces min_B p_B = 0'')", "k": 0, "n_identifying_patterns": 8, "n_modes":
+    8, "p_min": [[1, "1/4", "0"]], "success": {"phi+": [[1, "1/4", "0"]], "phi-":
+    [[1, "1/4", "0"]], "psi+": [[1, "1/4", "0"]], "psi-": [[1, "1/4", "0"]]}, "validated":
+    "exact witness: columns exactly orthonormal (V^dag V = I in Q(i)(sqrt d)), k =
+    0, vacuum on every auxiliary input; success under the maximal unambiguous assignment"}
+    reason="valid exact k = 0 scheme with every Bell state at positive exact success:
+    min_B p_B > 0 at k = 0 (a counterexample to ''k = 0 forces min_B p_B = 0'')"'
+  path: claims/evidence/p3_k0_m8/two_branch_witness.json
+  stamped: '2026-10-27T05:21:24+00:00'
+  verdict: FAIL
+  verifier: p3_k0_min_zero
+  version: '1.1'
 formulation_version: legacy
 id: P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0
 kind: statement
 legacy_level: null
-level: CONJECTURED
+level: REFUTED
 n: null
 notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186;
   title: Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0; no canonical
@@ -45,9 +61,13 @@ notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b18
   The witness''s validity is on record twice: p3_k0_min_zero validates the exact isometry
   (columns exactly orthonormal in Q(i)(sqrt d), k = 0) before deciding the predicate,
   and the companion claim P3.k0_m8_exact_witness carries a p3_exact_witness PASS on
-  the same evidence file (exact success (1/4, 1/4, 1/4, 1/4), every Bell state identified).'
+  the same evidence file (exact success (1/4, 1/4, 1/4, 1/4), every Bell state identified).
+
+  promoted to REFUTED on receipt P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0.20261027.model
+  (REVISE: 1 open warning(s) for the author, no blocking finding)'
 problem: P3
-receipts: []
+receipts:
+- P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0.20261027.model
 source:
   kind: ledger
   ref: 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b186
@@ -55,4 +75,4 @@ standing: CURRENT
 statement: 'Conjecture (Fable search + sketch): k=0 forces min_B p_B = 0'
 substatus: null
 supersedes: []
-updated: '2026-07-21'
+updated: '2026-10-27'

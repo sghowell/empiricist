@@ -729,9 +729,9 @@
           "version": "1.0"
         },
         "p3_k0_min_zero": {
-          "binary_hash": "17d7281cd7ae913f048dea1bbc0102a0017f5c027ab3b7abad368e28214dd6de",
+          "binary_hash": "a6a840ba603b97f2646835b799ecd388761e7a5c29e61c800325403e4658651e",
           "golden_suite_hash": "6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84",
-          "version": "1.0"
+          "version": "1.1"
         }
       }
     },

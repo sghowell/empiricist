@@ -321,7 +321,7 @@ level-2 solve at m = 5 is 22 ms.
   `p3_k0_min_zero` (`src/empiricist/verifiers/p3_min_zero.py`) decides the conjecture's
   predicate on one exact witness — PASS if some Bell state has exact success 0, FAIL if
   none does, ERROR (never FAIL) for malformed, off-field or k ≠ 0 input — and FAILs this
-  witness. REFUTATION_STATUS The four-mode version is true and FORMALIZED
+  witness. The claim is now **REFUTED** through the ledger's normal path: the FAIL is recorded as evidence, a two-sample model review returned REVISE with no blocking finding (its warning — that the record did not show the verifier validates its input — is answered: the verdict details now state the exact-isometry check), and `promote` re-ran the verifier (FAIL) on receipt `P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0.20261027.model`. The four-mode version is true and FORMALIZED
   (`P3.Empiricist.p3_at_most_three`).
 - **Min metric at k = 0 with auxiliary modes.** `P3.k0_m8_exact_witness` (CONJECTURED,
   `p3_exact_witness` PASS) records the witness positively: when vacuum auxiliary modes are
