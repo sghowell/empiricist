@@ -127,7 +127,7 @@ the strategist notes in `docs/science/2026-09-05-p3-strategist/`; M20c / M21b pl
 - Science note `docs/science/2026-10-26-p3-moment-bounds.md`: theorem, proof, tightness
   (standard BSM, Grice), the feasibility table, what failed, the Lean target.
 - `claims check --min-claims 1` green; ruff; tests; PR via `env -u GH_TOKEN gh pr create`.
-- [ ] Commit, push, PR.
+- [x] Commit, push, PR.
 
 ## Honest ceiling
 
@@ -136,3 +136,44 @@ turns them into "p_avg ≤ (k + 1)/(k + 2) for every k and m" is a paper proof u
 formalization lands. The bound is tight at k = 0 and k = 2 but not at k = 1 (conjecture 1/2);
 the min-metric target 1/4 needs more than level 2 of the hierarchy if Task 5 finds the level-2
 relaxation exceeding 1/4.
+
+## Outcome (2026-10-26)
+
+**Found in the feasibility pass, then proved and partly certified:** the photon-number moment
+bound p_avg ≤ (k + 1)/(k + 2) for every k, m, interferometer, k-photon ancilla and
+unambiguous assignment (paper proof in five steps; science note
+`docs/science/2026-10-26-p3-moment-bounds.md`). Tight at k = 0 (standard BSM) and k = 2
+(Grice), row by row under both engines (`tests/test_p3_moment_tightness.py`), so
+p*_avg(2) = 3/4 and 1 − p*(k) ≥ 1/(k + 2); at k = 1 it gives 2/3 (conjecture 1/2).
+
+- Task 1 (sizing): direct SOS at m = 5 is out of reach (degree 6; Gram basis 23,426
+  monomials, 3,276 on the real slice; 5^30 assignment branches). Level-1 moment
+  relaxation: one 4 × 4 SDP per mode; level 2: 22 ms per solve at m = 5.
+- Task 2: `poly.bell_amp_poly` (k = 0, 1 complex amplitudes), cross-validated against both
+  engines including cross terms.
+- Task 3: the one-body USD lemma as an exact SOS certificate (47 variables, 18 constraints,
+  128-monomial Gram; core.py PASS in 0.3 s).
+- Task 4: `certificates/p3_moment_check.py` + pack verifier `p3_moment_bound` (ftfbqc):
+  the moment identity exactly at (0, 4) [64 identities, 0.3 s], (0, 5), (1, 5) [80, 31 s],
+  (1, 6) [96, 51 s].
+- Task 5: level 2 cannot certify target A (its min relaxation reaches 0.278 > 1/4); whether
+  it proves the k = 1 average conjecture is open (the relaxation is only upper
+  semicontinuous; ascent with and without ε-regularisation never exceeded 2).
+- Target C: exact substitution test — a non-interfering ancilla gives exactly the k = 0
+  success vector.
+- Harness: review bundles now describe pack verifiers (pack, golden suite, stamp match);
+  pack-verifier replays record their verdict details; `sos_certificate` re-stamped through
+  its pack suite (same binary).
+- Claims: `P3.one_body_usd_lemma`, `P3.k0_m4_p_avg_upper_bound`, `P3.k1_m5_p_avg_upper_bound`,
+  `P3.k1_m6_p_avg_upper_bound` CERTIFIED; `P3.moment_bound_general_k` HEURISTIC (Lean target).
+  Review round 1 BLOCKed the lemma (an unsupported attainment clause in my statement) and the
+  k = 1, m = 5 instance (capped by the lemma); statements corrected, evidence disclosures
+  completed, round 2 PASSed the lemma and REVISEd the instances (warnings only; one
+  substantive — mixed ancilla states at m = 6 — fixed and re-reviewed before promotion).
+  `p3_moment_bound` is v1.1 (states its count) with m = 6 goldens. Review spend $32.08
+  (14 Fable samples); wall time 2 h 55 min; ledger 143 claims, `claims check` green.
+
+Deviation: Task 4 checks the moment identity as two polynomial identities (an all-U
+Laplace/Cauchy–Binet identity and a one-body identity at G = I) in a dedicated pack verifier
+instead of zero-Gram `SOSCertificate`s with unitarity multipliers — no multiplier search,
+and the logic that turns the identities into the bound is stated in the verifier.

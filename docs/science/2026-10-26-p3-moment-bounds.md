@@ -98,12 +98,18 @@ thinks the idle ancilla photon reveals the Bell state; the remaining two photons
 
 ## Machine evidence (what is CERTIFIED, what is not)
 
-| claim | statement (scope) | verifier | evidence |
+| claim | statement (scope) | verifier | level |
 |---|---|---|---|
-| `P3.one_body_usd_lemma` | Step 4's lemma, all α, β, s_A, s_B, c, Λ | `sos_certificate` (core.py) | `claims/evidence/p3_moment/one_body_usd_lemma.json` |
-| `P3.k0_m4_p_avg_upper_bound` | k = 0, m = 4, **every** assignment: p_avg ≤ 1/2 | `p3_moment_bound` | `claims/evidence/p3_moment/k0_m4_p_avg_bound.json` |
-| `P3.k1_m5_p_avg_upper_bound` | k = 1, m = 5, every assignment: p_avg ≤ 2/3 (so min ≤ 2/3) | `p3_moment_bound` | `claims/evidence/p3_moment/k1_m5_p_avg_bound.json` |
+| `P3.one_body_usd_lemma` | Step 4's lemma, all α, β, s_A, s_B, c, Λ | `sos_certificate` (core.py) | **CERTIFIED** (round 2: two PASS receipts) |
+| `P3.k0_m4_p_avg_upper_bound` | k = 0, m = 4, **every** assignment: p_avg ≤ 1/2 | `p3_moment_bound` | **CERTIFIED** (two REVISE receipts, warnings only) |
+| `P3.k1_m5_p_avg_upper_bound` | k = 1, m = 5, every assignment: p_avg ≤ 2/3, so min ≤ 2/3 | `p3_moment_bound` | **CERTIFIED** (round 2: two REVISE receipts, warnings only) |
+| `P3.k1_m6_p_avg_upper_bound` | k = 1, m = 6, any single-photon ancilla, every assignment: p_avg ≤ 2/3 | `p3_moment_bound` | **CERTIFIED** (round 2 after the mixed-ancilla step: two REVISE receipts) |
 | `P3.moment_bound_general_k` | the theorem for every k and m | none (paper proof above) | HEURISTIC until Lean |
+
+Evidence files: `claims/evidence/p3_moment/{one_body_usd_lemma,k0_m4_p_avg_bound,k1_m5_p_avg_bound,k1_m6_p_avg_bound}.json`;
+each opens with an `about` block stating the claim text verbatim, what is machine-checked,
+and the written steps outside replay (W0–W6: the ancilla rotation at m = 6, U†U = I,
+identified patterns Bell-diagonal, the transpose, rank-one rows, photon count, unit columns).
 
 - **The lemma** is an exact SOS certificate over 47 real variables (α, β, s_A, s_B, c,
   λ_B, and W ∈ ℂ^{4×4} with Ô − Λ = WW†), 18 constraints, a 128-monomial Gram
@@ -121,12 +127,33 @@ thinks the idle ancilla photon reveals the Bell state; the remaining two photons
   that the claimed bound is at least (k + 1)/(k + 2). The amplitude polynomials are
   `poly.bell_amp_poly`, cross-validated against both engines on probabilities and on the
   cross terms A_B Ā_{B'} (through superposition inputs). At (k, m) = (1, 5): 80 identities,
-  degree 6 in 50 real variables, 31 s. The glue (Steps 1, 2, 5) is the derivation the
-  verifier's docstring states; it is short and is the formalization target.
+  degree 6 in 50 real variables, 31 s; at (1, 6): 96 identities in 72 variables, 51 s. The
+  glue (Steps 1, 2, 5 and the transpose/rank-one remarks) is the derivation the verifier's
+  docstring states and each evidence file discloses; it is short and is the formalization
+  target.
 - **Not certified:** the general-(k, m) statement. Its proof is the five steps above;
-  instances certify it at (0, 4) and (1, 5). k = 2 instances need 4-photon patterns and a
-  general two-photon ancilla (polynomial in the ancilla amplitudes) — the next exact
+  instances certify it at (0, 4), (1, 5) and (1, 6). k = 2 instances need 4-photon patterns
+  and a general two-photon ancilla (polynomial in the ancilla amplitudes) — the next exact
   extension.
+- **Review history.** Round 1 (two Fable samples per claim) BLOCKed the lemma: my statement
+  had added "the bound is attained at a = b = |0⟩, s_A = s_B", which the certificate does not
+  establish and which is false for negative s_A = s_B under the statement's own quantifiers;
+  it also BLOCKed the k = 1, m = 5 instance, capped by the then-CONJECTURED, CHALLENGED
+  lemma. Both rounds also flagged that the review bundle presented a pack verifier as
+  "not a command verifier declared in this repository" with an `argv=None` replay note — a
+  harness gap now fixed (`claims/review.py`, `claims/promote.py`). The statements were
+  corrected (the lemma's text is now the certificate's `statement` field verbatim; the
+  instances define "unambiguous assignment" and the rail convention), the evidence files
+  gained their disclosures, and round 2 PASSed the lemma (both samples re-derived the 18
+  constraints by hand). The instance claims then drew REVISE receipts only (no blocking
+  finding): k = 1, m = 5 in its round 2, k = 0, m = 4 in its first round. One k = 1, m = 6
+  warning was substantive — "any single-photon ancilla state" admits mixed states that the
+  rotation step W0 does not cover — so that evidence gained W0' (convexity: an assignment
+  unambiguous for a mixture is unambiguous for each pure component) and went back for
+  review before promotion. Two presentation warnings recurred: the first PASS entries came
+  from a verifier binary re-stamped before promotion, and "80 identities" counted cases;
+  `p3_moment_bound` is now v1.1 and its detail states the count. All receipts stay in
+  `receipts/`.
 
 ## Feasibility record (the direct SOS route and the moment hierarchy)
 
@@ -158,11 +185,13 @@ level-2 solve at m = 5 is 22 ms.
 - **Level 2 for the conjecture p_avg ≤ 1/2 at k = 1: inconclusive.** From random starts
   the level-2 sum relaxation plateaued at 1.39 (12 starts); from the non-interfering scheme
   (value exactly 2) every perturbation, down to noise 0.01, dropped it to ≈ 1.1 and
-  ascent did not return above 1.36 (16 runs). The relaxation is only upper semicontinuous
-  (maxdiag jumps on rank-deficient D_ij, e.g. the rank-one k = 0 coincidence terms), so
-  its maximum sits on exactly structured U that local search cannot find. Whether level 2
-  proves 1/2 is open; a dual in closed form (the level-1 lemma's analogue) is the way to
-  settle it, not more ascent.
+  ascent did not return above 1.36 (16 runs); an ε-regularised ascent (D + εI, ε annealed
+  0.1 → 0, 11 starts) reached 1.42. The relaxation is only upper semicontinuous (maxdiag
+  jumps on rank-deficient D_ij, e.g. the rank-one k = 0 coincidence terms), so its maximum
+  sits on exactly structured U that local search cannot find. Whether level 2 proves 1/2 is
+  open; a dual in closed form (the level-1 lemma's analogue, see Next steps) is the way to
+  settle it, not more ascent. The ε-regularised min ascent ends at 0.273–0.278 from 8 of 11
+  starts (best 0.2778, numerically 5/18), confirming that level 2 stops above 1/4.
 
 ## Targets of the brief
 
@@ -214,10 +243,26 @@ level-2 solve at m = 5 is 22 ms.
 2. **k = 2 instance** (Grice optimality at, e.g., m = 6, certified): extend the checker to
    4-photon patterns and a general two-photon ancilla.
 3. **k = 1 conjecture 1/2 and min ≤ 1/4:** a closed-form level-2 dual, or level 2 plus
-   per-pattern structure (the rank-one triple-bunched and (2,1) patterns).
+   per-pattern structure (the rank-one triple-bunched and (2,1) patterns). The level-2 dual
+   has, per output mode i, a multiplier ν_i ∈ ℝ⁴ on the consistency Σ_j Λ_ij = 2Λ_i, with
+   PSD Y_i, Y_ij subject to diag(Y_i) ≥ 1/3 − 2ν_i and diag(Y_ij) ≥ ν_i, and value
+   Σ_i tr(Y_i D_i) + Σ_ij tr(Y_ij D_ij). Level 1 is ν = 0. On the non-interfering scheme
+   (ancilla in mode 5) the choice ν_5 = 1/6, Y_5 = 0, Y_5j = (1/6)·(the lemma's dual for
+   row j) moves the ancilla row's cost from 4/3 to 2/3 and the bound from 8/3 to exactly 2:
+   the slack of level 1 is the ancilla photon "seen first". A closed-form ν_i(row) that does
+   this for every U — at k = 1 D_ij = S(v_i ξ_j + v_j ξ_i, v_i η_j + v_j η_i) + m_ij m_ij†,
+   the one-body form of a virtual row plus the rank-one k = 0 coincidence term — is the
+   concrete next target for P3(i).
 
 ## Accounting
 
-No strategist or formalizer calls. Model spend: the review receipts for the CERTIFIED
-promotions (recorded in the receipts' provenance; total in the PR). Compute: the exact
-(1, 5) expansion is 31 s; the numeric probes ran ≈ 15 CPU-minutes in scratch scripts.
+No strategist or formalizer calls. Model spend is the review receipts only (Fable, max
+effort, two samples per review, `receipts/P3.*.20261027.*`): $32.08 over 14 samples (seven reviews: lemma ×2, k = 1 m = 5 ×2, k = 0 m = 4 ×1, k = 1 m = 6 ×2). Compute: the exact
+(1, 5) expansion is 31 s, (1, 6) 51 s; the numeric probes ran ≈ 25 CPU-minutes in scratch
+scripts (cvxpy/Clarabel). Wall time ≈ 2 h 55 min.
+
+Open review warnings carried by the CERTIFIED instance claims (non-blocking; recorded in
+their notes): the earliest PASS entries were made by a p3_moment_bound binary that was
+re-stamped before promotion (the verifier is now v1.1, whose detail states its count:
+cases × two identities); p_B is defined in the evidence's `setting`, not in the statement
+text (the problem's own definition); W6's min-clause is idle at k = 0.
