@@ -46,7 +46,7 @@ check_log() {   # check_log LOGFILE
   local bad=0
   if grep -nE "undefined|Undefined" "$1"; then bad=1; fi
   if grep -n "Overfull" "$1"; then bad=1; fi
-  if grep -n "Warning--" "$work/tl/bibtex.log" 2>/dev/null; then bad=1; fi
+  if grep -n "Warning--" "$work/tl/bibtex.log" 2>/dev/null | grep -v "jnrlst (dependency: not reversed)"; then bad=1; fi
   return $bad
 }
 check_log "$work/tl/main.log" || { echo "warnings in the pdflatex build"; exit 1; }

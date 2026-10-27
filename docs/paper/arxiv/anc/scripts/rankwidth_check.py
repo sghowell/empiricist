@@ -1,10 +1,12 @@
-"""Rank-width facts behind the paper's remark that rank-width does not determine F above the
-floor. For every orbit whose certified lower bound is N + 3 (or more), print whether it is
-distance-hereditary (rank-width 1) and its linear rank-width, computed exactly by brute force
-over vertex orderings (cut-rank over GF(2) of every prefix). Not distance-hereditary and linear
-rank-width 2 together give rank-width exactly 2.
+"""Rank-width facts behind the paper's rank-width bound F >= n + 3 rw - 6 and its tightness.
 
-Usage: python rankwidth_check.py path/to/tablebase.json
+For every orbit above the bound F = n - 3 (exact or open) in the tablebase, and for the nine later
+certified constructions, print whether it is distance-hereditary, its linear rank-width (brute force
+over vertex orderings) and its rank-width (brute force over all labeled unrooted binary trees with
+the vertices as leaves; (2n-5)!! trees), each from GF(2) cut-ranks, and compare the value of F
+with n + 3 rw - 6.
+
+Usage: python rankwidth_check.py path/to/tablebase.json [path/to/certified_orbits]
 """
 import itertools
 import json
@@ -49,18 +51,96 @@ def linear_rank_width(n: int, edges: list) -> int:
     return best
 
 
-def main(path: str) -> None:
+def binary_trees(n: int):
+    """All labeled unrooted binary trees with leaves 0..n-1 (n >= 3), as edge lists over nodes
+    0..n-1 (leaves) and n.. (internal), by inserting leaf k on every edge of each tree on k leaves."""
+    trees = [[(0, n), (1, n), (2, n)]]
+    nxt = n + 1
+    for k in range(3, n):
+        new = []
+        for edges in trees:
+            internal = max(max(e) for e in edges) + 1
+            for i, (u, v) in enumerate(edges):
+                rest = edges[:i] + edges[i + 1:]
+                new.append(rest + [(u, internal), (internal, v), (k, internal)])
+        trees = new
+    return trees
+
+
+def rank_width(n: int, edges: list, lower: int = 1) -> int:
+    """Exact rank-width; stops early once a tree of width `lower` (a known lower bound) is found."""
+    adj = [0] * n
+    for u, v in edges:
+        adj[u] |= 1 << v
+        adj[v] |= 1 << u
+    best = n
+    for tree in binary_trees(n):
+        nbrs = {}
+        for u, v in tree:
+            nbrs.setdefault(u, []).append(v)
+            nbrs.setdefault(v, []).append(u)
+        width = 0
+        for u, v in tree:
+            side, stack, seen = set(), [u], {u, v}       # the leaves on u's side of edge uv
+            while stack:
+                x = stack.pop()
+                if x < n:
+                    side.add(x)
+                for y in nbrs[x]:
+                    if y not in seen:
+                        seen.add(y)
+                        stack.append(y)
+            if 0 < len(side) < n:
+                width = max(width, cut_rank(adj, side, n))
+            if width >= best:
+                break
+        best = min(best, width)
+        if best <= lower:
+            return best
+    return best
+
+
+def report(n: int, edges: list, label: str, value: str, f_value: int) -> None:
+    dh = is_distance_hereditary(n, edges)
+    rw = rank_width(n, edges, lower=1 if dh else 2)
+    lrw = linear_rank_width(n, edges) if n <= 8 else -1
+    bound = n + 3 * rw - 6
+    tight = "tight" if f_value == bound else f"slack {f_value - bound}"
+    print(f"n={n} {label}: {value}; distance-hereditary {dh}; rank-width {rw}; linear rank-width {lrw};"
+          f" bound n+3rw-6 = {bound} ({tight})")
+
+
+def main(path: str, certified_dir: str | None) -> None:
+    import glob
+    import re
+    from collections import Counter
     rows = json.load(open(path))["rows"]
+    summary = Counter()
     for r in rows:
         n = r["n"]
-        bound = r["F"] if r["exact"] else r["lower_bound"]
-        if bound < n + 3:
+        value = r["F"] if r["exact"] else r["lower_bound"]
+        if value <= n - 3:
             continue
         e = r["representative_edges"]
-        dh = is_distance_hereditary(n, e)
-        print(f"N={n} orbit {r['orbit_id'][-12:]}: {'F =' if r['exact'] else 'F >='} {bound}; "
-              f"distance-hereditary {dh}; linear rank-width {linear_rank_width(n, e)}; edges {e}")
+        rw = rank_width(n, e, lower=2)
+        summary[(n, "exact" if r["exact"] else "open", rw)] += 1
+        if n <= 8:
+            report(n, e, f"orbit ..{r['orbit_id'][-8:]}",
+                   f"{'F =' if r['exact'] else 'F >='} {value}", value)
+    print("summary of rows above the bound, (n, exact/open, rank-width): count")
+    for k in sorted(summary):
+        n, kind, rw = k
+        print(f"  n={n} {kind:5} rank-width {rw}: {summary[k]} (rank-width bound F >= {n + 3 * rw - 6})")
+    if certified_dir:
+        for f in sorted(glob.glob(f"{certified_dir}/*.yaml")):
+            text = " ".join(open(f).read().split())
+            m = re.search(r"F\(G\) = (\d+) for the LC-orbit [0-9a-f]+ of connected (\d+)-qubit.*?"
+                          r"representative edges (\[.*?\])\)", text)
+            if m:
+                fv, n, edges = int(m.group(1)), int(m.group(2)), eval(m.group(3))
+                report(n, edges, Path(f).stem, f"F = {fv} (certified)", fv)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    from pathlib import Path
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
