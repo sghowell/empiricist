@@ -31,7 +31,7 @@ notes: M27b target B at a second mode number; photon-number moment bound checked
 problem: P3
 receipts: []
 source: null
-standing: STALE
+standing: CURRENT
 statement: For every passive interferometer U in U(6) acting on the dual-rail Bell
   pair (qubit A on modes 1-2, qubit B on modes 3-4) and any single-photon ancilla
   state on modes 5-6, with photon-number-resolving detection of all six output modes,

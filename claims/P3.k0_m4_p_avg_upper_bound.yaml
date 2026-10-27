@@ -32,7 +32,7 @@ notes: 'M27b; the Calsamiglia-Lutkenhaus value for every assignment (the earlier
 problem: P3
 receipts: []
 source: null
-standing: STALE
+standing: CURRENT
 statement: For every passive interferometer U in U(4) acting on the dual-rail Bell
   pair (qubit A on modes 1-2, qubit B on modes 3-4) with no ancilla, with photon-number-resolving
   detection of all four output modes, and for every unambiguous assignment of the

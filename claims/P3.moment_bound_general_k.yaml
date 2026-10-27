@@ -15,7 +15,7 @@ notes: M27b; paper proof (five steps) in docs/science/2026-10-26-p3-moment-bound
 problem: P3
 receipts: []
 source: null
-standing: STALE
+standing: CURRENT
 statement: For every k >= 0, every number of modes m, every passive interferometer
   U in U(m), every ancilla state of exactly k photons on the ancilla modes, photon-number-resolving
   detection of all output modes, and every unambiguous assignment, the average success
