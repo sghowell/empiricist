@@ -295,7 +295,7 @@ def _pack_verifier_lines(repo: Path, name: str, s: Any) -> list[str]:
         f"- {name} v{v.version}: a verifier shipped by the installed `{pack}` pack "
         f"(empiricist.packs.{pack}); live binary_hash {live_binary}",
         f"  golden suite ({len(cases)} cases, golden_suite_hash {live_suite}): "
-        + ", ".join(f"{c.label} -> {c.expected.value}" for c in cases),
+        + ", ".join(f"{c.label} expects {c.expected.value}" for c in cases),
     ]
     if s is None:
         out.append("  no registry stamp: not certified in this repository")

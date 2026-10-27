@@ -301,7 +301,7 @@ def test_bundle_describes_a_pack_verifier_and_its_certification_record(tmp_path)
     stamp = read_registry(repo).stamps["sos_certificate"]
     assert "not a command verifier declared in this repository" not in bundle
     assert "shipped by the installed `ftfbqc` pack" in bundle
-    assert "sos-0 -> PASS" in bundle and "sos-2 -> FAIL" in bundle
+    assert "sos-0 expects PASS" in bundle and "sos-2 expects FAIL" in bundle
     assert f"golden_suite_hash {stamp.golden_suite_hash}" in bundle
     assert "matches the live verifier and suite" in bundle
 
