@@ -16,17 +16,20 @@ kind: statement
 legacy_level: null
 level: CONJECTURED
 n: null
-notes: M27b; the Calsamiglia-Lutkenhaus value for every assignment (the earlier P3.k0_standard_assignment_p_avg
-  covers one assignment); verifier p3_moment_bound (certificates/p3_moment_check.py)
+notes: 'M27b; the Calsamiglia-Lutkenhaus value for every assignment (the earlier P3.k0_standard_assignment_p_avg
+  covers one assignment); photon-number moment bound: the one-body USD lemma plus
+  the moment identity checked exactly at m = 4 by p3_moment_bound (written steps disclosed
+  in the evidence)'
 problem: P3
 receipts: []
 source: null
-standing: CURRENT
-statement: 'For every passive interferometer U in U(4) acting on the dual-rail Bell
-  pair without ancilla, with photon-number-resolving detection, and for every unambiguous
-  assignment of the two-photon detection patterns, the average success (1/4) sum_B
-  p_B is at most 1/2 (photon-number moment bound: the one-body USD lemma plus the
-  moment identity checked exactly at m = 4).'
+standing: STALE
+statement: For every passive interferometer U in U(4) acting on the dual-rail Bell
+  pair (qubit A on modes 1-2, qubit B on modes 3-4) with no ancilla, with photon-number-resolving
+  detection of all four output modes, and for every unambiguous assignment of the
+  two-photon detection patterns (each pattern mapped to a Bell state or to failure,
+  a pattern mapped to a Bell state B having zero probability under the other three
+  Bell states), the average success (1/4) sum_B p_B is at most 1/2.
 substatus: null
 supersedes: []
 updated: '2026-10-27'

@@ -5,7 +5,7 @@ The checker PASSes a payload {k, m, claimed_p_avg_bound, lemma_certificate} iff
       lemma (same variables, objective, constraints, bound);
   (b) for every output mode i and Bell pair (B, B') the two polynomial identities hold:
       (I1) sum_n n_i A_B(n) conj(A_B'(n)) == sum_{j,l} U_ij conj(U_il) H_jl^{BB'}(U^dag U)
-      (I3) sum_{j,l} U_ij conj(U_il) H_jl^{BB'}(I) == <B'| O_A(i)(x)I + I(x)O_B(i) + c_i I |B>;
+      (I2) sum_{j,l} U_ij conj(U_il) H_jl^{BB'}(I) == <B'| O_A(i)(x)I + I(x)O_B(i) + c_i I |B>;
   (c) claimed_p_avg_bound >= (k + 1)/(k + 2).
 """
 from __future__ import annotations
@@ -63,7 +63,7 @@ def test_identities_hold_at_k1_m5(k1m5):
 
 
 def test_the_one_body_matrix_matches_the_engines_numerically():
-    """Evaluate the (I3) right-hand side at a random unitary and compare with the Gram matrix
+    """Evaluate the (I2) right-hand side at a random unitary and compare with the Gram matrix
     of the conditional states built from float amplitudes (the moment identity, numerically;
     the exact identity is the slow test above)."""
     from empiricist.domain.p3.engine_permanent import _permanent, _submatrix
@@ -153,7 +153,7 @@ def test_unsupported_sizes_and_malformed_payloads_fail_cleanly():
 
 
 @pytest.mark.slow
-def test_a_dropped_ancilla_term_breaks_identity_I3():
+def test_a_dropped_ancilla_term_breaks_identity_I2():
     """With the ancilla's photon number omitted from D_i the identities must fail -- the
     one-body matrix is genuinely S_i + c_i I, and the checker sees the difference."""
     res = moment_identities(1, 5, _drop_ancilla_term=True)

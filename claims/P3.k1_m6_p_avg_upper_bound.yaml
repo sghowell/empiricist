@@ -16,18 +16,20 @@ kind: statement
 legacy_level: null
 level: CONJECTURED
 n: null
-notes: M27b target B at a second mode number; verifier p3_moment_bound
+notes: M27b target B at a second mode number; photon-number moment bound checked exactly
+  at m = 6 by p3_moment_bound with the ancilla photon in mode 5 (the rotation to a
+  general single-photon ancilla state on modes 5-6 is a disclosed written step)
 problem: P3
 receipts: []
 source: null
-standing: CURRENT
-statement: 'For every passive interferometer U in U(6) acting on the dual-rail Bell
-  pair (modes 1-4) and any single-photon ancilla state on modes 5-6, with photon-number-resolving
-  detection, and for every unambiguous assignment of the three-photon detection patterns,
-  the average success (1/4) sum_B p_B is at most 2/3, hence min_B p_B <= 2/3 (photon-number
-  moment bound; the moment identity is checked exactly at m = 6 with the ancilla photon
-  in mode 5, which loses no generality: a unitary on modes 5-6 maps that state to
-  any single-photon state there and is absorbed into U).'
+standing: STALE
+statement: For every passive interferometer U in U(6) acting on the dual-rail Bell
+  pair (qubit A on modes 1-2, qubit B on modes 3-4) and any single-photon ancilla
+  state on modes 5-6, with photon-number-resolving detection of all six output modes,
+  and for every unambiguous assignment of the three-photon detection patterns (each
+  pattern mapped to a Bell state or to failure, a pattern mapped to a Bell state B
+  having zero probability under the other three Bell states), the average success
+  (1/4) sum_B p_B is at most 2/3; consequently min_B p_B <= 2/3.
 substatus: null
 supersedes: []
 updated: '2026-10-27'

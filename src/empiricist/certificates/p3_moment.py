@@ -58,6 +58,16 @@ BELL_SQRT2: tuple[tuple[int, int, int, int], ...] = (
 
 ONE_BODY_USD_DATA = Path(__file__).resolve().parent / "data" / "p3_one_body_usd.json"
 
+# The lemma's exact text: the certificate's `statement` field and the ledger claim
+# `P3.one_body_usd_lemma` carry it verbatim (a review receipt binds to the claim's text).
+ONE_BODY_USD_STATEMENT = (
+    "One-body unambiguous-discrimination lemma (two qubits): let |phi+-> = (|00> +- |11>)/sqrt2 "
+    "and |psi+-> = (|01> +- |10>)/sqrt2 be the four Bell states B. For unit vectors a, b in "
+    "C^2, real numbers s_A, s_B, c, and real numbers lambda_B (one for each Bell state B), if "
+    "s_A |a><a| (x) I + s_B I (x) |b><b| + c I - sum_B lambda_B |B><B| = W W^dagger for some "
+    "complex 4x4 matrix W, then sum_B lambda_B <= s_A + s_B + 4c."
+)
+
 CPoly = tuple[Poly, Poly]  # (real part, imaginary part)
 _ZERO: CPoly = ({}, {})
 F = Fraction
@@ -267,11 +277,7 @@ def one_body_usd_certificate(
 
     objective = poly_sub(poly_sub(poly_sub(sum_lam, sA), sB), poly_scale(c, F(4)))
     return SOSCertificate(
-        statement=(
-            "P3 one-body USD lemma: for unit alpha, beta in C^2, real s_A, s_B, c, lambda_B "
-            "and W in C^{4x4} with s_A|a><a|(x)I + s_B I(x)|b><b| + cI - sum_B lambda_B|B><B| "
-            "= W W^dag (B the Bell states), sum_B lambda_B <= s_A + s_B + 4c"
-        ),
+        statement=ONE_BODY_USD_STATEMENT,
         variables=_NAMES,
         objective=objective,
         bound=F(0),

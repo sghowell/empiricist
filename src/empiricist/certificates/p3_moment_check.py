@@ -21,15 +21,15 @@ WHAT IS CHECKED (exact arithmetic over Q, no floats):
           and H_jl^{BB'}(G) = <a_l in_B'| Gamma(G) |a_j in_B> is spelled out with
           permanents: H = (1/2) sum_{e,e'} s_e s'_e' [j in T_e][l in T'_e']
           perm(G[T'_e' - l, T_e - j]) (T_e the 0/1 occupations of the two Fock components);
-    (I3)  sum_{j,l} U_ij conj(U_il) H_jl^{BB'}(I) = <B'| O_A(i) (x) I + I (x) O_B(i) + c_i I |B>
+    (I2)  sum_{j,l} U_ij conj(U_il) H_jl^{BB'}(I) = <B'| O_A(i) (x) I + I (x) O_B(i) + c_i I |B>
           with (O_A)_pq = conj(U_ip) U_iq on qubit A's rails, O_B likewise on qubit B's,
           c_i = |U_i4|^2 (k = 1) or 0 (k = 0).
 (c) BOUND. `claimed_p_avg_bound` (an exact rational string) is >= (k + 1)/(k + 2).
 
 WHY (a)-(c) IMPLY THE STATEMENT (the derivation this checker encodes; the science note
 `docs/science/2026-10-26-p3-moment-bounds.md` has it in full). On U(m), U^dag U = I, so (I1)
-and (I3) give D_i[B, B'] := sum_n n_i A_B conj(A_B') = <B'| Ohat_i |B>, Ohat_i the operator
-of (I3). Fix an unambiguous assignment and let E be the set of assigned patterns. For n in
+and (I2) give D_i[B, B'] := sum_n n_i A_B conj(A_B') = <B'| Ohat_i |B>, Ohat_i the operator
+of (I2). Fix an unambiguous assignment and let E be the set of assigned patterns. For n in
 E only the assigned Bell state has a non-zero amplitude, so G(n) = A(n) A(n)^dag is
 Bell-diagonal; hence Lambda_i := sum_{n in E} n_i G(n) is Bell-diagonal and
 D_i - Lambda_i = sum_{n not in E} n_i G(n) is PSD. D_i is the transpose of the Bell-basis
@@ -195,8 +195,8 @@ def _const(x: Fraction) -> CPoly:
 
 
 def moment_identities(k: int, m: int, *, _drop_ancilla_term: bool = False) -> MomentCheck:
-    """Check (I1) and (I3) for every output mode and Bell pair. `_drop_ancilla_term` exists
-    for the must-fail test only (it removes c_i from the (I3) right-hand side)."""
+    """Check (I1) and (I2) for every output mode and Bell pair. `_drop_ancilla_term` exists
+    for the must-fail test only (it removes c_i from the (I2) right-hand side)."""
     if (k, m) not in SUPPORTED:
         return MomentCheck(False, f"(k, m) = ({k}, {m}) not supported", 0)
     lhs = hermitian_moment_matrices(k, m)
@@ -221,7 +221,7 @@ def moment_identities(k: int, m: int, *, _drop_ancilla_term: bool = False) -> Mo
                     return MomentCheck(False, f"(I1) fails at i={i}, B={b}, B'={bp}", count)
                 want = one_body_matrix(i, bi, bpi, k, m, _drop_ancilla=_drop_ancilla_term)
                 if not (poly_eq(rhs3[0], want[0]) and poly_eq(rhs3[1], want[1])):
-                    return MomentCheck(False, f"(I3) fails at i={i}, B={b}, B'={bp}", count)
+                    return MomentCheck(False, f"(I2) fails at i={i}, B={b}, B'={bp}", count)
     return MomentCheck(True, "", count)
 
 
