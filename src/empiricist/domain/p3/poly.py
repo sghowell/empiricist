@@ -57,6 +57,10 @@ Scope: this module supports exactly 2-photon detection patterns on k=0
 schemes are out of scope for M20c Task 1; the underlying permanent
 machinery is written generally over the photon number, but the scope guard
 in `prob_poly` is where the restriction is enforced and documented).
+`bell_amp_poly` (M27b) is the amplitude-level entry point that also covers
+k=1 -- one ancilla photon in a named input mode -- and returns the complex
+amplitude (so cross terms between Bell states are exact too); its own
+cross-validation is `tests/test_p3_poly_k1.py`.
 """
 
 from __future__ import annotations
@@ -221,6 +225,46 @@ def prob_poly(m: int, bell_label: str, pattern: tuple[int, ...]) -> tuple[Poly, 
     poly = poly_add(poly_mul(re, re), poly_mul(im, im))
     scale = Fraction(1, 2 * factorial_prod(pattern))
     return poly, scale
+
+
+def bell_amp_poly(
+    m: int, bell_label: str, pattern: tuple[int, ...], ancilla_mode: int | None
+) -> tuple[tuple[Poly, Poly], Fraction]:
+    """Exact Bell amplitude `<pattern | out_B>` for k=0 (`ancilla_mode=None`) or for k=1 with
+    a single ancilla photon in input mode `ancilla_mode` (4 <= ancilla_mode < m).
+
+    Returns `((re, im), scale)` with
+
+        <pattern | out_B> = sqrt(scale) * (re + i*im),      scale = 1 / (2 * prod(pattern!))
+
+    where `re + i*im = Per(U[S, T1]) +- Per(U[S, T2])` (integer coefficients, degree = photon
+    number) and T1, T2 are the Bell components with the ancilla photon added (every input
+    occupation is 0 or 1, so the input factorials are 1). Cross terms are therefore exact
+    too: `<S|out_B> conj(<S|out_B'>) = scale * (re_B + i im_B)(re_B' - i im_B')` -- the form the
+    moment identity of M27b consumes. M27b Task 2; cross-validated against both engines
+    (probabilities AND cross terms) by `tests/test_p3_poly_k1.py`.
+    """
+    if m < 4:
+        raise ValueError(f"a Bell scheme needs at least 4 modes, got m={m}")
+    if bell_label not in _BELL_LABELS:
+        raise ValueError(f"unknown bell_label {bell_label!r}; expected one of {_BELL_LABELS}")
+    if len(pattern) != m or any(p < 0 for p in pattern):
+        raise ValueError(f"pattern {pattern!r} is not an occupation tuple on m={m} modes")
+    k = 0 if ancilla_mode is None else 1
+    if ancilla_mode is not None and not 4 <= ancilla_mode < m:
+        raise ValueError(f"ancilla_mode {ancilla_mode} must be an ancilla mode in [4, {m})")
+    if sum(pattern) != 2 + k:
+        raise ValueError(f"pattern {pattern!r} must carry {2 + k} photons for k={k}")
+    t1, t2, sign = _bell_components(bell_label, m)
+    if ancilla_mode is not None:
+        t1 = tuple(t + (1 if j == ancilla_mode else 0) for j, t in enumerate(t1))
+        t2 = tuple(t + (1 if j == ancilla_mode else 0) for j, t in enumerate(t2))
+    per1 = _symbolic_permanent(m, pattern, t1)
+    per2 = _symbolic_permanent(m, pattern, t2)
+    re, im = _cplx_add(per1, _cplx_scale(per2, Fraction(sign)))
+    re = {mono: c for mono, c in re.items() if c}
+    im = {mono: c for mono, c in im.items() if c}
+    return (re, im), Fraction(1, 2 * factorial_prod(pattern))
 
 
 def eval_poly(poly: Poly, values: dict[int, float] | list[float]) -> float:
