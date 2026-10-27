@@ -172,6 +172,16 @@ p*_avg(2) = 3/4 and 1 − p*(k) ≥ 1/(k + 2); at k = 1 it gives 2/3 (conjecture
   substantive — mixed ancilla states at m = 6 — fixed and re-reviewed before promotion).
   `p3_moment_bound` is v1.1 (states its count) with m = 6 goldens. Review spend $32.08
   (14 Fable samples); wall time 2 h 55 min; ledger 143 claims, `claims check` green.
+- Referee follow-ups (independent Codex referee, `docs/science/reviews/2026-10-26-p3-moment-bound/`,
+  verdict "correct with gaps"): prior art (Olivo–Grosshans 2018 prove the bound, stronger for odd
+  k, for polarization-preserving U) and the contribution restated as removing that restriction;
+  the proof gaps closed in the note (mixed ancillas, inter-qubit terms, s_A = 0, ancilla
+  coherences, full transpose, tightness sign), the model listed, the padding argument for
+  Θ(1/k). The false older conjecture "k = 0 forces min_B p_B = 0" is REFUTED by an exact
+  eight-mode witness (new predicate verifier `p3_k0_min_zero`, review receipt REVISE);
+  `P3.k0_m8_exact_witness` CONJECTURED; notes on the twirl claim and the general claim; dated
+  notes in `docs/open_problems_ftfbqc.md` (P3) and the 2026-09-05 landscape. Total review spend
+  $35.14 (16 samples); ledger 144 claims.
 
 Deviation: Task 4 checks the moment identity as two polynomial identities (an all-U
 Laplace/Cauchy–Binet identity and a one-body identity at G = I) in a dedicated pack verifier

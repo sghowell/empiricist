@@ -383,9 +383,9 @@ level-2 solve at m = 5 is 22 ms.
 ## Accounting
 
 No strategist or formalizer calls. Model spend is the review receipts only (Fable, max
-effort, two samples per review, `receipts/P3.*.20261027.*`): $32.08 over 14 samples (seven reviews: lemma ×2, k = 1 m = 5 ×2, k = 0 m = 4 ×1, k = 1 m = 6 ×2). Compute: the exact
+effort, two samples per review, `receipts/P3.*.20261027.*`): $35.14 over 16 samples (eight reviews: lemma ×2, k = 1 m = 5 ×2, k = 0 m = 4 ×1, k = 1 m = 6 ×2, and the refutation of the k = 0 min-zero conjecture ×1, $3.06); the referee report itself was run by the coordinator, outside this spend. Compute: the exact
 (1, 5) expansion is 31 s, (1, 6) 51 s; the numeric probes ran ≈ 25 CPU-minutes in scratch
-scripts (cvxpy/Clarabel). Wall time ≈ 2 h 55 min.
+scripts (cvxpy/Clarabel). Wall time ≈ 2 h 55 min for the milestone, plus ≈ 1 h for the referee follow-ups.
 
 Open review warnings carried by the CERTIFIED instance claims (non-blocking; recorded in
 their notes): the earliest PASS entries were made by a p3_moment_bound binary that was
