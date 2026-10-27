@@ -1,11 +1,19 @@
 coverage: null
 depends_on: []
-evidence: []
+evidence:
+- binary_hash: 68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014
+  golden_suite_hash: b3428ce273da423a6932d87eb956939c0d6eecd4ae694aebd9db9f6e193c4575
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p3_moment/one_body_usd_lemma.json
+  stamped: '2026-10-27T02:11:17+00:00'
+  verdict: PASS
+  verifier: sos_certificate
+  version: '1.0'
 formulation_version: p3-sos-certificate-v1
 id: P3.one_body_usd_lemma
 kind: statement
 legacy_level: null
-level: HEURISTIC
+level: CONJECTURED
 n: null
 notes: M27b; certificate built by certificates/p3_moment.py (dual Y = |a_perp><a_perp|(x)I
   + I(x)|b_perp><b_perp|), checked by core.check_certificate; science note docs/science/2026-10-26-p3-moment-bounds.md

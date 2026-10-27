@@ -1,12 +1,20 @@
 coverage: null
 depends_on:
 - P3.one_body_usd_lemma
-evidence: []
+evidence:
+- binary_hash: 8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a
+  golden_suite_hash: 9eab4d3da7d1b61605eb496d09465462cf997e5fb603f553c668133473f3e238
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p3_moment/k0_m4_p_avg_bound.json
+  stamped: '2026-10-27T02:11:27+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.0'
 formulation_version: p3-moment-bound-v1
 id: P3.k0_m4_p_avg_upper_bound
 kind: statement
 legacy_level: null
-level: HEURISTIC
+level: CONJECTURED
 n: null
 notes: M27b; the Calsamiglia-Lutkenhaus value for every assignment (the earlier P3.k0_standard_assignment_p_avg
   covers one assignment); verifier p3_moment_bound (certificates/p3_moment_check.py)
