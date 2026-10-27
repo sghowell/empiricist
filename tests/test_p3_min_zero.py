@@ -33,6 +33,7 @@ def test_two_branch_counterexample_fails_with_all_four_at_one_quarter():
     res = check_k0_min_zero(_payload(two_branch_witness()))
     assert res.verdict is Verdict.FAIL, res.details
     assert res.details["n_modes"] == 8 and res.details["k"] == 0
+    assert "orthonormal" in res.details["validated"] and "valid exact" in res.details["detail"]
     assert all(v == [[1, "1/4", "0"]] for v in res.details["success"].values())
 
 

@@ -84,6 +84,10 @@ def check_k0_min_zero(payload: Any) -> VerifierResult:
         return VerifierResult(verdict=Verdict.ERROR,
                               details={"error": f"{type(exc).__name__}: {exc}"})
     details: dict[str, Any] = {
+        "validated": (
+            "exact witness: columns exactly orthonormal (V^dag V = I in Q(i)(sqrt d)), k = 0, "
+            "vacuum on every auxiliary input; success under the maximal unambiguous assignment"
+        ),
         "n_modes": witness.n_modes,
         "k": witness.n_ancilla_photons,
         "success": {b: alg_to_json(rep.success[b]) for b in BELL_LABELS},
@@ -94,7 +98,7 @@ def check_k0_min_zero(payload: Any) -> VerifierResult:
         details["detail"] = "some Bell state has exact success 0: min_B p_B = 0 holds"
         return VerifierResult(verdict=Verdict.PASS, details=details)
     details["detail"] = (
-        "every Bell state has positive exact success: min_B p_B > 0 at k = 0 "
-        "(a counterexample to 'k = 0 forces min_B p_B = 0')"
+        "valid exact k = 0 scheme with every Bell state at positive exact success: "
+        "min_B p_B > 0 at k = 0 (a counterexample to 'k = 0 forces min_B p_B = 0')"
     )
     return VerifierResult(verdict=Verdict.FAIL, details=details)

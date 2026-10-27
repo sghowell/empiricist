@@ -291,9 +291,11 @@ def _pack_verifier_lines(repo: Path, name: str, s: Any) -> list[str]:
         return [f"- {name}: shipped by the installed `{pack}` pack; its identity could not "
                 f"be computed here ({type(exc).__name__})"]
     live_suite = golden_suite_hash(cases)
+    doc = " ".join((type(v).__doc__ or "").split())
     out = [
         f"- {name} v{v.version}: a verifier shipped by the installed `{pack}` pack "
         f"(empiricist.packs.{pack}); live binary_hash {live_binary}",
+        *([f"  what it checks (its own documentation): {doc[:1200]}"] if doc else []),
         f"  golden suite ({len(cases)} cases, golden_suite_hash {live_suite}): "
         + ", ".join(f"{c.label} expects {c.expected.value}" for c in cases),
     ]

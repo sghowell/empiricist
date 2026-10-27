@@ -161,7 +161,8 @@ class P3K0MinZeroAdapter(BytesFileVerifier):
     counterexample), ERROR for malformed, off-field or k != 0 witnesses -- never FAIL."""
 
     name = "p3_k0_min_zero"
-    version = "1.0"
+    # 1.1: the verdict details state the input validation (exact isometry, k = 0).
+    version = "1.1"
 
     @property
     def binary_hash(self) -> str:

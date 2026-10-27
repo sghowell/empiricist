@@ -19,13 +19,13 @@
       "version": "1.0"
     },
     "p3_k0_min_zero": {
-      "binary_hash": "17d7281cd7ae913f048dea1bbc0102a0017f5c027ab3b7abad368e28214dd6de",
+      "binary_hash": "a6a840ba603b97f2646835b799ecd388761e7a5c29e61c800325403e4658651e",
       "declaration": null,
       "golden_suite_hash": "6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84",
       "name": "p3_k0_min_zero",
       "pack": "ftfbqc",
-      "stamped": "2026-10-27T05:04:19+00:00",
-      "version": "1.0"
+      "stamped": "2026-10-27T05:20:52+00:00",
+      "version": "1.1"
     },
     "p3_moment_bound": {
       "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",

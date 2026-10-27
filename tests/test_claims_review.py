@@ -304,6 +304,7 @@ def test_bundle_describes_a_pack_verifier_and_its_certification_record(tmp_path)
     assert "sos-0 expects PASS" in bundle and "sos-2 expects FAIL" in bundle
     assert f"golden_suite_hash {stamp.golden_suite_hash}" in bundle
     assert "matches the live verifier and suite" in bundle
+    assert "what it checks (its own documentation): Payload: the canonical SOS" in bundle
 
 
 def test_pack_verifier_evidence_note_records_the_verdict_details(tmp_path):

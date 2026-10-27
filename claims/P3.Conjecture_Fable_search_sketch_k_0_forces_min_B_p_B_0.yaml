@@ -40,7 +40,12 @@ notes: 'artifact 0fa89362985466bbdb8e9b53f750a1569168e900d477e6715093e53d59e5b18
   is an exact k = 0 witness on eight modes (vacuum auxiliary inputs) with success
   (1/4, 1/4, 1/4, 1/4); p3_exact_witness PASSes it and the predicate verifier p3_k0_min_zero
   FAILs it. The four-mode version is true and FORMALIZED: P3.Empiricist.p3_at_most_three
-  (no U in U(4) identifies all four Bell states, so min_B p_B = 0 at m = 4).'
+  (no U in U(4) identifies all four Bell states, so min_B p_B = 0 at m = 4).
+
+  The witness''s validity is on record twice: p3_k0_min_zero validates the exact isometry
+  (columns exactly orthonormal in Q(i)(sqrt d), k = 0) before deciding the predicate,
+  and the companion claim P3.k0_m8_exact_witness carries a p3_exact_witness PASS on
+  the same evidence file (exact success (1/4, 1/4, 1/4, 1/4), every Bell state identified).'
 problem: P3
 receipts: []
 source:
