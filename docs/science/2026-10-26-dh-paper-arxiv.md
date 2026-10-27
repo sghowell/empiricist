@@ -64,3 +64,39 @@ live web search (no earlier statement of either theorem found; "the general boun
 substantial new statement"; one major attribution fix and several minor ones). A recheck confirmed the
 fixes, cross-checked the rank-widths with its own dynamic program, and found three remaining small items,
 also fixed. Every finding and its fix is in the `FIXES_APPLIED.md` files under `docs/paper/arxiv/reviews/`.
+
+## The prose revision and the corrections it surfaced (2026-10-26)
+
+At Sean's request the paper was rewritten to his style rules: connected paragraphs; no run-in labels
+or lists; no "not X but Y", colon reveals, tricolons or emphasis words; the register of a PRA paper.
+Following his practice for AI-assisted rewrites, two kinds of independent review checked it:
+- cold reads of the voice by Codex, three rounds, which never saw an earlier version
+  (`docs/paper/arxiv/reviews/prose-voice*/`);
+- a claim-by-claim fidelity review against the merged text, with a re-check
+  (`reviews/prose-fidelity/`);
+- a final Codex scientific-equivalence check against the merged text (`reviews/codex-prose-check/`).
+
+The fidelity reviews found that the first rewrite had dropped content. It lost the n >= 3 scope in the
+abstract, the credit to Löbl et al.'s exact table up to eight qubits together with the Bui-Xuan et al.
+citation, and several hedges. It also added a false claim about a rewording check. All of this was
+restored or removed.
+
+Checking the new wording against the repository's own records then exposed three errors that were
+already in the merged paper (and in the July draft):
+
+- **Who found the characterization.** The paper said a language model (Fable 5) first proposed it. The
+  July records say the coding assistant that built the harness (Claude Code; the spec's author line
+  gives Claude Opus 4.8) noticed the distance-hereditary pattern on 2026-07-12 while mining the full
+  585-orbit table. Fable re-derived it on 2026-07-15 from the 44 orbits with n <= 7, with no class
+  names, and the 541 held-out orbits agreed. The table itself came from the harness's deterministic
+  search, so "Fable classified the orbits" was also wrong; Fable proposed the nine later
+  constructions. The introduction, Sec. VI and the acknowledgments now say this.
+- **The "185/400 arithmetic slip" was not a slip.** 185/400 is the exact/open split of the tablebase
+  (185 exact rows = 175 Tier-0 + 10 Tier-1; 400 open). The July 15 "count correction" to 175/410
+  confused it with the split at the minimum. The item is gone from the paper, and dated corrections
+  are appended to both July notes. The content-addressed evidence artifact that repeats the misreading
+  (`claims/evidence/85e7a63cdadb48c2.json`, field `count_correction`) is left as recorded.
+- **What caught the remaining errors.** The paper credited "the system's checks". The vacuous
+  family-theorem statement was well typed and was caught in review. The rank-width slip was found by an
+  exact computation while the paper was being prepared. The paper now says so, and it also says that
+  artifacts are content-addressed (claims have readable names).

@@ -33,13 +33,13 @@ Authors:
 Sean Howell
 ```
 
-Abstract: the text of the `abstract` environment of `main.tex` (1,689 characters; the limit is
+Abstract: the text of the `abstract` environment of `main.tex` (1,698 characters; the limit is
 1,920; math stays in `$...$`).
 
 Comments field (fill in the tag after merge):
 
 ```
-10 pages, 2 tables; ancillary files contain the Lean development, the certified tablebase and the scripts that re-derive every number; code at https://github.com/sghowell/empiricist (tag dh-paper-v1)
+10 pages, 2 tables; ancillary files contain the Lean development, the table of minimum fusion counts and the scripts that recompute every number; code at https://github.com/sghowell/empiricist (tag dh-paper-v1)
 ```
 
 Suggested categories: quant-ph primary; cross-list math.CO (the theorem is a graph
@@ -50,13 +50,15 @@ License suggestion: CC BY 4.0.
 ## Decisions for Sean
 
 - Whether and when to post.
-- Affiliation: the July draft gave only an email address; the zx_quantum_gravity papers give
-  PsiQuantum. Keep the email only, or add an affiliation?
+- Affiliation: decided 2026-10-26, email only (sean.g.howell@gmail.com), no affiliation.
 - Thanks: the acknowledgments currently contain only the AI-use statement. Add colleagues?
 - Title: the July draft had the subtitle "A machine-discovered result with a formally verified
   core". It is dropped: the prior-art pass showed both directions of the characterization can be
-  assembled from published results, so the paper presents the discovery as a case study, not as the
-  headline. An alternative title that leads with the new bound: "Rank-width bounds the number of
+  assembled from published results, and the distance-hereditary pattern was first noticed by the coding
+  assistant (Claude Code with Claude Opus 4.8) in the full table, with Fable's blind re-derivation from
+  the orbits with n <= 7 three days later. The paper now says so in the introduction, Sec. VI and the
+  acknowledgments. The July model name is taken from the author line of the harness design spec;
+  please confirm it. An alternative title that leads with the new bound: "Rank-width bounds the number of
   fusions needed to build a graph state from three-qubit GHZ states".
 - Framing: the review verdict is that the characterization has modest novelty (an explicit
   consequence of existing results in this model) and the bound F >= n + 3 rw - 6 is the more
