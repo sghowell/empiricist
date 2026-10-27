@@ -19,13 +19,13 @@
       "version": "1.0"
     },
     "p3_moment_bound": {
-      "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+      "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
       "declaration": null,
       "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
       "name": "p3_moment_bound",
       "pack": "ftfbqc",
-      "stamped": "2026-10-27T02:39:17+00:00",
-      "version": "1.0"
+      "stamped": "2026-10-27T03:41:44+00:00",
+      "version": "1.1"
     },
     "sos_certificate": {
       "binary_hash": "68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014",

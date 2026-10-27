@@ -724,9 +724,9 @@
       "sha256": "dd3b6ce9a76bcd9dc45a5ccb0b3261aed621a8bc17eb8faf3eb61449e13f9e1e",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
           "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
-          "version": "1.0"
+          "version": "1.1"
         }
       }
     },
@@ -734,19 +734,19 @@
       "sha256": "ec1355e2d96cb525382c6394bfcd237a15d15df3e9ad99c916ae32c531e43263",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
           "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
-          "version": "1.0"
+          "version": "1.1"
         }
       }
     },
     "claims/evidence/p3_moment/k1_m6_p_avg_bound.json": {
-      "sha256": "42909157e6e655f08eed76efbd5371b72b97cb87bc95f42570443f842e0458c3",
+      "sha256": "faf742cf201288e8f4ac412028d13d49b1927da1020fe232333724bb9bff803f",
       "verifiers": {
         "p3_moment_bound": {
-          "binary_hash": "53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3",
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
           "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
-          "version": "1.0"
+          "version": "1.1"
         }
       }
     },
