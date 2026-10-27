@@ -64,6 +64,83 @@ class SOSCertificateAdapter(BytesFileVerifier):
         ]
 
 
+_CERT_DIR = Path(__file__).resolve().parents[2] / "certificates"
+_P3_DIR = Path(__file__).resolve().parents[2] / "domain" / "p3"
+# The moment-bound trust surface: the exact checker it runs, the lemma builder it compares
+# against, the SOS checker and JSON codec, and the amplitude polynomials (with their Fock
+# helpers) that define the moment matrices.
+_MOMENT_HASHED = (
+    _CERT_DIR / "p3_moment_check.py",
+    _CERT_DIR / "p3_moment.py",
+    _CERT_DIR / "core.py",
+    _CERT_DIR / "verifier.py",
+    _P3_DIR / "poly.py",
+    _P3_DIR / "fock.py",
+)
+
+
+class P3MomentBoundAdapter(BytesFileVerifier):
+    """Payload: `{"checker": "p3_moment_bound", "k", "m", "claimed_p_avg_bound",
+    "lemma_certificate"}` -- the photon-number moment bound at a fixed (k, m)
+    (`certificates/p3_moment_check.py`, M27b). PASS iff the canonical one-body USD lemma
+    certificate checks, the moment identities hold exactly at (k, m), and the claimed
+    average-success bound is at least (k + 1)/(k + 2)."""
+
+    name = "p3_moment_bound"
+    version = "1.0"
+
+    @property
+    def binary_hash(self) -> str:
+        import hashlib
+
+        h = hashlib.sha256()
+        for f in _MOMENT_HASHED:
+            h.update(f.name.encode("utf-8") + b"\0")
+            h.update(f.read_bytes())
+        return h.hexdigest()
+
+    def verify_bytes(self, payload: bytes) -> VerifierResult:
+        from empiricist.certificates.p3_moment_check import check_moment_bound
+
+        try:
+            data = json.loads(payload)
+        except ValueError as exc:
+            return _malformed(exc)
+        res = check_moment_bound(data)
+        details = {"failure": res.failure, "detail": res.detail}
+        if not res.ok:
+            if res.failure == "shape":
+                details["invalid"] = True
+            return VerifierResult(verdict=Verdict.FAIL, details=details)
+        details["bound"] = str(res.bound)
+        return VerifierResult(verdict=Verdict.PASS, details=details)
+
+    def golden_suite(self) -> list[GoldenCase]:
+        from empiricist.certificates.p3_moment import ONE_BODY_USD_DATA
+
+        lemma = json.loads(ONE_BODY_USD_DATA.read_text())
+        corrupt = dict(lemma, bound="-1")
+        tiny = {
+            "statement": "-x0^2 <= 0", "variables": ["x0"], "objective": {"0,0": "-1"},
+            "bound": "0", "constraints": [], "multipliers": [], "gram_basis": [[0]],
+            "gram": [["1"]],
+        }
+
+        def case(label: str, k: int, m: int, bound, cert, expected: Verdict) -> GoldenCase:
+            body = {"checker": "p3_moment_bound", "k": k, "m": m,
+                    "claimed_p_avg_bound": bound, "lemma_certificate": cert}
+            return GoldenCase(label, _canonical(body), expected)
+
+        return [
+            case("moment-k0-m4-half", 0, 4, "1/2", lemma, Verdict.PASS),
+            case("moment-k1-m5-two-thirds", 1, 5, "2/3", lemma, Verdict.PASS),
+            case("moment-k1-m5-bound-too-low", 1, 5, "13/20", lemma, Verdict.FAIL),
+            case("moment-k0-m4-corrupt-lemma", 0, 4, "1/2", corrupt, Verdict.FAIL),
+            case("moment-k1-m5-foreign-lemma", 1, 5, "2/3", tiny, Verdict.FAIL),
+            case("moment-k2-m8-unsupported", 2, 8, "3/4", lemma, Verdict.FAIL),
+        ]
+
+
 class ExactWitnessAdapter(BytesFileVerifier):
     """Payload: `{"witness", "claimed_success": {bell: alg json}, "require_all_identified"}`
     -- the stored form of a P3 exact-witness artifact."""

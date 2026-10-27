@@ -11,6 +11,7 @@ from empiricist.packs.ftfbqc.adapters import (
     AgreedFusionAdapter,
     EnumFusionAdapter,
     ExactWitnessAdapter,
+    P3MomentBoundAdapter,
     SOSCertificateAdapter,
     StabFusionAdapter,
 )
@@ -24,6 +25,7 @@ MANIFEST = PackManifest(
         "stab_fusion": StabFusionAdapter,
         "enum_fusion": EnumFusionAdapter,
         "verify_agreed": AgreedFusionAdapter,
+        "p3_moment_bound": P3MomentBoundAdapter,
     },
     problems={"P3": "p3-certificates-v1", "P5": "p5-ghz3-v1"},
 )

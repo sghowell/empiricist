@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from empiricist.certificates.goldens import load_k0_golden
 from empiricist.certificates.verifier import SOSCertificateVerifier, certificate_to_json
 from empiricist.claims.check import check
@@ -13,7 +15,11 @@ from empiricist.packs import certify_pack_verifier, load_pack, pack_identity, re
 from empiricist.verifiers.builtin import identity_for
 from empiricist.verifiers.registry import AGREED_VERSION, agreed_binary_hash
 
-NAMES = ("sos_certificate", "p3_exact_witness", "stab_fusion", "enum_fusion", "verify_agreed")
+NAMES = ("sos_certificate", "p3_exact_witness", "stab_fusion", "enum_fusion", "verify_agreed",
+         "p3_moment_bound")
+# p3_moment_bound's PASS golden at (k, m) = (1, 5) is a ~30 s exact expansion: certified in
+# its own slow test below, not in the fast loop.
+FAST_NAMES = tuple(n for n in NAMES if n != "p3_moment_bound")
 
 
 def test_manifest_loads_and_identities_are_the_v0_ones():
@@ -27,7 +33,7 @@ def test_manifest_loads_and_identities_are_the_v0_ones():
 
 def test_every_ftfbqc_verifier_certifies_and_judges_its_goldens(tmp_path):
     (tmp_path / "claims").mkdir()
-    for name in NAMES:
+    for name in FAST_NAMES:
         v = resolve_pack_verifier(tmp_path, name)
         cases = v.golden_suite()
         assert cases and {c.expected for c in cases} >= {Verdict.PASS, Verdict.FAIL}, name
@@ -37,6 +43,29 @@ def test_every_ftfbqc_verifier_certifies_and_judges_its_goldens(tmp_path):
         assert problems == [] and stamp is not None and stamp.pack == "ftfbqc", name
     sos = resolve_pack_verifier(tmp_path, "sos_certificate")
     assert sos.verify_bytes(b"{").verdict is Verdict.FAIL
+
+
+@pytest.mark.slow
+def test_the_moment_bound_verifier_certifies_and_judges_its_goldens(tmp_path):
+    (tmp_path / "claims").mkdir()
+    v = resolve_pack_verifier(tmp_path, "p3_moment_bound")
+    cases = v.golden_suite()
+    assert {c.expected for c in cases} == {Verdict.PASS, Verdict.FAIL}
+    for c in cases:
+        assert v.verify_bytes(c.payload).verdict is c.expected, c.label
+    stamp, problems = certify_pack_verifier(tmp_path, "p3_moment_bound")
+    assert problems == [] and stamp is not None and stamp.pack == "ftfbqc"
+    assert v.verify_bytes(b"{").verdict is Verdict.FAIL
+
+
+def test_the_moment_bound_verifier_fails_fast_on_cheap_gates(tmp_path):
+    v = resolve_pack_verifier(tmp_path, "p3_moment_bound")
+    by_label = {c.label: c for c in v.golden_suite()}
+    for label in ("moment-k0-m4-half", "moment-k1-m5-bound-too-low",
+                  "moment-k0-m4-corrupt-lemma", "moment-k1-m5-foreign-lemma",
+                  "moment-k2-m8-unsupported"):
+        c = by_label[label]
+        assert v.verify_bytes(c.payload).verdict is c.expected, label
 
 
 def test_promote_a_claim_to_certified_on_the_sos_pack_verifier(tmp_path):
