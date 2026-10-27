@@ -26,6 +26,14 @@ So under the problem's literal definition a single ancilla photon is **not** use
 lifts p* from exactly 0 to at least 1/4. Under the literature's average it appears useless
 (the p*(1) = 1/2 conjecture survives another 130 designs).
 
+> **Correction (2026-10-26, M27b referee follow-up).** The "exactly 0" row holds at m = 4
+> only (`p3_at_most_three` is a theorem about U(4)). The problem allows any number of modes,
+> and at k = 0 with four vacuum auxiliary modes the eight-mode witness
+> V = (1/√2)[H; H X_A] reaches (1/4, 1/4, 1/4, 1/4) exactly (`P3.k0_m8_exact_witness`). So
+> p*_min(0) ≥ 1/4 already, and the comparison above (k = 0 at m = 4 against k = 1 at m = 5)
+> does not show that one ancilla photon helps the min metric. See
+> `docs/science/2026-10-26-p3-moment-bounds.md`, "Referee follow-ups in the ledger".
+
 ## The k = 1 landscape
 
 Random-restart optimisation of the universal (Clements-style) mesh plus a single-photon

@@ -1,0 +1,63 @@
+{
+  "claim_id": "P3.k1_m5_p_avg_upper_bound",
+  "closes": [
+    "P3.k1_m5_p_avg_upper_bound.20261027.model",
+    "P3.k1_m5_p_avg_upper_bound.20261027.model.2"
+  ],
+  "created": "2026-10-27T03:15:56+00:00",
+  "evidence_sha256": [
+    "ec1355e2d96cb525382c6394bfcd237a15d15df3e9ad99c916ae32c531e43263"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The 02:11:56 PASS entry records p3_moment_bound v1.0 with binary_hash 8e5c8c5d32... which matches no certification record (claims/verifiers.json certifies v1.0 only as 53eacdb425..., stamped 02:39:17), predates that stamp by ~27 minutes, and carries null provenance (argv=None cwd=None exit=None env_sha256=None). The label 'v1.0' thus denotes two distinct binaries in the record, and only the 02:40:45 entry satisfies 'a certificate that a certified verifier replays with PASS'. [Evidence entry claims/evidence/p3_moment/k1_m5_p_avg_bound.json -> PASS at 2026-10-27T02:11:56+00:00 (binary_hash 8e5c8c5d...) vs claims/verifiers.json certification record (binary_hash 53eacdb4..., stamped 2026-10-27T02:39:17+00:00)]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "machine_checked item (b) discloses 'two polynomial identities' for 'every output mode i (m = 5) and Bell pair (B, B')' \u2014 160 identities over ordered pairs (100 over unordered) \u2014 while the certified replay reports checking 80. No counting convention stated in the evidence reconciles the disclosed machine-checked boundary with the replayed count, so what the certified verifier actually replayed is not pinned down by the disclosure. [Evidence entry note at 02:40:45 pack verifier detail '80 identities; bound 2/3' vs k1_m5_p_avg_bound.json about.machine_checked (b)]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "The bound statement text never defines p_B or the discrimination ensemble: 'acting on the dual-rail Bell pair' is a definite singular, while '(1/4) sum_B p_B' presupposes the input ranges over the four Bell states with p_B = Pr[pattern assigned to B | input B]. That reading is supplied only by the evidence file's setting field ('p_B = sum over patterns mapped to B of Pr[pattern | B]'), which lies outside the exact text the receipt binds to. [Statement phrases 'the average success (1/4) sum_B p_B' and 'acting on the dual-rail Bell pair'; definition only in k1_m5_p_avg_bound.json about.setting]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The identification of A_B(n) with the physical amplitude <n|out_B> rests on domain/p3/poly.py bell_amp_poly, whose claimed cross-validation ('both float engines', tests/test_p3_poly_k1.py) is in an external test file that is neither an evidence entry nor a written step; machine checks (I1)/(I2) verify relations among the computed polynomials, not the physics encoding itself. Otherwise the evidence does carry the universal claim: (b)'s identities are exact over Q in free entries of U (covering all of U(5) once W1 substitutes U^dag U = I), W2 covers every unambiguous assignment, and about.claim_statement matches the ledger statement verbatim. [k1_m5_p_avg_bound.json about.machine_checked (b): 'bell_amp_poly (cross-validated against both float engines by tests/test_p3_poly_k1.py)' and about.claim_statement]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Checked verbatim match of lemma_certificate.statement against the dependency P3.one_body_usd_lemma statement; the objective {sA:-1, sB:-1, c:-4, lam_*:+1} with bound 0 over variables [sA(8), sB(9), c(10), lam_phi+/-, lam_psi+/- (11-14)] encodes sum_B lambda_B <= s_A + s_B + 4c as stated; gate (a) plus golden case moment-k1-m5-foreign-lemma (expects FAIL) pin the embedded certificate to that exact lemma. Mode indexing is coherent throughout (qubit A columns 0-1, qubit B columns 2-3, c_i = |U_i4|^2 matching 'input mode 4, 0-indexed'). [k1_m5_p_avg_bound.json lemma_certificate.statement/.objective/.variables vs dependency P3.one_body_usd_lemma; golden suite case moment-k1-m5-foreign-lemma]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "The operator-theoretic core is written-only (W2 Bell-diagonality from the zero-probability clause, W3 transpose-vs-real-diagonal PSD step, W4 rank-one O_A = conj(u)u^T including the u = 0 edge case, W5 three-photon count, W6 column sums 2+2+4 = 8 giving average <= 2/3), which CERTIFIED permits since the boundary is disclosed in written_steps; I re-derived each step against the lemma's hypothesis format (W W^dagger, real lambda_B, unit a, b) and found no error. Gate (c) 'claimed_p_avg_bound >= (1 + 1)/(1 + 2)' equals the claimed 2/3 and golden case moment-k1-m5-bound-too-low (FAIL) guards the direction; the Notes correctly avoid a tightness overclaim ('the bound is not tight'). [k1_m5_p_avg_bound.json about.written_steps W1-W6; about.machine_checked (c); Notes field 'the bound is not tight']"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "The dependency cap is satisfied (sole dependency P3.one_body_usd_lemma is CERTIFIED, standing CURRENT, so promotion to CERTIFIED does not exceed the lowest dependency level) and sequencing is coherent: the 02:40:45 certified replay postdates verifier certification (02:39:17). Promotion is deferred only by the three warnings above (uncertified-binary PASS entry under the v1.0 label, identity-count disclosure mismatch, undefined p_B/ensemble in the bound text), not by any structural obstacle. [Promotion requested CONJECTURED -> CERTIFIED; dependency P3.one_body_usd_lemma [CERTIFIED, standing CURRENT]; timestamps 02:39:17 vs 02:40:45]"
+    }
+  ],
+  "id": "P3.k1_m5_p_avg_upper_bound.20261027.model.4",
+  "provenance": {
+    "cost_usd": "2.1591",
+    "model": "claude-fable-5",
+    "request_digest": "939bfca2538f95a5e2bf824b1d67b44be2de427a7547436114ffe68fb1148500",
+    "response_digest": "4014f60d76eccd1f1b16ce485b94c3717941afb3322e483c7af88f06c9776a0f",
+    "run_id": "review-P3.k1_m5_p_avg_upper_bound-0abdb0-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "e139db713ffa13b6ebb7a13765818dc0fad54ddc2a4312bf4925a75f73a7547c",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

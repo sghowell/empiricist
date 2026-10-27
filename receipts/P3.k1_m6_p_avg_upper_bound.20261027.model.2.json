@@ -1,0 +1,70 @@
+{
+  "claim_id": "P3.k1_m6_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T03:38:50+00:00",
+  "evidence_sha256": [
+    "42909157e6e655f08eed76efbd5371b72b97cb87bc95f42570443f842e0458c3"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The first evidence entry records 'p3_moment_bound v1.0 -> PASS' with binary_hash 8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a, but claims/verifiers.json pins v1.0 to binary_hash 53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3. The run predates the certification stamp (2026-10-27T02:39:17) and carries no provenance ('argv=None cwd=None exit=None env_sha256=None'). Two distinct binaries share the label v1.0 in the ledger, and the promotion record thus contains a PASS that no certification covers; only the 02:41:38 replay is by the certified verifier. [Evidence entry at 2026-10-27T02:12:49+00:00 for claims/evidence/p3_moment/k1_m6_p_avg_bound.json vs certification record in claims/verifiers.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "about.machine_checked (b) declares 'for every output mode i (m = 6) and Bell pair (B, B'), two polynomial identities' \u2014 i.e. 2 x 6 x 16 = 192 ordered-pair identities, or 120 after Hermitian dedup \u2014 but the certified replay reports only '96 identities' in the pack verifier details. No field reconciles the executed count with the declared check matrix (e.g. whether diagonal-pair (I2) identities were run), so the disclosed machine-check boundary cannot be matched to what was actually replayed. A receipt attesting 'within its disclosed verification boundary' cannot be issued while this count is unexplained. [Second evidence entry note, pack verifier details field \"detail\": \"96 identities; bound 2/3\" vs k1_m6_p_avg_bound.json about.machine_checked item (b)]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "The statement quantifies over 'any single-photon ancilla state on modes 5-6', which unqualified includes mixed states, but disclosed step W0 argues only 'a single-photon state on modes 5-6 is V|1_5> for a unitary V on modes 5-6' \u2014 a premise true only for pure states. The disclosed written steps therefore cover a strictly smaller scope (pure ancillas) than the statement text the receipt would bind to; the pure-state restriction is a hidden hypothesis of the evidence. [Statement phrase 'any single-photon ancilla state on modes 5-6' vs written_steps W0 in k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The symbol p_B is never defined in the binding statement text; its meaning (p_B = sum over patterns mapped to B of Pr[pattern | B], with the uniform 1/4 weighting over Bell inputs) exists only in the evidence file's 'setting' field. The receipt would bind to a statement whose central quantity is defined outside the statement. [Statement phrase 'the average success (1/4) sum_B p_B' vs 'setting' field of k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The bridge from the machine-checked polynomials to physical amplitudes rests on 'A_B(n) = <n|out_B> the permanent polynomials of domain/p3/poly.py bell_amp_poly (cross-validated against both float engines by tests/test_p3_poly_k1.py)' \u2014 an external test reference, not part of this certificate's machine replay, and disclosed inside machine_checked (b) rather than declared among written_steps W0-W6. Otherwise I checked the W1-W6 chain against the dependency lemma: the transpose/PSD step, the unambiguity-to-Bell-diagonal step, the 3-photon trace identity, and the column sums 2 + 2 + 4*1 = 8 giving (1/4) sum_B p_B <= 2/3 and min <= average are correct as written, and check (c) '(1 + 1)/(1 + 2)' matches the k = 1 derivation. [k1_m6_p_avg_bound.json about.machine_checked (b) parenthetical and written_steps W1-W6]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "The golden suite exercises k=1 only at m=5 (moment-k1-m5-two-thirds, moment-k1-m5-bound-too-low, moment-k1-m5-foreign-lemma) and contains no m=6 case, while moment-k2-m8-unsupported shows the verifier has explicit support boundaries. This claim is the first use at m=6 ('M27b target B at a second mode number' in Notes), so the verifier's correctness in the claim's exact regime is attested only by the replay under review. CERTIFIED (universal symbolic identities plus disclosed written steps) is otherwise the appropriate level type for this evidence rather than VERIFIED_N. [p3_moment_bound v1.0 golden suite (golden_suite_hash e6bc219e...) vs evidence fields \"k\":1, \"m\":6 and the claim Notes]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Checked the level cap: the promotion target CERTIFIED does not exceed the lowest dependency level (P3.one_body_usd_lemma is CERTIFIED, standing CURRENT). Checked that lemma_certificate.statement embedded in the evidence matches the dependency's statement verbatim, with machine check (a) gating it to the canonical certificate; no defect found on these points. [Dependencies entry 'P3.one_body_usd_lemma [CERTIFIED, standing CURRENT]' and lemma_certificate.statement in k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Checked the evidence 'claim_statement' field against the ledger's exact statement text: identical. Checked Notes ('ancilla photon in mode 5', 'checked exactly at m = 6') against the evidence 'setting' (mode 5 = input index 4, \"m\":6) and the replay detail bound '2/3' against \"claimed_p_avg_bound\":\"2/3\": consistent. [k1_m6_p_avg_bound.json fields claim_statement, setting, claimed_p_avg_bound vs ledger statement and Notes]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Structural preconditions for this promotion hold: the 02:41:38 replay postdates the certification stamp 02:39:17 with matching binary_hash and golden_suite_hash, and the sole dependency is CERTIFIED and CURRENT. However, promoting on the current record would bind the receipt to an evidence row containing the uncertified 02:12:49 PASS, the unreconciled '96 identities' count, and the ancilla scope gap, so the promotion is premature until the warnings are resolved. [Promotion request CONJECTURED -> CERTIFIED; evidence entry timestamps vs claims/verifiers.json stamp 2026-10-27T02:39:17+00:00]"
+    }
+  ],
+  "id": "P3.k1_m6_p_avg_upper_bound.20261027.model.2",
+  "provenance": {
+    "cost_usd": "2.1326",
+    "model": "claude-fable-5",
+    "request_digest": "9b6b9d30ebfcdaa4b1ce0417788eb231daf5b3a11d270e619995c8a978877e58",
+    "response_digest": "5fb090c8b7fead1b52658f741a781fc13584b10a9b9a28abfb71d9988f05ddf1",
+    "run_id": "review-P3.k1_m6_p_avg_upper_bound-89ed85-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "5fde787aba4297eb4695a6d9b47ccd2db242011082da8b3652a40213c3427bca",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

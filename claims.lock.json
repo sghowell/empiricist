@@ -720,6 +720,61 @@
         }
       }
     },
+    "claims/evidence/p3_k0_m8/two_branch_witness.json": {
+      "sha256": "c267e36470e6e4bce9d84bba4ae1d4f5e6253080733fdb6d2e749805a85ca928",
+      "verifiers": {
+        "p3_exact_witness": {
+          "binary_hash": "13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589",
+          "golden_suite_hash": "6ca0395047b4d38b58d07e4978c5e439ee7a4dc4cf7a8c02b0ee52858ca45fcc",
+          "version": "1.0"
+        },
+        "p3_k0_min_zero": {
+          "binary_hash": "a6a840ba603b97f2646835b799ecd388761e7a5c29e61c800325403e4658651e",
+          "golden_suite_hash": "6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84",
+          "version": "1.1"
+        }
+      }
+    },
+    "claims/evidence/p3_moment/k0_m4_p_avg_bound.json": {
+      "sha256": "dd3b6ce9a76bcd9dc45a5ccb0b3261aed621a8bc17eb8faf3eb61449e13f9e1e",
+      "verifiers": {
+        "p3_moment_bound": {
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
+          "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
+          "version": "1.1"
+        }
+      }
+    },
+    "claims/evidence/p3_moment/k1_m5_p_avg_bound.json": {
+      "sha256": "ec1355e2d96cb525382c6394bfcd237a15d15df3e9ad99c916ae32c531e43263",
+      "verifiers": {
+        "p3_moment_bound": {
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
+          "golden_suite_hash": "e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685",
+          "version": "1.1"
+        }
+      }
+    },
+    "claims/evidence/p3_moment/k1_m6_p_avg_bound.json": {
+      "sha256": "faf742cf201288e8f4ac412028d13d49b1927da1020fe232333724bb9bff803f",
+      "verifiers": {
+        "p3_moment_bound": {
+          "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
+          "golden_suite_hash": "89bb789d6e600501e74a8102844e96ad9b123e3f6a58d89764ffaa51f4f4a3bd",
+          "version": "1.1"
+        }
+      }
+    },
+    "claims/evidence/p3_moment/one_body_usd_lemma.json": {
+      "sha256": "4dcad293ce13e1e90ca2abc836617536517e685c12ed173cf9e4f63ae4d64de2",
+      "verifiers": {
+        "sos_certificate": {
+          "binary_hash": "68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014",
+          "golden_suite_hash": "b3428ce273da423a6932d87eb956939c0d6eecd4ae694aebd9db9f6e193c4575",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/p6/cand_4a10138ea8/completeness_c224.json": {
       "sha256": "2b3d6cc894f556b14266f4071b29704d347b7dd9671cce2f3eb1bd3d73f17a5e",
       "verifiers": {

@@ -1,0 +1,73 @@
+{
+  "claim_id": "P3.k1_m5_p_avg_upper_bound",
+  "closes": [
+    "P3.k1_m5_p_avg_upper_bound.20261027.model",
+    "P3.k1_m5_p_avg_upper_bound.20261027.model.2"
+  ],
+  "created": "2026-10-27T03:10:34+00:00",
+  "evidence_sha256": [
+    "ec1355e2d96cb525382c6394bfcd237a15d15df3e9ad99c916ae32c531e43263"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The first evidence entry records 'p3_moment_bound v1.0 -> PASS' with binary_hash 8e5c8c5d325c..., which matches neither the certification record binding v1.0 to 53eacdb42593... nor the live binary; the run (02:11:56Z) predates the certification stamp (02:39:17Z) and carries no provenance (argv=None cwd=None exit=None env_sha256=None). This entry is non-probative for CERTIFIED and leaves the single identity 'p3_moment_bound v1.0' attached to two distinct binaries in the ledger. [Evidence entries, first line: 'p3_moment_bound v1.0 -> PASS at 2026-10-27T02:11:56+00:00 (binary_hash 8e5c8c5d...)' vs claims/verifiers.json record 'v1.0 binary_hash 53eacdb4...' stamped 2026-10-27T02:39:17+00:00]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "The binding statement text never defines p_B: that p_B is the probability, conditioned on the input being Bell state B, of the detection pattern being mapped to B exists only in the evidence file's 'setting' field ('p_B = sum over patterns mapped to B of Pr[pattern | B]'). The statement also never says the input ranges over the four Bell states; 'acting on the dual-rail Bell pair' (singular) leaves the conditioning implicit, despite the note 'statement made self-contained after review round 1'. [Statement phrase 'the average success (1/4) sum_B p_B' vs k1_m5_p_avg_bound.json 'setting' field]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The dual-rail encoding convention (phi+- = (|1,0,1,0> +- |0,1,0,1>)/sqrt2, 'mode 1 (qubit A) and mode 3 (qubit B) carrying |0>') appears only in the evidence 'setting' field, not in the statement text the receipt binds to. Immaterial to truth because the quantifier over all U in U(5) absorbs rail relabelings, but the exact-text binding does not carry the encoding. [k1_m5_p_avg_bound.json 'setting': 'Bell states in Fock occupations of modes 1-4...' vs statement 'dual-rail Bell pair (qubit A on modes 1-2, qubit B on modes 3-4)']"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Identity-count mismatch inside the evidence record: about.machine_checked (b) declares 'two polynomial identities' (I1),(I2) for every output mode (5) and Bell pair (16), i.e. 160 checks, while the recorded pack verifier detail for the certified replay says '80 identities' (= 5x16). The record is ambiguous about exactly which identity set was replayed. [k1_m5_p_avg_bound.json about.machine_checked item (b) vs evidence entry 2 note detail '{\"bound\": \"2/3\", \"detail\": \"80 identities; bound 2/3\"}']"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The identification of bell_amp_poly's permanent polynomials with the physical detection amplitudes (so that |A_B(n)|^2 = Pr[pattern|B], which W5 consumes) is neither among the machine_checked items nor a written step W1-W6; its stated support, 'cross-validated against both float engines by tests/test_p3_poly_k1.py', is an artifact outside the evidence file and outside the certified replay boundary. Partially mitigated in-boundary: summing the checked identities (I1)+(I2) over i at U^dag U = I forces sum_n |A_B(n)|^2 = 1, pinning overall normalization. [about.machine_checked (b) parenthetical '(cross-validated against both float engines by tests/test_p3_poly_k1.py)' and 'setting' field definition of p_B]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "Checked that the machine items and disclosed written steps compose to the stated bound: (b) is an exact expansion over Q in the 2m^2 real entries of U, so the universal quantifier 'for every passive interferometer U in U(5)' is covered symbolically, not by sampling; W2's amplitude-zero step follows from the statement's own unambiguity clause; W3's transpose step is valid (transpose of a Hermitian PSD matrix is its conjugate, compared against a real diagonal Lambda_i); W4 matches the lemma's premise shape s_A|a><a|(x)I + s_B I(x)|b><b| + cI - sum lambda_B|B><B| = WW^dagger; W5-W6 arithmetic recomputed (sum_i s_A = sum_i s_B = 2, sum_i c_i = 1, 3 photons per pattern => 3*sum_B p_B <= 8), reproducing claimed_p_avg_bound '2/3' and the (c) threshold (1+1)/(1+2). [k1_m5_p_avg_bound.json written_steps W1-W6, about.machine_checked (b),(c), claimed_p_avg_bound]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Dependency gate verified: P3.one_body_usd_lemma is CERTIFIED and standing CURRENT, so the level cap (claim level <= lowest dependency level) permits CERTIFIED; the embedded lemma_certificate.statement is verbatim identical to the dependency's recorded statement, and machine check (a) plus the golden case 'moment-k1-m5-foreign-lemma expects FAIL' gate that embedding against substitution. formulation_version p3-moment-bound-v1 binds via the exact claim_statement text, which matches the ledger statement character-for-character. [Dependencies entry 'P3.one_body_usd_lemma [CERTIFIED, standing CURRENT]' vs k1_m5_p_avg_bound.json lemma_certificate.statement and claim_statement]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "Checked the requested level against the charter's CERTIFIED clause: the non-machine-checked analytic content is confined to W1-W6, which are disclosed in the evidence 'written_steps' field and flagged in Notes ('written steps disclosed in the evidence'), as the charter permits; the symbolic universality in (b) justifies CERTIFIED rather than a VERIFIED_N sampling level; the stated bound equals the evidence's claimed_p_avg_bound, and the disclosed non-tightness ('best known k=1 average is 1/2 (conjecture)') does not inflate the claim, which is only an upper bound. No overclaim found. [Level semantics, CERTIFIED clause; k1_m5_p_avg_bound.json 'written_steps'; Notes 'the best known k=1 average is 1/2 (conjecture), so the bound is not tight']"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Promotion-timing gates checked: the probative PASS (binary_hash 53eacdb4..., 2026-10-27T02:40:45Z) postdates the verifier certification stamp (02:39:17Z) and matches the live binary and golden_suite_hash; the claim's k=1, m=5 is inside the verifier's supported scope (golden case 'moment-k2-m8-unsupported expects FAIL' gates scope, 'moment-k1-m5-bound-too-low expects FAIL' gates the bound direction). No blocking obstacle to promotion; the two warnings above are what stands between this record and a clean receipt. [Evidence entry 2 timestamp vs claims/verifiers.json stamp 2026-10-27T02:39:17+00:00; golden suite case list]"
+    }
+  ],
+  "id": "P3.k1_m5_p_avg_upper_bound.20261027.model.3",
+  "provenance": {
+    "cost_usd": "2.2412",
+    "model": "claude-fable-5",
+    "request_digest": "939bfca2538f95a5e2bf824b1d67b44be2de427a7547436114ffe68fb1148500",
+    "response_digest": "d80287e98b9aeb80d28fc5dfff91513d00637175adaed532671046e3359aedee",
+    "run_id": "review-P3.k1_m5_p_avg_upper_bound-0abdb0-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "e139db713ffa13b6ebb7a13765818dc0fad54ddc2a4312bf4925a75f73a7547c",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

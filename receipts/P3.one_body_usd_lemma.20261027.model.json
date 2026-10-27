@@ -1,0 +1,70 @@
+{
+  "claim_id": "P3.one_body_usd_lemma",
+  "closes": [],
+  "created": "2026-10-27T02:20:28+00:00",
+  "evidence_sha256": [
+    "c5f673a49ac3c1c866e5a62e27a522cdc0fc39af2722141cc5d993080657d15d"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "blocking",
+      "text": "The clause 'the bound is attained at a = b = |0>, s_A = s_B' in the final statement sentence is not established by the sole evidence entry. The certificate proves only objective = sum lam - sA - sB - 4c <= bound = 0 (an inequality over the encoded variety); it contains no equality witness, its embedded 'statement' field stops at 'sum_B lambda_B <= s_A + s_B + 4c', and 'about.verification_boundary' discloses only the identity/PSD check plus the builder's encoding contract -- attainment is neither machine-replayed nor disclosed as a written analytic step outside replay. The CERTIFIED receipt binds to the exact text, so this clause is outside the certificate's coverage. [Statement, final sentence; claims/evidence/p3_moment/one_body_usd_lemma.json fields 'objective', 'bound', 'statement', 'about.verification_boundary']"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "blocking",
+      "text": "The attainment clause omits a sign hypothesis and is false under the statement's own quantification ('real numbers s_A, s_B', unrestricted). At a = b = |0>, s_A = s_B = s, PSD of the (|00>,|11>) block forces lam_phi+ + lam_phi- <= 2 min(2s+c, c) and of the (|01>,|10>) block forces lam_psi+ + lam_psi- <= 2(s+c), so sup sum_B lambda_B = 6s + 4c when s < 0, which reaches s_A + s_B + 4c = 2s + 4c only when s >= 0. For s_A = s_B = -1 the supremum is -6 + 4c, short of -2 + 4c for every real c and every lambda, W; no attaining point of the stated form exists there, and no narrower quantification appears in the text. [Statement, clause 'the bound is attained at a = b = |0>, s_A = s_B' versus preamble 'real numbers s_A, s_B, c']"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "The receipt-bound statement and the certificate's self-declared statement disagree: the JSON 'statement' field ends at the inequality and carries neither 'Exact SOS certificate over 47 real variables' nor the attainment sentence (and uses different hypothesis wording, 'for unit alpha, beta'). The evidence self-identifies as certifying a strictly weaker text than the one being promoted. ['statement' field of claims/evidence/p3_moment/one_body_usd_lemma.json versus the claim's Statement block]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The Statement embeds proof-artifact metadata as receipt-bound text: 'Exact SOS certificate over 47 real variables' describes the evidence, not the proposition. The count does match the 47-name 'variables' array, but a regenerated certificate with a different variable count would falsify the statement text without changing the mathematics. [Statement sentence 'Exact SOS certificate over 47 real variables'; 'variables' array in one_body_usd_lemma.json]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "CERTIFIED requires 'a certificate that a certified verifier replays with PASS', but the committed declaration for the recorded verifier reads 'sos_certificate: not a command verifier declared in this repository; registry stamp v1.0'. The record establishes only a binary_hash stamp (68a61a8d...) matching the evidence entry; nothing in the ledger ties 'registry stamp' to the charter's 'certified verifier' status. ['Verifiers named above' entry for sos_certificate; evidence entry binary_hash 68a61a8d9e0e4586...]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The sole PASS record carries 'argv=None cwd=None exit=None env_sha256=None': no invocation, exit status, or environment pin is on record, so the replay underlying both the current CONJECTURED level and this promotion cannot be reproduced or audited from the ledger entry alone. [Evidence entry note for claims/evidence/p3_moment/one_body_usd_lemma.json (PASS at 2026-10-27T02:11:17+00:00)]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "The disclosed boundary delegates hypothesis-encoding correctness to 'the builder's contract, pinned by tests/test_p3_moment.py' (a numerical pin: constraints 'vanish to 1e-10 at 20 random points'), yet no evidence entry records any run of those tests with a verifier identity or PASS. The leg of the boundary connecting the 18 constraint polynomials to the stated hypothesis is asserted in prose, not on the evidence record. (I independently re-derived all 18 constraints, the objective, and the multiplier structure from the variables list and found them to match the stated hypothesis and the declared dual Y, so the gap is in the record, not in the mathematics I could check.) ['about.verification_boundary' in one_body_usd_lemma.json; 'Evidence entries' list (single entry)]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "warning",
+      "text": "CERTIFIED overstates coverage of the exact text: machine replay covers the inequality over the encoded variety only, while the final sentence bundles evidence description plus an unverified (and, for s_A = s_B < 0, unattainable) tightness claim into the receipt-bound statement. The level would assert certificate coverage of text the certificate neither states nor checks. ['promotion requested: CERTIFIED' versus Statement final sentence and the 'objective'/'bound' fields]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "warning",
+      "text": "Promoting now would mint a review receipt attesting boundary coverage that is presently false for part of the bound text (the attainment clause), while the verifier-certification ambiguity and the unrecorded test pin remain open; neither the Notes ('checked by core.check_certificate', science note reference) nor the evidence shows these were resolved before the promotion request. ['promotion requested: CERTIFIED' field; Notes line 'checked by core.check_certificate; science note docs/science/2026-10-26-p3-moment-bounds.md']"
+    }
+  ],
+  "id": "P3.one_body_usd_lemma.20261027.model",
+  "provenance": {
+    "cost_usd": "2.5868",
+    "model": "claude-fable-5",
+    "request_digest": "7b250462a30430a2902a1f43a704957e62df47c169db766841b763d585ebe927",
+    "response_digest": "5256ce7cedb2fb30121c68a74fd37151612de358ee97dfcfdca78322bd8d7be4",
+    "run_id": "review-P3.one_body_usd_lemma-e4f304-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "4f658ed4e8292eb803690d3e62f86984998350470b7e20792a98956ae3cacffb",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "BLOCK",
+  "waivers": []
+}

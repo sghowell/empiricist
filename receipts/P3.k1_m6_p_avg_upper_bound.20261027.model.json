@@ -1,0 +1,65 @@
+{
+  "claim_id": "P3.k1_m6_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T03:33:27+00:00",
+  "evidence_sha256": [
+    "42909157e6e655f08eed76efbd5371b72b97cb87bc95f42570443f842e0458c3"
+  ],
+  "findings": [
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "The evidence declares, for every output mode i (m = 6) and every Bell pair (B, B'), two machine-checked polynomial identities (I1) and (I2) \u2014 i.e. 6 x 16 x 2 = 192 checks \u2014 but the certified run's recorded verifier detail reports '96 identities; bound 2/3' (= 6 x 16). The record does not pin down whether the (I2) instances were separately replayed or how identities were counted, so the machine-checked boundary a CERTIFIED receipt must attest to is ambiguous: either machine_checked (b) overstates the replayed inventory or the verifier detail undercounts it. [claims/evidence/p3_moment/k1_m6_p_avg_bound.json machine_checked item (b) ('two polynomial identities ... (I1) ... (I2)') vs evidence entry 2026-10-27T02:41:38 note, pack verifier details detail field '96 identities; bound 2/3']"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "Written step W0 asserts 'a single-photon state on modes 5-6 is V|1_5> for a unitary V on modes 5-6', which is true only of pure states, while the binding statement quantifies over 'any single-photon ancilla state on modes 5-6' with no purity scope word. Mixed single-photon ancilla states fall inside the statement's wording but outside the disclosed written step's coverage; the purity hypothesis is hidden in W0 rather than stated in the receipt-bound text. [Statement phrase 'any single-photon ancilla state on modes 5-6' vs written_steps W0 in claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "Two distinct binary hashes are recorded under the single identity 'p3_moment_bound v1.0': the 02:12:49 PASS carries binary_hash 8e5c8c5d325c..., which does not match the certification record's v1.0 hash 53eacdb42593... and predates the certification stamp (2026-10-27T02:39:17); that first entry also lacks replay provenance ('argv=None cwd=None exit=None env_sha256=None'). Only the 02:41:38 entry is a replay by the certified binary, yet the ledger attributes both PASSes to the certified identity, so one recorded PASS carries no evidential authority while sitting under a certified verifier name. [Evidence entry 2026-10-27T02:12:49 (binary_hash 8e5c8c5d..., note argv=None cwd=None exit=None env_sha256=None) vs claims/verifiers.json certification record v1.0 binary_hash 53eacdb4... stamped 2026-10-27T02:39:17]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "The verifier's golden suite exercises k=0/m=4 and k=1/m=5 (PASS cases) and FAIL cases at m=4, m=5, and k=2/m=8; it contains no m=6 case. This claim ('m': 6, 'k': 1) is therefore the first exercise of the m=6 parameter point, and the certification stamp attests the binary's verdict behavior only at neighboring parameters. The exact-expansion-over-Q design mitigates this, but golden coverage does not include the claim's instance. [p3_moment_bound v1.0 golden suite case list (golden_suite_hash e6bc219e89f7...) vs fields 'm': 6, 'k': 1 in claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The receipt-binding statement uses p_B ('the average success (1/4) sum_B p_B') without defining it; the operative definition appears only in the evidence file's setting field ('p_B = sum over patterns mapped to B of Pr[pattern | B]'), outside the bound text. The statement is thus not self-contained on the quantity it bounds. [Statement phrase 'the average success (1/4) sum_B p_B' vs setting field of claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "Checked the full chain against the machine-checked items and the dependency lemma: W1 follows from (I1)/(I2) at U^dag U = I; W2 yields Bell-diagonal Lambda_i with D_i - Lambda_i PSD (n_i >= 0, G(n) rank-1 PSD, unambiguity kills off-diagonal amplitudes); W3's transpose step is valid (transpose of Hermitian PSD is PSD; Lambda_i real diagonal); W4 instantiates the lemma with s_A(i)=|U_i0|^2+|U_i1|^2, s_B(i), c_i=|U_i4|^2, real lambda_B=(Lambda_i)_BB >= 0; W5-W6 arithmetic is exact (sum_i tr Lambda_i = 3 sum_B p_B; 2+2+4*1 = 8; hence (1/4) sum_B p_B <= 2/3 and min <= average); machine item (c) pins claimed_p_avg_bound 2/3 = (1+1)/(1+2). The 'for every U in U(6)' quantifier is carried by (I1)/(I2) holding as polynomial identities over Q. The quantifier-bearing steps W0-W6 are all written (not machine-replayed), which the charter permits with disclosure; within that boundary and the pure-ancilla reading the certificate establishes the statement, subject to the two warnings above. [machine_checked (a)-(c) and written_steps W0-W6 in claims/evidence/p3_moment/k1_m6_p_avg_bound.json, checked against the P3.one_body_usd_lemma dependency statement]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Verbatim comparisons performed: the evidence file's claim_statement matches the ledger statement exactly; lemma_certificate.statement matches the P3.one_body_usd_lemma dependency statement exactly; claimed_p_avg_bound '2/3' agrees with the statement's '2/3' and the verifier detail bound '2/3'; the Notes' disclosure of the mode-5 ancilla placement and the W0 rotation matches the setting field and written_steps. No mismatch found beyond the identity-count finding recorded separately. [claim_statement, lemma_certificate.statement, claimed_p_avg_bound fields of claims/evidence/p3_moment/k1_m6_p_avg_bound.json vs ledger Statement, dependency statement, Notes, and verifier detail '{\"bound\": \"2/3\"}']"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Checked timing against the level rules: the sole dependency P3.one_body_usd_lemma is CERTIFIED and standing CURRENT, so the level cap permits CERTIFIED; machine_checked (a) gates the embedded lemma certificate against the canonical one (and the golden suite's corrupt-lemma/foreign-lemma FAIL cases exercise that gate); a certified-binary PASS replay exists (02:41:38, after the 02:39:17 certification stamp); no REFUTED or competing evidence is on record. No independent timing defect; the promotion decision is contingent only on resolving the warning-level findings. [Dependencies entry 'P3.one_body_usd_lemma [CERTIFIED, standing CURRENT]'; evidence entry 2026-10-27T02:41:38 vs claims/verifiers.json stamp 2026-10-27T02:39:17; golden cases moment-k0-m4-corrupt-lemma, moment-k1-m5-foreign-lemma]"
+    }
+  ],
+  "id": "P3.k1_m6_p_avg_upper_bound.20261027.model",
+  "provenance": {
+    "cost_usd": "2.2401",
+    "model": "claude-fable-5",
+    "request_digest": "9b6b9d30ebfcdaa4b1ce0417788eb231daf5b3a11d270e619995c8a978877e58",
+    "response_digest": "014b6516dffac5e0a474b0959148eda5942c830662ce0543dc5c50517494ffe6",
+    "run_id": "review-P3.k1_m6_p_avg_upper_bound-89ed85-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "5fde787aba4297eb4695a6d9b47ccd2db242011082da8b3652a40213c3427bca",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

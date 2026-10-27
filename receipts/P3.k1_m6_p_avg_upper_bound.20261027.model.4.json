@@ -1,0 +1,55 @@
+{
+  "claim_id": "P3.k1_m6_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T03:57:21+00:00",
+  "evidence_sha256": [
+    "faf742cf201288e8f4ac412028d13d49b1927da1020fe232333724bb9bff803f"
+  ],
+  "findings": [
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "warning",
+      "text": "The bound's central symbol p_B is never defined in the statement text the receipt binds to: 'success' and p_B acquire their meaning ('p_B = sum over patterns mapped to B of Pr[pattern | B]'), the uniform weighting behind '(1/4)', and the Fock-convention identification of the four Bell states (phi+- = (|1,0,1,0> +- |0,1,0,1>)/sqrt2 with 'mode 1 (qubit A) and mode 3 (qubit B) carrying |0>') only from the evidence file's 'setting' field; the statement itself pins the index set of sum_B only indirectly via 'the other three Bell states'. [Statement clause 'the average success (1/4) sum_B p_B is at most 2/3; consequently min_B p_B <= 2/3' vs 'setting' field of claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The verifier identity trail is inconsistent: 'p3_moment_bound v1.0' is recorded with two different binary_hashes (8e5c8c5d... at 2026-10-27T02:12:49Z, 53eacdb4... at 02:41:38Z), so the same version string names two distinct binaries, and claims/verifiers.json contains a certification record only for v1.1 (ef6aa4f3...); the two v1.0 PASS entries therefore carry no certified identity and contribute nothing to any level, and the first entry also lacks all run provenance ('argv=None cwd=None exit=None env_sha256=None'). Level support reduces to the single v1.1 entry at 03:43:05Z. [Evidence entries 1-2 for claims/evidence/p3_moment/k1_m6_p_avg_bound.json (p3_moment_bound v1.0, binary_hash 8e5c8c5d... vs 53eacdb4...) against the certification record in claims/verifiers.json]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "warning",
+      "text": "The golden suite behind the v1.1 certification stamp contains no m = 6 case, positive or negative (cases: moment-k0-m4-half, moment-k1-m5-two-thirds, moment-k1-m5-bound-too-low, moment-k0-m4-corrupt-lemma, moment-k1-m5-foreign-lemma, moment-k2-m8-unsupported), while this claim's configuration is k = 1, m = 6 (evidence field \"m\":6; notes 'checked exactly at m = 6', 'a second mode number'). The verifier's discriminating behavior (including its FAIL modes) at the exact configuration under review is untested by the certification evidence, so CERTIFIED here rests on untested generalization of the verifier from m = 4/5 to m = 6. [p3_moment_bound v1.1 golden suite (golden_suite_hash e6bc219e89f7...) vs evidence field \"m\":6 and the claim Notes]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The bridge from the machine-checked polynomial identities to the physical probabilities in the statement -- 'A_B(n) = <n|out_B> the permanent polynomials of domain/p3/poly.py bell_amp_poly (cross-validated against both float engines by tests/test_p3_poly_k1.py)' -- is a trusted-library premise validated outside this certificate's replay, and it is disclosed inside machine_checked (b) rather than among written_steps. Within that boundary the evidence does establish the statement: I checked W4's rank-one forms against (I2)'s (O_A)_pq = conj(U_ip)U_iq, W0/W0' against the 'any single-photon ancilla state' quantifier (pure and mixed), W2's use of the statement's unambiguity clause, W5-W6's counting (3*sum_B p_B <= 2+2+4*1 = 8), the lemma application against the dependency's hypothesis shape, and machine check (c)'s direction (claimed bound >= derived (1+1)/(1+2)). [machine_checked (b) parenthetical and written_steps W0-W6 in claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Checked: about.claim_statement is character-identical to the ledger statement; lemma_certificate.statement is identical to the P3.one_body_usd_lemma dependency text (and gated by machine check (a) plus the corrupt-lemma/foreign-lemma golden FAIL cases); \"claimed_p_avg_bound\":\"2/3\" agrees with the v1.1 detail {\"bound\":\"2/3\"} and with 'at most 2/3' in the statement; the superseded v1.0 detail '96 identities' vs v1.1's '192 complex identities' is reconciled by (b)'s 'the verifier's detail counts the 96 cases'; notes ('m = 6', ancilla in mode 5, W0 as disclosed written step) match the evidence 'setting'. No contradiction found. [about.claim_statement, lemma_certificate.statement, claimed_p_avg_bound and entry details in claims/evidence/p3_moment/k1_m6_p_avg_bound.json]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Dependency gating holds (sole dependency P3.one_body_usd_lemma is CERTIFIED and standing CURRENT, so the equal-level cap is respected) and the one certified replay postdates the certification stamp by 81 seconds (03:41:44Z stamp vs 03:43:05Z replay), which is procedurally valid; but the promotion rests on exactly that single certified replay, and with the three warnings above open (undefined p_B in the bound text, inconsistent v1.0 identity records, no m = 6 golden coverage) the record as it stands does not yet support promoting to CERTIFIED. [claims/verifiers.json stamp 2026-10-27T03:41:44Z vs third evidence entry (v1.1, 03:43:05Z); dependency line 'P3.one_body_usd_lemma [CERTIFIED, standing CURRENT]']"
+    }
+  ],
+  "id": "P3.k1_m6_p_avg_upper_bound.20261027.model.4",
+  "provenance": {
+    "cost_usd": "2.5620",
+    "model": "claude-fable-5",
+    "request_digest": "acfcec082bdf18309f6d64de37120da6142fda3aaf126df833c1734cece7d18c",
+    "response_digest": "44fa533ae9bcf454d1e5716baf43261980b7fc42dce2bf70da347e3373d38141",
+    "run_id": "review-P3.k1_m6_p_avg_upper_bound-7dc43f-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "5fde787aba4297eb4695a6d9b47ccd2db242011082da8b3652a40213c3427bca",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

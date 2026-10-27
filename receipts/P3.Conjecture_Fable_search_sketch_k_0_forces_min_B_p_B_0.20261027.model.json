@@ -1,0 +1,56 @@
+{
+  "claim_id": "P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0",
+  "closes": [],
+  "created": "2026-10-27T05:11:00+00:00",
+  "evidence_sha256": [
+    "4dffd5ffe675123020810bc02c3e76f850db16b75d8e2b88b06aa450296bcde4",
+    "c267e36470e6e4bce9d84bba4ae1d4f5e6253080733fdb6d2e749805a85ca928"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "The refutation rests partly on a companion check that is not on record. The Notes assert 'p3_exact_witness PASSes it' and the witness file's about.verifiers field asserts 'p3_exact_witness: PASS (exact success equals claimed_success, every label identified)', but the evidence list contains no p3_exact_witness entry for claims/evidence/p3_k0_m8/two_branch_witness.json, and p3_exact_witness appears nowhere among the committed verifier declarations (no version, binary_hash, or certification record). The sole recorded entry, p3_k0_min_zero v1.0 -> FAIL, is certified for the min-zero predicate; nothing on record documents that its FAIL verdict also attests witness well-formedness (exact isometry V^dag V = I, k = 0, unambiguous assignment), so the only machine attestation that the FAILing input is a valid scheme is prose inside the evidence file itself. Charter REFUTED requires a certified-verifier FAIL 'on a counterexample'; counterexample-hood here is only half machine-attested. [Notes 2026-10-26 entry ('p3_exact_witness PASSes it'); claims/evidence/p3_k0_m8/two_branch_witness.json field about.verifiers; evidence entry list (only p3_k0_min_zero recorded); 'Verifiers named above' section (no p3_exact_witness declaration)]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The exact statement states only the hypothesis 'k=0'; the scheme class (passive, dual-rail, unambiguous) and the mode count are left to ambient P3 convention, whereas the claim's own PASS evidence declares 'For every passive 4-mode ancilla-free dual-rail unambiguous scheme: min_B p_B = 0'. The m = 8 witness is in scope only under the literal unrestricted reading (argued in the witness 'scope' field: 'the problem's definition of a scheme allows (m optical modes, ancilla on modes 5..m, here k = 0 photons)'). The omitted four-mode restriction is exactly what the counterexample exploits; the 2026-10-26 Notes entry discloses this, and the receipt binds to the literal text, so the refutation targets the text as written. [Statement 'k=0 forces min_B p_B = 0' vs claims/evidence/0fa89362985466bb.json field 'claim' and claims/evidence/p3_k0_m8/two_branch_witness.json field about.scope]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The two evidence files attest different statements: claims/evidence/0fa89362985466bb.json PASSed for an embedded claim text carrying the '4-mode ancilla-free' restriction, while the FAIL entry targets the unrestricted ledger statement. After promotion, the terminal record will contain a PASS whose embedded claim is not the statement the receipt binds to; only the Notes reconcile the two readings (narrow version true and FORMALIZED as P3.Empiricist.p3_at_most_three, broad version refuted). [claims/evidence/0fa89362985466bb.json 'claim' field vs the exact statement text; Notes 2026-10-26 entry]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The from-level is not earned under charter section 3: CONJECTURED requires evidence replayed with PASS by a certified verifier, but the only PASS entry was checked by p3_wave1_grounding, recorded as 'not a command verifier declared in this repository; no registry stamp', on a pre-hardening record with 'no canonical claim row'. Per the charter, a level imported from an older table should be held as legacy_level until re-earned, yet the header shows current level CONJECTURED with formulation_version legacy. This does not touch the FAIL evidence (dependencies are empty, so the lowest-dependency rule is vacuous; the p3_k0_min_zero certification record matches the live binary_hash 17d7281c... and golden_suite_hash 6dccf493..., stamped before the replay), but the promotion's starting level is mislabeled relative to charter semantics. [Header 'current level: CONJECTURED' / 'formulation_version: legacy'; evidence entry claims/evidence/0fa89362985466bb.json ('p3_wave1_grounding ... no registry stamp'); Notes 'pre-hardening record']"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "The certification stamp for p3_k0_min_zero (2026-10-27T05:04:19+00:00) precedes the ledger FAIL replay (2026-10-27T05:05:33+00:00) by 74 seconds, and the golden case 'minzero-two-branch-m8 expects FAIL' matches the refuting witness (two-branch, m = 8); the certification suite therefore already encoded the expected refutation verdict on this input family. The certified-FAIL requirement of REFUTED is met formally (hashes match, suite mixes PASS- and FAIL-expected cases), but the certification supplies no corroboration independent of the counterexample it was calibrated on, which is thin backing for a terminal level absent the unrecorded p3_exact_witness run. [p3_k0_min_zero certification record in claims/verifiers.json (stamped 2026-10-27T05:04:19+00:00); golden suite case 'minzero-two-branch-m8 expects FAIL'; FAIL entry timestamp 2026-10-27T05:05:33+00:00]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Refuting the literal text now is charter-coherent: the recorded certified FAIL satisfies the REFUTED minimum, the FAIL reason binds to the statement text ('a counterexample to \\'k = 0 forces min_B p_B = 0\\''), and the narrow true variant is preserved independently (Notes: p3_at_most_three, FORMALIZED), so no knowledge is lost by the terminal stamp. However, sealing an irreversible level while half of the Notes' stated refutation basis ('p3_exact_witness PASSes it and the predicate verifier p3_k0_min_zero FAILs it') has no evidence entry makes the terminal record rest partly on unrecorded runs; as filed, the promotion is premature pending the evidence_support warning. ['promotion requested: REFUTED' with Notes sentence 'p3_exact_witness PASSes it and the predicate verifier p3_k0_min_zero FAILs it' vs the evidence entry list]"
+    }
+  ],
+  "id": "P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0.20261027.model",
+  "provenance": {
+    "cost_usd": "1.3303",
+    "model": "claude-fable-5",
+    "request_digest": "2cdd2ad9518e7f5ead003eafea802b40b2b727e6b8593493e56429a383fa182c",
+    "response_digest": "2cee55d41f171fb097dc2ec390c443c2d2dfb2ed891c77e41f8928b47f27d39b",
+    "run_id": "review-P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0-be11d4-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "a447903b914af85a21760b6b937a10cf28bb046299a0dd399fc475bb27c71e20",
+  "target_level": "REFUTED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

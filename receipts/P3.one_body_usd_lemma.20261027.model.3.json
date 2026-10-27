@@ -1,0 +1,68 @@
+{
+  "claim_id": "P3.one_body_usd_lemma",
+  "closes": [
+    "P3.one_body_usd_lemma.20261027.model",
+    "P3.one_body_usd_lemma.20261027.model.2"
+  ],
+  "created": "2026-10-27T02:48:48+00:00",
+  "evidence_sha256": [
+    "4dcad293ce13e1e90ca2abc836617536517e685c12ed173cf9e4f63ae4d64de2"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The step declared outside machine replay (\"that the 18 constraint polynomials are the entries of the stated matrix equation and the objective is the stated functional\") cites tests/test_p3_moment.py as pinning, but no run record, hash, or evidence entry for that test file appears anywhere in the ledger record; within the record this step rests solely on the readable `about` formulas. I re-derived all 18 entries against them: constraints[0],[1] are |a|^2-1, |b|^2-1; Re E_00/E_11/E_22/E_33 carry the Bell diagonal 1/2 weights (e.g. constraints[2] has \"11\":-1/2,\"12\":-1/2 for phi+-, constraints[3] has \"13\":-1/2,\"14\":-1/2 for psi+-); Re/Im E_03 and E_12 carry the off-diagonal +-1/2 Bell entries (constraints[10]: \"11\":-1/2,\"12\":1/2; constraints[12]: \"13\":-1/2,\"14\":1/2); sA a0 conj(a1) appears exactly in E_02/E_13 and sB b0 conj(b1) in E_01/E_23; the W terms are the row Gram products with indices matching the `variables` list; `objective` {\"8\":-1,\"9\":-1,\"10\":-4,\"11\"..\"14\":1} with bound \"0\" is exactly the stated inequality. The disclosed verification boundary is therefore honest, but its cited test pinning is unverifiable from the record. [claims/evidence/p3_moment/one_body_usd_lemma.json, about.verification_boundary (phrase \"pinned by tests/test_p3_moment.py\") vs constraints/objective/variables fields]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The first PASS entry records \"argv=None cwd=None exit=None env_sha256=None\" -- a recorded verdict with no execution provenance (not even an exit status). The charter's replay requirement is carried entirely by the 02:41:39 reverify entry, whose structured details (gram_dim 128, n_constraints 18, bound \"0\", failure \"\") match the file's 128-element gram_basis, 18 constraints and 18 multipliers, and bound field, under the same binary_hash 68a61a8d... that the certification record stamps. [Evidence entry 2026-10-27T02:11:17+00:00, note field \"argv=None cwd=None exit=None env_sha256=None\"]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The prose \"tr(Y D) = (sA + sB)|a|^2|b|^2 + 2c(|a|^2 + |b|^2)\" uses a symbol D defined nowhere in the file (only E and W are named in about.constraints); from its stated value D must denote the three one-body terms of E. All quantitative cross-checks pass: multipliers[0] = -2c + sum(lam)/2 - (sA+sB)|b|^2 and multipliers[1] = -2c + sum(lam)/2 - (sA+sB) match the prose \"-(sA+sB)|b|^2 - 2c + sum(lam)/2 and -(sA+sB) - 2c + sum(lam)/2 on the two norm constraints\"; multipliers[2] {\"2,2\":1,\"3,3\":1,\"6,6\":1,\"7,7\":1} equals Y_00 = |a1|^2 + |b1|^2 as \"Y's entries on E's entries\" requires; the JSON `statement` field is byte-identical to the ledger statement, as the Notes assert. [claims/evidence/p3_moment/one_body_usd_lemma.json, about.proof_inside_the_certificate (phrase \"tr(Y D)\")]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Notes record \"statement corrected after review round 1\" (removal of an attainment clause is a semantic change), yet formulation_version still reads \"p3-sos-certificate-v1\" with no amendment marker, so the record alone cannot determine which statement text any round-1 artifacts were bound to under this id/version pair. The current promotion is nonetheless unambiguous: the receipt binds to the verbatim statement, and the single evidence file (sha256 4dcad293...) contains that exact text, so CONJECTURED was re-earned on the corrected text by both PASS replays. [Notes phrase \"statement corrected after review round 1\" vs formulation_version field \"p3-sos-certificate-v1\"]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The golden suite listing \"sos-2 -> FAIL, sos-3 -> FAIL, sos-4 -> FAIL\" carries no expected-verdict labels; that these are expected negative cases follows only from the stamping rule (\"stamps only when every golden case yields its expected verdict\") combined with the 2026-10-27T02:11:09 stamp and the matching binary_hash/golden_suite_hash. Remaining ledger checks: dependencies \"(none)\" makes the level-cap rule vacuous; CONJECTURED -> CERTIFIED matches level semantics (replayed PASS plus this review receipt); CONJECTURED's \"not yet reviewed\" is consistent with round 1 having reviewed the pre-correction text. [Verifier declaration, golden suite listing for sos_certificate v1.0, and Dependencies field \"(none)\"]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "Hypothesis inventory is complete; no hidden assumption found. \"unit vectors a, b\" <-> constraints[0],[1]; \"real numbers s_A, s_B, c\" and \"real numbers lambda_B\" <-> real variables 8-14; \"for some complex 4x4 matrix W\" <-> 32 free real variables 15-46; the tensor-order convention (first factor carries |a><a| (x) I, index 2j+k) is disclosed in about.variables; about.statement_note correctly records that no sign hypotheses on s_A, s_B, c, lambda_B are used and that the W W^dagger form is equivalent to positive semidefiniteness, so the statement text omits no scope word the certificate relies on. [Statement phrases \"unit vectors\", \"real numbers\", \"for some complex 4x4 matrix W\" vs about.statement_note, about.variables, constraints[0]-[1]]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "The title phrase inside the bound text (\"One-body unambiguous-discrimination lemma\") embeds an operational interpretation that the certificate does not establish; what is machine-replayed (exact-rational identity bound - objective - sum(multiplier*constraint) = b^T Q b with Q PSD on the 128-monomial basis, PASS twice) plus the disclosed encoding step yields exactly the inequality after the colon -- the correct content for CERTIFIED within the disclosed boundary. The weak-duality argument is sound (Y PSD always, <B|Y|B> = 1 at unit norm, tr(Y c I) = 4c explains the \"4c\"), and the round-1 removal of the \"unsupported attainment clause\" eliminated the one prior overclaim; the requested level does not exceed the evidence. [Statement prefix \"One-body unambiguous-discrimination lemma (two qubits):\" vs about.verification_boundary]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Ordering and preconditions check out: the verifier was certified at 2026-10-27T02:11:09, eight seconds before the first replay at 02:11:17, so both PASSes are replays by an already-certified verifier; the reverify at 02:41:39 adds matching structured output; the round-1 defect named in Notes (\"an unsupported attainment clause\") is absent from the current conclusion, which is the bare inequality; with no dependencies and a disclosed, reviewer-checked boundary, nothing further gates promoting now. The tight certify-then-replay interval within one pipeline session is the only timing observation, and the independence this receipt supplies is what the CERTIFIED level requires. [Certification record timestamp 2026-10-27T02:11:09 vs evidence timestamps 02:11:17 and 02:41:39]"
+    }
+  ],
+  "id": "P3.one_body_usd_lemma.20261027.model.3",
+  "provenance": {
+    "cost_usd": "2.4376",
+    "model": "claude-fable-5",
+    "request_digest": "c3d43073f58965eab3ce5d5521af538542fa62bcae437fa6ea5a7bfd4513800a",
+    "response_digest": "9c25e66f7d7552a619fc7d0ba695bbae601063239e3e28d1fbde4f5bdee75006",
+    "run_id": "review-P3.one_body_usd_lemma-af8cae-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "585ed62a51f6c50af66d8d623287d830a9f6015395bb300e7b6afac82753b265",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "PASS",
+  "waivers": []
+}

@@ -1,0 +1,65 @@
+{
+  "claim_id": "P3.k1_m5_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T02:32:45+00:00",
+  "evidence_sha256": [
+    "aea2972861d4aea0369ae195a7bc5397c6fd802fdd0e677e3061253d92a68b9d"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "blocking",
+      "text": "The charter rule 'A claim's level may not exceed the lowest level among the claims it depends on' caps this claim at CONJECTURED, because its sole dependency P3.one_body_usd_lemma is recorded at CONJECTURED. The requested CERTIFIED exceeds that cap. The embedded re-check of the lemma certificate (machine_checked item (a): 'lemma_certificate equals the canonical one-body USD lemma certificate ... and passes core.check_certificate') does not change the dependency's recorded ledger level, which is the binding quantity. [Dependencies: 'P3.one_body_usd_lemma [CONJECTURED, standing CHALLENGED]' vs 'promotion requested: CERTIFIED'; charter section 3 level-cap rule]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "blocking",
+      "text": "The entire derivation routes through the one-body USD lemma (written_steps: 'the lemma gives tr Lambda_i <= s_A(i) + s_B(i) + 4 c_i'), and that lemma carries a standing CHALLENGED flag. Replaying the lemma's certificate inside this evidence (machine_checked (a)) does not resolve a challenge that may target the lemma's statement-to-certificate linkage rather than certificate replay. Granting a CERTIFIED receipt now, while the only analytic input is in open dispute, is premature independent of the level cap. ['standing CHALLENGED' in the Dependencies entry; written_steps step invoking the lemma in claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "The PASS record for p3_moment_bound v1.0 carries no replay provenance: argv=None, cwd=None, exit=None, env_sha256=None. The CERTIFIED precondition 'a certificate that a certified verifier replays with PASS' therefore rests entirely on a registry stamp plus a matching binary_hash; the recorded run cannot be audited or reproduced from the ledger record. [Evidence entry for claims/evidence/p3_moment/k1_m5_p_avg_bound.json: 'note: argv=None cwd=None exit=None env_sha256=None']"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The evidence self-identifies its checker as in-repo code ('src/empiricist/certificates/p3_moment_check.py (check_moment_bound), pack verifier p3_moment_bound in src/empiricist/packs/ftfbqc/adapters.py'), but the committed declaration records p3_moment_bound as 'not a command verifier declared in this repository; registry stamp v1.0'. Verifier identity is pinned only by binary_hash with no declaration or source linkage, so the 'certified verifier' status CERTIFIED requires is not established by the ledger's own records. [Verifier declaration for p3_moment_bound vs the 'about.checker' field of claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "warning",
+      "text": "The claim text's final clause 'hence the problem's p = min_B p_B is at most 2/3 as well' is absent from the evidence: the JSON 'statement' field ends at '(1/4) sum_B p_B <= 2/3', and no written_steps entry discloses the min-versus-average inference or ties 'the problem's p' (a formulation p3-moment-bound-v1 notion) to min_B p_B. Since the receipt binds to the exact statement text, part of that text is covered by neither machine checks nor disclosed written steps. [Claim statement clause 'hence the problem's p = min_B p_B is at most 2/3 as well' vs the 'statement' and 'written_steps' fields of claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "written_steps labels jump 'Step 1', 'Step 2', 'Step 5' with no 'Step 3'/'Step 4', indicating the disclosure is excerpted from the cited science note (docs/science/2026-10-26-p3-moment-bounds.md, which is not part of the evidence file). The printed chain does close (Lambda_i <= Ohat_i, sum_i tr Lambda_i = 3 sum_B p_B, column sums giving 3 sum_B p_B <= 8), but completeness of the disclosed analytic boundary cannot be confirmed against the referenced note. ['written_steps' labels and 'science_note' field in claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The operational definition of unambiguity that the proof consumes \u2014 an assigned pattern has non-zero amplitude only for its assigned Bell state \u2014 appears only inside the evidence ('Step 1: an assigned pattern has only its Bell state's amplitude non-zero (unambiguity)'). The statement text uses 'every unambiguous assignment of the three-photon detection patterns' without defining the term, so the receipt's scope hangs on a definition carried neither by the statement nor by anything quoted from formulation p3-moment-bound-v1. [Statement phrase 'every unambiguous assignment of the three-photon detection patterns' vs written_steps 'Step 1' in claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "Within its disclosed boundary the evidence is strong \u2014 identities checked by exact expansion over Q for every complex U (machine_checked (b)), the arithmetic gate claimed_p_avg_bound >= (1+1)/(1+2) matching claimed_p_avg_bound = '2/3', and the Notes honestly flag non-tightness ('best known k=1 average is 1/2 (conjecture), so the bound is not tight'). But composite confidence is bounded by the CONJECTURED, CHALLENGED lemma, so the requested CERTIFIED overstates the warranted confidence for the statement as a whole. ['promotion requested: CERTIFIED' against the Dependencies line and the Notes field; machine_checked items (b),(c) in claims/evidence/p3_moment/k1_m5_p_avg_bound.json]"
+    }
+  ],
+  "id": "P3.k1_m5_p_avg_upper_bound.20261027.model",
+  "provenance": {
+    "cost_usd": "2.0092",
+    "model": "claude-fable-5",
+    "request_digest": "b4ec6808d3306c712c487a13ba380f3ec4d375e35c5eb3ac69d903e20c507c2c",
+    "response_digest": "4e01ef0e3c8d34119709e3290c85a9f103647ec698c08753c1b535f959837ae6",
+    "run_id": "review-P3.k1_m5_p_avg_upper_bound-e2305b-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "2dae77d22e3dc63ad874ba29ac7ae1a694486f2f7a876006c0b0bb874882fa33",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "BLOCK",
+  "waivers": []
+}

@@ -12,19 +12,37 @@
     "p3_exact_witness": {
       "binary_hash": "13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589",
       "declaration": null,
-      "golden_suite_hash": "4dbac01ac8e1336bd785cbb0aa60ed3333a67531b3e0d764c10ef4181e231a60",
+      "golden_suite_hash": "6ca0395047b4d38b58d07e4978c5e439ee7a4dc4cf7a8c02b0ee52858ca45fcc",
       "name": "p3_exact_witness",
-      "pack": null,
-      "stamped": "2026-09-06T19:59:53+00:00",
+      "pack": "ftfbqc",
+      "stamped": "2026-10-27T05:04:58+00:00",
       "version": "1.0"
+    },
+    "p3_k0_min_zero": {
+      "binary_hash": "a6a840ba603b97f2646835b799ecd388761e7a5c29e61c800325403e4658651e",
+      "declaration": null,
+      "golden_suite_hash": "6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84",
+      "name": "p3_k0_min_zero",
+      "pack": "ftfbqc",
+      "stamped": "2026-10-27T05:20:52+00:00",
+      "version": "1.1"
+    },
+    "p3_moment_bound": {
+      "binary_hash": "ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c",
+      "declaration": null,
+      "golden_suite_hash": "89bb789d6e600501e74a8102844e96ad9b123e3f6a58d89764ffaa51f4f4a3bd",
+      "name": "p3_moment_bound",
+      "pack": "ftfbqc",
+      "stamped": "2026-10-27T04:09:38+00:00",
+      "version": "1.1"
     },
     "sos_certificate": {
       "binary_hash": "68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014",
       "declaration": null,
-      "golden_suite_hash": "fa1d8397d27a5a3c46c9d568b23a2ed2fcb4b1a75c4f1b09eec041bd908b32e9",
+      "golden_suite_hash": "b3428ce273da423a6932d87eb956939c0d6eecd4ae694aebd9db9f6e193c4575",
       "name": "sos_certificate",
-      "pack": null,
-      "stamped": "2026-09-07T17:11:22+00:00",
+      "pack": "ftfbqc",
+      "stamped": "2026-10-27T02:11:09+00:00",
       "version": "1.0"
     },
     "verify_agreed": {

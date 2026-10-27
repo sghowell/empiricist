@@ -172,10 +172,18 @@ def _require_current_stamp(repo: Path, v: Any):
 
 def _note(result, run_id: str | None) -> str:
     d = result.details
-    note = (
-        f"argv={d.get('argv')} cwd={d.get('cwd')} exit={d.get('exit_code')} "
-        f"env_sha256={d.get('env_sha256')}"
-    )
+    if "argv" in d:
+        note = (
+            f"argv={d.get('argv')} cwd={d.get('cwd')} exit={d.get('exit_code')} "
+            f"env_sha256={d.get('env_sha256')}"
+        )
+    else:
+        # A pack verifier judges the evidence bytes in-process: there is no argv, cwd, exit
+        # code or environment to pin, so the note records what the verifier reported.
+        import json
+
+        shown = json.dumps(d, sort_keys=True, default=str)
+        note = f"pack verifier details {shown[:1200]}"
     if result.verdict is not Verdict.PASS:
         why = d.get("error") or d.get("detail") or d.get("stderr_tail") or ""
         note += f" reason={str(why)[-300:]!r}"

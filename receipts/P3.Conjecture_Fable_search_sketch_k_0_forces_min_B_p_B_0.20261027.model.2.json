@@ -1,0 +1,66 @@
+{
+  "claim_id": "P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0",
+  "closes": [],
+  "created": "2026-10-27T05:18:12+00:00",
+  "evidence_sha256": [
+    "4dffd5ffe675123020810bc02c3e76f850db16b75d8e2b88b06aa450296bcde4",
+    "c267e36470e6e4bce9d84bba4ae1d4f5e6253080733fdb6d2e749805a85ca928"
+  ],
+  "findings": [
+    {
+      "dimension": "evidence_support",
+      "severity": "warning",
+      "text": "Counterexample status requires the witness to be a valid passive k=0 scheme (exact isometry). On this record that rests on prose ('V^dag V = I exactly; it extends to an eight-mode unitary' in about.witness; the mesh in about.float_cross_check) and on 'p3_exact_witness: PASS' in about.verifiers \u2014 yet no evidence entry, declaration, or certification for p3_exact_witness exists anywhere in this record. The only recorded certified run, p3_k0_min_zero v1.0, is documented solely as evaluating the min-zero predicate (detail fields success/p_min/n_identifying_patterns); nothing on record discloses that it validates the isometry/admissibility of its input, so the load-bearing validity attestation is unrecorded. [claims/evidence/p3_k0_m8/two_branch_witness.json fields about.verifiers and about.witness; 'Evidence entries' list (only p3_k0_min_zero recorded for this file); 'Verifiers named above' (no p3_exact_witness declaration)]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The certification golden suite contains 'minzero-two-branch-m8 expects FAIL', which matches the refuting witness by name and verdict, and the certification stamp (2026-10-27T05:04:19+00:00) precedes the refuting run (2026-10-27T05:05:33+00:00) by 74 seconds under the same binary_hash 17d7281c...: the expected FAIL for this case was authored into the suite, so 'certified' attests replay stability here, not an independent confirmation of this specific verdict. [p3_k0_min_zero golden suite (golden_suite_hash 6dccf493a2b36938...) case 'minzero-two-branch-m8'; certification stamp in claims/verifiers.json vs evidence entry timestamp for two_branch_witness.json]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The notes assert 'p3_exact_witness PASSes it and the predicate verifier p3_k0_min_zero FAILs it', but only the p3_k0_min_zero run appears among the recorded evidence entries; the first half of the cited two-verifier basis has no corresponding record. [Notes, 2026-10-26 entry, vs 'Evidence entries (verifier identity as recorded)']"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The 'claim' field of the claim's only PASS evidence reads 'For every passive 4-mode ancilla-free dual-rail unambiguous scheme: min_B p_B = 0' \u2014 a strictly narrower proposition than the statement text, so the recorded PASS evidence never supported the text now being refuted. The mismatch is disclosed ('the statement omits the four-mode restriction its own evidence states') and is itself the basis of the refutation, but it leaves the record carrying a PASS entry for a different proposition under this claim id. [claims/evidence/0fa89362985466bb.json 'claim' field vs Statement text; Notes, 2026-10-26 entry]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "The statement text defines neither 'k' nor the scheme class or mode count. The reading under which it is refuted (k = ancilla photon count; m unrestricted; vacuum auxiliary modes admissible) is fixed only by the witness's scope prose \u2014 'which the problem's definition of a scheme allows (m optical modes, ancilla on modes 5..m, here k = 0 photons)' \u2014 and the verifier detail '\"k\": 0'; the cited 'problem's definition' is not pinned to any artifact in this record. Partly mitigated: the certified golden suite itself contains m8 cases, so the pack's predicate domain demonstrably includes m=8 witnesses. [Statement text 'k=0 forces min_B p_B = 0'; two_branch_witness.json about.scope; evidence entry detail for two_branch_witness.json]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "The from-level CONJECTURED was never earned under the charter (sec. 3 requires a certified verifier's PASS replay): the sole PASS was checked by p3_wave1_grounding, declared 'not a command verifier declared in this repository; no registry stamp', on a 'pre-hardening record' with formulation_version 'legacy' and 'no canonical claim row' \u2014 the charter keeps imported levels as legacy_level until re-earned. The REFUTED target itself is unaffected (it rests on the certified FAIL, and with no dependencies the dependency-cap rule is vacuous), but the promotion departs from a mislabeled state. [current level field; formulation_version field; evidence entry claims/evidence/0fa89362985466bb.json (p3_wave1_grounding v1.0 -> PASS); p3_wave1_grounding declaration; Notes ('no canonical claim row (pre-hardening record...)')]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "REFUTED is terminal and binds to domain-free text; the adjudication that keeps it correctly calibrated \u2014 'As written -- k = 0 with any number of modes -- it is false' and 'The four-mode version is true and FORMALIZED: P3.Empiricist.p3_at_most_three' \u2014 exists only as notes prose. The level matches what the certified FAIL warrants under the any-m reading, but the receipt's only guard against over-reading the refutation as covering the four-mode variant is unstructured notes text. [Notes, 2026-10-26 entry; Statement text (no scope words)]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Promoting now meets the charter bar (a certified verifier's FAIL on the witness is on record, binary_hash matching the live certification), but the terminal receipt leans on material outside its own entries: the adjudicating referee report ('docs/science/reviews/2026-10-26-p3-moment-bound/REVIEW.md', cited as about.source and in notes), the unrecorded p3_exact_witness run, and the corrected four-mode result cited only by name \u2014 none of which are recorded as evidence or dependencies of this claim. [two_branch_witness.json about.source; Notes, 2026-10-26 entry; Dependencies '(none)']"
+    }
+  ],
+  "id": "P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0.20261027.model.2",
+  "provenance": {
+    "cost_usd": "1.7313",
+    "model": "claude-fable-5",
+    "request_digest": "2cdd2ad9518e7f5ead003eafea802b40b2b727e6b8593493e56429a383fa182c",
+    "response_digest": "dee0aa248adb76d91bc706314777c17546bfa2ef3b22c3431f3f1fe81f3dbd9e",
+    "run_id": "review-P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0-be11d4-s2",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "a447903b914af85a21760b6b937a10cf28bb046299a0dd399fc475bb27c71e20",
+  "target_level": "REFUTED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

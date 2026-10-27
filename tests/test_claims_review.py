@@ -271,3 +271,46 @@ def test_bundle_states_level_semantics_and_full_verifier_identity(tmp_path):
     bundle = build_review_bundle(repo, c, target_level="CERTIFIED")
     assert "Our levels: CERTIFIED means replayed by us." in bundle
     assert "charter, section 3" not in bundle
+
+
+def _pack_repo(tmp_path):
+    """A claim whose evidence a PACK verifier (sos_certificate, ftfbqc) replayed."""
+    from empiricist.certificates.goldens import load_k0_golden
+    from empiricist.certificates.verifier import certificate_to_json
+    from empiricist.packs import certify_pack_verifier
+
+    (tmp_path / "claims").mkdir()
+    (tmp_path / "certs").mkdir()
+    (tmp_path / "certs" / "k0.json").write_text(json.dumps(certificate_to_json(load_k0_golden())))
+    certify_pack_verifier(tmp_path, "sos_certificate")
+    formulate(tmp_path, claim_id="P3.k0", problem="P3", formulation_version="v1",
+              kind="statement", statement="the objective is at most 1/2")
+    c = promote(tmp_path, claim_id="P3.k0", level="CONJECTURED", verifier="sos_certificate",
+                evidence_path="certs/k0.json")
+    return tmp_path, c
+
+
+def test_bundle_describes_a_pack_verifier_and_its_certification_record(tmp_path):
+    """A pack verifier is not 'undeclared': the bundle names the pack, the golden suite it was
+    certified against (labels and expected verdicts), and whether the registry stamp matches
+    the live verifier and suite -- what a reviewer needs to attest 'a certified verifier'."""
+    from empiricist.claims.registry import read_registry
+
+    repo, c = _pack_repo(tmp_path)
+    bundle = build_review_bundle(repo, c, target_level="CERTIFIED")
+    stamp = read_registry(repo).stamps["sos_certificate"]
+    assert "not a command verifier declared in this repository" not in bundle
+    assert "shipped by the installed `ftfbqc` pack" in bundle
+    assert "sos-0 expects PASS" in bundle and "sos-2 expects FAIL" in bundle
+    assert f"golden_suite_hash {stamp.golden_suite_hash}" in bundle
+    assert "matches the live verifier and suite" in bundle
+    assert "what it checks (its own documentation): Payload: the canonical SOS" in bundle
+
+
+def test_pack_verifier_evidence_note_records_the_verdict_details(tmp_path):
+    """Command-verifier notes carry argv/cwd/exit/env; a pack verifier has none of those, so
+    its note records the verdict details instead of 'argv=None cwd=None ...'."""
+    _, c = _pack_repo(tmp_path)
+    note = c.evidence[0].note
+    assert "argv=None" not in note
+    assert "pack verifier details" in note and '"bound": "1/2"' in note

@@ -1,0 +1,69 @@
+coverage: null
+depends_on:
+- P3.one_body_usd_lemma
+evidence:
+- binary_hash: 8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a
+  golden_suite_hash: 9eab4d3da7d1b61605eb496d09465462cf997e5fb603f553c668133473f3e238
+  note: argv=None cwd=None exit=None env_sha256=None
+  path: claims/evidence/p3_moment/k1_m5_p_avg_bound.json
+  stamped: '2026-10-27T02:11:56+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.0'
+- binary_hash: 53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3
+  golden_suite_hash: e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685
+  note: 'reverify; pack verifier details {"bound": "2/3", "detail": "80 identities;
+    bound 2/3", "failure": ""}'
+  path: claims/evidence/p3_moment/k1_m5_p_avg_bound.json
+  stamped: '2026-10-27T02:40:45+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.0'
+- binary_hash: ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c
+  golden_suite_hash: e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685
+  note: 'reverify; pack verifier details {"bound": "2/3", "detail": "80 (output mode,
+    ordered Bell pair) cases, each checked against both (I1) and (I2) in real and
+    imaginary parts (160 complex identities); bound 2/3", "failure": ""}'
+  path: claims/evidence/p3_moment/k1_m5_p_avg_bound.json
+  stamped: '2026-10-27T03:42:14+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.1'
+- binary_hash: ef6aa4f3ebe7877113a2c6dcc94c669317d12e4919d62e84f8570b6c3c98db0c
+  golden_suite_hash: e6bc219e89f7be0a7ad507dc6d041d58ae5e071a55f8dd80ccb86f04e8196685
+  note: 'pack verifier details {"bound": "2/3", "detail": "80 (output mode, ordered
+    Bell pair) cases, each checked against both (I1) and (I2) in real and imaginary
+    parts (160 complex identities); bound 2/3", "failure": ""}'
+  path: claims/evidence/p3_moment/k1_m5_p_avg_bound.json
+  stamped: '2026-10-27T03:43:46+00:00'
+  verdict: PASS
+  verifier: p3_moment_bound
+  version: '1.1'
+formulation_version: p3-moment-bound-v1
+id: P3.k1_m5_p_avg_upper_bound
+kind: statement
+legacy_level: null
+level: CERTIFIED
+n: null
+notes: 'M27b target B; photon-number moment bound: the one-body USD lemma plus the
+  moment identity checked exactly at m = 5 by p3_moment_bound (written steps disclosed
+  in the evidence); the best known k=1 average is 1/2 (conjecture), so the bound is
+  not tight; statement made self-contained after review round 1
+
+  promoted to CERTIFIED on receipt P3.k1_m5_p_avg_upper_bound.20261027.model.3 (REVISE:
+  2 open warning(s) for the author, no blocking finding)'
+problem: P3
+receipts:
+- P3.k1_m5_p_avg_upper_bound.20261027.model.3
+source: null
+standing: CURRENT
+statement: For every passive interferometer U in U(5) acting on the dual-rail Bell
+  pair (qubit A on modes 1-2, qubit B on modes 3-4) and one ancilla photon in mode
+  5, with photon-number-resolving detection of all five output modes, and for every
+  unambiguous assignment of the three-photon detection patterns (each pattern mapped
+  to a Bell state or to failure, a pattern mapped to a Bell state B having zero probability
+  under the other three Bell states), the average success (1/4) sum_B p_B is at most
+  2/3; consequently min_B p_B <= 2/3.
+substatus: null
+supersedes: []
+updated: '2026-10-27'

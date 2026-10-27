@@ -1,0 +1,70 @@
+{
+  "claim_id": "P3.k0_m4_p_avg_upper_bound",
+  "closes": [],
+  "created": "2026-10-27T03:21:24+00:00",
+  "evidence_sha256": [
+    "dd3b6ce9a76bcd9dc45a5ccb0b3261aed621a8bc17eb8faf3eb61449e13f9e1e"
+  ],
+  "findings": [
+    {
+      "dimension": "ledger_consistency",
+      "severity": "warning",
+      "text": "The first evidence entry records \"p3_moment_bound v1.0 -> PASS at 2026-10-27T02:11:27+00:00\" with binary_hash 8e5c8c5d325caf424b2ad3e70534cbb81044466e349a2a04f914c3ea2e978f7a, but the certification record in claims/verifiers.json covers v1.0 only at binary_hash 53eacdb425933c958b40a92b15eae6b19fd10b816df828d9186ba155fe64fff3. The same version label \"v1.0\" therefore denotes two distinct binaries; the 02:11:27 PASS was produced by a binary that was never certified, and that entry's provenance fields are all empty (\"argv=None cwd=None exit=None env_sha256=None\"), so it is not reproducible and cannot qualify as certified-verifier replay evidence, yet it stands undifferentiated in this claim's evidence list for a CERTIFIED promotion. [Evidence entries for claims/evidence/p3_moment/k0_m4_p_avg_bound.json, first entry (2026-10-27T02:11:27+00:00), vs certification record for p3_moment_bound v1.0 in claims/verifiers.json]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The qualifying replay is the 2026-10-27T02:40:15+00:00 PASS whose binary_hash matches the certification stamped at 02:39:17. Machine replay covers only machine_checked (a)-(c): canonical lemma-certificate equality, the (I1)/(I2) polynomial identities expanded exactly over Q for every output mode and Bell pair, and claimed_p_avg_bound >= (0+1)/(0+2). The bound itself lives in written_steps W1-W6, which I verified step by step against the statement and the lemma: W2 uses exactly the statement's unambiguity clause (zero probability under the other three Bell states implies zero amplitude); W3's transpose argument is valid because D_i is Hermitian, Lambda_i is real diagonal, and the transpose of a PSD matrix is PSD; W4 satisfies the lemma's \"unit vectors a, b in C^2\" hypothesis including the degenerate u = 0 case; W5's factor 2 follows from the statement's \"two-photon detection patterns\"; W6's unit-column sums give 2*sum_B p_B <= 4, i.e. the stated \"at most 1/2\". The direction of check (c) (claimed bound >= proven (k+1)/(k+2)) is the sound direction for an upper-bound claim and is tight here (1/2 = 1/2). [k0_m4_p_avg_bound.json fields \"machine_checked\" and \"written_steps\"; second evidence entry (2026-10-27T02:40:15+00:00)]"
+    },
+    {
+      "dimension": "evidence_support",
+      "severity": "note",
+      "text": "The semantic link from the permanent polynomials to physical amplitudes \"A_B(n) = <n|out_B>\" is supported in the evidence only by \"cross-validated against both float engines by tests/test_p3_poly_k1.py\", a k = 1 test, while this claim has \"k\":0. The exact identity checks in (b) constrain the polynomials internally, but the cited float cross-validation does not cover the k = 0 configuration being promoted. [k0_m4_p_avg_bound.json, machine_checked (b) phrase \"tests/test_p3_poly_k1.py\" vs field \"k\":0]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "The reverify entry's pack detail \"64 identities; bound 1/2\" does not match the count implied by machine_checked (b): \"two polynomial identities\" for every output mode i (4 modes) and Bell pair (B, B') (16 ordered pairs) yields 128, not 64. The counting convention behind \"64\" is not stated anywhere in the evidence, leaving the run detail and the disclosed check list numerically unreconciled. [Second evidence entry note {\"detail\": \"64 identities; bound 1/2\"} vs k0_m4_p_avg_bound.json machine_checked (b)]"
+    },
+    {
+      "dimension": "internal_consistency",
+      "severity": "note",
+      "text": "Cross-checks that hold: the evidence \"claim_statement\" is verbatim identical to the ledger statement the receipt binds to; \"claimed_p_avg_bound\":\"1/2\" matches \"at most 1/2\"; \"m\":4, \"k\":0 and the \"setting\" field match \"U in U(4)\", \"no ancilla\", and the dual-rail mode assignment. The one stray element is W6's closing clause \"and min_B p_B is at most the average\", which plays no role in this average-bound statement and appears carried over from a min-version of the claim; nothing in the statement or notes refers to min_B p_B. [k0_m4_p_avg_bound.json \"claim_statement\", \"claimed_p_avg_bound\", \"setting\", and written_steps W6 final clause]"
+    },
+    {
+      "dimension": "assumption_explicitness",
+      "severity": "note",
+      "text": "Scope words in the statement are explicit (\"passive\", \"in U(4)\", \"no ancilla\", \"photon-number-resolving detection of all four output modes\", unambiguity defined in-line), but the symbol p_B in \"the average success (1/4) sum_B p_B\" is never defined in the statement text itself; its operational definition \"p_B = sum over patterns mapped to B of Pr[pattern | B]\" exists only in the evidence file's \"setting\" field, so part of the bound's meaning rests on a definition outside the text the receipt binds to. [Statement phrase \"(1/4) sum_B p_B\" vs k0_m4_p_avg_bound.json \"setting\" field]"
+    },
+    {
+      "dimension": "ledger_consistency",
+      "severity": "note",
+      "text": "Dependency and level checks that hold: P3.one_body_usd_lemma is CERTIFIED and standing CURRENT, so the cap \"a claim's level may not exceed the lowest level among the claims it depends on\" permits CERTIFIED; the embedded lemma_certificate.statement is verbatim the dependency's statement, and machine check (a) plus golden cases moment-k0-m4-corrupt-lemma and moment-k1-m5-foreign-lemma (both expect FAIL) exercise lemma substitution. However, the evidence file nowhere echoes formulation_version \"p3-moment-bound-v1\"; the binding to this formulation is carried by the claim_statement text alone. [lemma_certificate.statement vs dependency statement; absence of any formulation_version field in k0_m4_p_avg_bound.json]"
+    },
+    {
+      "dimension": "confidence_calibration",
+      "severity": "note",
+      "text": "CERTIFIED does not overclaim this evidence under the charter: a certified-verifier PASS on the certificate plus disclosed written analytic steps is exactly the CERTIFIED pattern, and the golden suite contains discriminating FAIL cases (\"moment-k1-m5-bound-too-low\", \"moment-k0-m4-corrupt-lemma\", \"moment-k1-m5-foreign-lemma\", \"moment-k2-m8-unsupported\") that give the PASS verdict force against the obvious failure modes. The notes' external anchor \"the Calsamiglia-Lutkenhaus value\" agrees with the stated 1/2, and nothing in the evidence presents the written steps W1-W6 as machine-checked. [p3_moment_bound v1.0 golden suite list; Notes phrase \"the Calsamiglia-Lutkenhaus value\"; machine_checked vs written_steps separation in k0_m4_p_avg_bound.json]"
+    },
+    {
+      "dimension": "decision_soundness",
+      "severity": "note",
+      "text": "Timing is coherent for promoting now: certification stamped 2026-10-27T02:39:17+00:00 precedes the qualifying reverify PASS at 02:40:15+00:00, the sole dependency is standing CURRENT at the required level, and the verification boundary is fully disclosed in the evidence. The only obstacle to issuing the receipt as-is is the uncertified 02:11:27 evidence entry flagged under ledger_consistency; no other reason to defer the promotion was found. [claims/verifiers.json stamp 2026-10-27T02:39:17+00:00 vs second evidence entry 2026-10-27T02:40:15+00:00; dependency standing \"CERTIFIED, standing CURRENT\"]"
+    }
+  ],
+  "id": "P3.k0_m4_p_avg_upper_bound.20261027.model",
+  "provenance": {
+    "cost_usd": "2.1876",
+    "model": "claude-fable-5",
+    "request_digest": "8ed6ec6550f2ef3f7a8565ea1638a53a30c7e055ee73c4bc01728775b0f9aa5e",
+    "response_digest": "beec6aca34b929c704056f89c8aed355088a07ec167cbcd76b54e4cd33d9e548",
+    "run_id": "review-P3.k0_m4_p_avg_upper_bound-4de075-s1",
+    "transport": "ClaudeCodeClient"
+  },
+  "reviewer": "model",
+  "statement_sha256": "a9514ff2c3a670843c4bc6d0f5bc0efbb79f98cdeee356a43ed6d447efa07097",
+  "target_level": "CERTIFIED",
+  "usable": true,
+  "verdict": "REVISE",
+  "waivers": []
+}

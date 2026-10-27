@@ -17,7 +17,18 @@ level: CONJECTURED
 n: null
 notes: 'artifact 49ae15070c9c9355e20127f221fc0b9887dac4fd75725995c0ceb586c2269173;
   title: k=2 floor: twirl achieves min 3/4 (verified); fixed-mesh <= 1/2 (conjectured);
-  no canonical claim row (pre-hardening record; statement is the artifact title)'
+  no canonical claim row (pre-hardening record; statement is the artifact title)
+
+  2026-10-26 (M27b, referee report docs/science/reviews/2026-10-26-p3-moment-bound/REVIEW.md):
+  the ''twirl'' is classical randomization -- a fair coin choosing between Grice''s
+  eight-mode scheme (two-photon Bell-pair ancilla, success vector (1/2, 1/2, 1, 1))
+  and its rail-swapped copy (1, 1, 1/2, 1/2), each a fixed passive interferometer
+  on eight modes; the mixture averages to 3/4 for every Bell state. The evidence proves
+  neither a universal fixed-U minimum bound of 1/2 (the ''fixed-mesh <= 1/2'' half
+  stays conjectural, for one mesh family) nor that 3/4 is the fixed-U minimum optimum.
+  The photon-number moment bound (P3.moment_bound_general_k, paper proof, not certified
+  at k = 2) gives p_avg <= 3/4, hence min_B p_B <= 3/4, for every fixed scheme with
+  two ancilla photons; whether one fixed scheme reaches min 3/4 is open.'
 problem: P3
 receipts: []
 source:
