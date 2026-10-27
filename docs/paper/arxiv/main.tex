@@ -38,18 +38,18 @@ small entangled resource states by destructive two-qubit fusion measurements. We
 minimum number $\F(G)$ of fusions when the resource is the three-qubit
 Greenberger-Horne-Zeilinger state, a fusion is a Bell-type measurement on any two qubits, and
 single-qubit Clifford operations are free. We prove $\F(G)\ge n+3\,\rw(G)-6$ for every connected
-graph $G$, where $\rw$ is the rank-width: the cycle rank of the network of resources and fusions
+graph $G$ on $n\ge 3$ vertices, where $\rw$ is the rank-width: the cycle rank of the network of resources and fusions
 bounds the Schmidt rank of the output across every cut of a tree decomposition. At rank-width one
-the bound is attained, so $\F(G)=n-3$ if and only if $G$ is distance-hereditary; the constructive
+the bound is attained, so for $n\ge 3$, $\F(G)=n-3$ if and only if $G$ is distance-hereditary; the constructive
 direction adds each pendant or twin of a distance-hereditary build with one fusion, and its
 graph-theoretic core is a Lean 4 theorem. Both directions can be assembled from published results
 on Schmidt-rank width and split decompositions, but we have not found the characterization stated.
-An exhaustive search over all 585 connected local-complementation orbits on at most nine vertices,
-with every construction accepted by two independent stabilizer engines, gives nineteen exact values
+An exhaustive search over all 585 connected local-complementation orbits on three to nine vertices,
+with every construction accepted by two independently implemented stabilizer engines, gives nineteen exact values
 above the minimum: the rank-width bound is attained by all sixteen orbits with $\F=n$ and missed by
 the three, all of rank-width two, that need $n+3$ fusions. The bound also raises the lower bound of
 25 open orbits of rank-width three. The characterization was first proposed by a language model,
-working inside a harness that admits only machine-checked artifacts, from labeled data on at most
+working inside a harness that admits only machine-checked artifacts, from labeled data on three to
 seven vertices.
 \end{abstract}
 
@@ -100,9 +100,9 @@ needs at least $n+\rw(G)-2$ two-qubit Clifford gates, with exactly $n-1$ at rank
 Theorem~\ref{thm:rw} is the analogue for fusions of three-qubit resources. In a model with
 emitter-generated caterpillar resources, L\"obl \emph{et al.}~\cite{Lobl2025generating} tabulate exact
 minimum fusion counts for all graph states on up to eight qubits and bound the count below by the
-linear rank-width. The reverse direction of Theorem~\ref{thm:main} also follows from the equality of
-Schmidt-rank width and rank-width~\cite{VandenNest2007classical}, and the forward direction from the
-split-decomposition construction of distance-hereditary graph states by Connolly
+linear rank-width. The implication from $\F(G)=n-3$ to distance-hereditary in
+Theorem~\ref{thm:main} also follows from the equality of Schmidt-rank width and
+rank-width~\cite{VandenNest2007classical}, and the converse from the split-decomposition construction of distance-hereditary graph states by Connolly
 \emph{et al.}~\cite{Connolly2026efficient} together with the construction of star graph states from
 GHZ states by Lee and Jeong~\cite{Lee2023graph}. We have not found Theorem~\ref{thm:main}, the bound of
 Theorem~\ref{thm:rw}, or a classification of minimum fusion counts in this model stated in the
@@ -121,17 +121,17 @@ literature (Section~\ref{sec:related}).
   and local complementation, on $k+3$ vertices; this class is the distance-hereditary graphs. The
   development also contains a counting form of the lower bound and explicit constructions for paths,
   stars, trees, complete graphs and complete bipartite graphs (Section~\ref{sec:lean}).
-\item \emph{Computation.} Two stabilizer engines that share no code agree with the fusion rule on
-  random inputs, and an exhaustive search over all $585$ connected local-complementation orbits with
-  $n\le 9$ agrees with Theorem~\ref{thm:main} on every orbit and gives exact values above the minimum
+\item \emph{Computation.} Two independently implemented stabilizer engines agree with the fusion rule
+  on random inputs, and an exhaustive search over all $585$ connected local-complementation orbits with
+  $3\le n\le 9$ agrees with Theorem~\ref{thm:main} on every orbit and gives exact values above the minimum
   (Section~\ref{sec:table}).
 \end{itemize}
 
 \paragraph{How the result was found.} The characterization was first proposed by a language model,
 Fable~5, working inside a research harness that records nothing above the status of a heuristic
 without a machine artifact and never lets the model execute code. The model classified the orbits,
-proposed the distance-hereditary characterization from the $44$ labeled orbits with $n\le 7$, and wrote
-the Lean proofs; the $541$ held-out orbits with $n\in\{8,9\}$ then agreed with the proposal without
+proposed the distance-hereditary characterization from the $44$ labeled orbits with $3\le n\le 7$, and
+wrote the Lean proofs; the $541$ held-out orbits with $n\in\{8,9\}$ then agreed with the proposal without
 exception (Section~\ref{sec:method}). Given the ingredients above, the characterization is within easy
 reach of a specialist; we report its discovery as an instance of a harness producing a correct,
 checkable conjecture from data, not as evidence that the result is hard.
@@ -144,8 +144,8 @@ checkable conjecture from data, not as evidence that the result is hard.
 \]
 is the unique common $+1$ eigenvector of the operators $K_v=X_v\prod_{u\in\nbr(v)}Z_u$, $v\in V$,
 where $\nbr(v)$ is the neighborhood of $v$. Local complementation at $v$ replaces the subgraph induced on $\nbr(v)$ by its
-complement; we write $\tau_v(G)$. It is implemented on graph states by a product of single-qubit
-Clifford unitaries~\cite{VandenNest2004graphical},
+complement; we write $\tau_v(G)$. It is implemented on graph states, up to a global phase, by a
+product of single-qubit Clifford unitaries~\cite{VandenNest2004graphical},
 \begin{equation}\label{eq:lc}
   |\tau_v(G)\rangle = e^{-i\pi X_v/4}\prod_{u\in\nbr(v)}e^{i\pi Z_u/4}\,|G\rangle,
 \end{equation}
@@ -340,7 +340,7 @@ paw, which is $\LC$-equivalent to the path $P_4$ and not to the star. The develo
 exact graphs through every induction and applies local complementation only explicitly. The first
 production model had only the leaf-merge and so generated only trees; it witnesses the minimum only on
 the local-complementation classes of trees, which are $93$ of the $175$ distance-hereditary orbits with
-$n\le 9$, one for each tree on $3$ to $9$ vertices, since locally equivalent trees are
+$3\le n\le 9$, one for each tree on $3$ to $9$ vertices, since locally equivalent trees are
 isomorphic~\cite{Bouchet1988transforming}. Adding the center-merge removed the obstruction.
 \end{remark}
 
@@ -359,9 +359,10 @@ absorbed by local complementations. Every fusion in the search is computed in th
 Section~\ref{sec:model}. For the one fusion inside the component in Tier~1 we re-ran the search with each
 of the six classes of single-qubit Clifford on one fused qubit, which together with the symmetry of the
 measured pair covers all choices on both qubits (for $n\le 5$ all $36$ pairs were tried), and no orbit
-changed. Each recorded construction is replayed by two stabilizer engines that share no code, a tableau
-simulator built on \textsc{stim}~\cite{Gidney2021stim} and an independent implementation over
-$\mathrm{GF}(2)$, with canonical forms from \textsc{nauty}~\cite{McKay2014practical}. The table, with
+changed. Each recorded construction is replayed by two stabilizer engines with independent implementations
+of fusion and of graph extraction, a tableau simulator built on \textsc{stim}~\cite{Gidney2021stim}
+and an implementation over $\mathrm{GF}(2)$; they share the replay of a construction, the graph-level
+local complementation and the orbit canonicalization, which uses \textsc{nauty}~\cite{McKay2014practical}. The table, with
 $585$ rows each holding an orbit representative and either an exact value with a witness schedule or a
 lower bound, is a single content-addressed artifact; nine exact values above the minimum were added
 later from model-proposed constructions.
@@ -420,8 +421,10 @@ must pass before use.
 \paragraph{The model never executes.} The model emits structured output, such as a schedule, a conjecture
 or a complete Lean module, and the harness runs every check in a sandbox.
 
-\paragraph{Two stabilizer engines.} Fusion outcomes are computed by two engines that share no code, and a
-construction is accepted only when both agree on the resulting state up to local Clifford equivalence.
+\paragraph{Two stabilizer engines.} Fusion outcomes are computed by two engines with independent
+implementations of fusion and of graph extraction, and a construction is accepted only when both agree on
+the resulting state up to local Clifford equivalence; the replay of a construction and the orbit
+canonicalization are shared code.
 The closed-form merge rule used in the hot loop of the search matches both engines on randomized inputs.
 
 \paragraph{A hardened Lean gate.} A submitted Lean module is elaborated in a sandbox without network or
@@ -432,7 +435,7 @@ developed against adversarial submissions (poisoned object files, swaps between 
 axiom-hiding elaborators) before it was used.
 
 \paragraph{The discovery.} The harness gave the model the labeled catalogue of the $44$ orbits with
-$n\le 7$, each as an edge list tagged extremal or not, with no invariant, class name or hint beyond the
+$3\le n\le 7$, each as an edge list tagged extremal or not, with no invariant, class name or hint beyond the
 true statement that the property is invariant under local complementation. The model proposed that the
 extremal orbits are the distance-hereditary graphs, gave the standard equivalent characterizations, and
 identified the smallest obstruction: the unique non-extremal orbit on five vertices is the orbit of
@@ -473,9 +476,11 @@ Nishio and Nemoto~\cite{Connolly2026local} count the local-equivalence classes o
 distance-hereditary graphs. The orbits of graph states were classified by Hein
 \emph{et al.}~\cite{Hein2004multiparty} for $n\le 7$ and by Danielsen and
 Parker~\cite{Danielsen2006classification} for $n\le 12$, and mapped by Adcock
-\emph{et al.}~\cite{Adcock2020mapping}. Transformation problems for graph states under local
-operations, efficient at bounded rank-width and hard in general, were studied by Dahlberg, Helsen and
-Wehner~\cite{Dahlberg2020how,Dahlberg2020transforming,Dahlberg2020counting}.
+\emph{et al.}~\cite{Adcock2020mapping}. Dahlberg and Wehner~\cite{Dahlberg2018transforming} decide whether one graph state can be
+transformed into another by single-qubit Clifford operations, single-qubit Pauli measurements and
+classical communication in time cubic in the size of the source when its rank-width and the size of the
+target are bounded, and Dahlberg, Helsen and Wehner study the complexity of such problems, which are
+hard in general~\cite{Dahlberg2020how,Dahlberg2020transforming,Dahlberg2020counting}.
 
 \paragraph{Machine-assisted mathematics.} Language models have recently produced new constructions in
 combinatorics and analysis through program

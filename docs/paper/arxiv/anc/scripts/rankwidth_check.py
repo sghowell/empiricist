@@ -1,10 +1,11 @@
 """Rank-width facts behind the paper's rank-width bound F >= n + 3 rw - 6 and its tightness.
 
-For every orbit above the bound F = n - 3 (exact or open) in the tablebase, and for the nine later
+For every orbit above the minimum F = n - 3 in the tablebase (exact or open) and for the nine later
 certified constructions, print whether it is distance-hereditary, its linear rank-width (brute force
-over vertex orderings) and its rank-width (brute force over all labeled unrooted binary trees with
-the vertices as leaves; (2n-5)!! trees), each from GF(2) cut-ranks, and compare the value of F
-with n + 3 rw - 6.
+over vertex orderings, n <= 8) and its rank-width (brute force over all labeled unrooted binary trees
+with the vertices as leaves; (2n-5)!! trees), each from GF(2) cut-ranks. For an exact value, say
+whether the bound n + 3 rw - 6 is attained; for an open row, print the search's lower bound, the
+rank-width bound and their maximum. The summary counts rows by (n, exact/open, rank-width).
 
 Usage: python rankwidth_check.py path/to/tablebase.json [path/to/certified_orbits]
 """
@@ -100,14 +101,18 @@ def rank_width(n: int, edges: list, lower: int = 1) -> int:
     return best
 
 
-def report(n: int, edges: list, label: str, value: str, f_value: int) -> None:
+def report(n: int, edges: list, label: str, f_value: int, exact: bool) -> None:
     dh = is_distance_hereditary(n, edges)
     rw = rank_width(n, edges, lower=1 if dh else 2)
     lrw = linear_rank_width(n, edges) if n <= 8 else -1
     bound = n + 3 * rw - 6
-    tight = "tight" if f_value == bound else f"slack {f_value - bound}"
-    print(f"n={n} {label}: {value}; distance-hereditary {dh}; rank-width {rw}; linear rank-width {lrw};"
-          f" bound n+3rw-6 = {bound} ({tight})")
+    head = f"n={n} {label}: distance-hereditary {dh}; rank-width {rw}; linear rank-width {lrw}; "
+    if exact:
+        tight = "attained" if f_value == bound else f"missed by {f_value - bound}"
+        print(head + f"F = {f_value}; rank-width bound {bound} ({tight})")
+    else:
+        print(head + f"open; search bound F >= {f_value}; rank-width bound F >= {bound}; "
+                     f"combined F >= {max(f_value, bound)}")
 
 
 def main(path: str, certified_dir: str | None) -> None:
@@ -125,8 +130,7 @@ def main(path: str, certified_dir: str | None) -> None:
         rw = rank_width(n, e, lower=2)
         summary[(n, "exact" if r["exact"] else "open", rw)] += 1
         if n <= 8:
-            report(n, e, f"orbit ..{r['orbit_id'][-8:]}",
-                   f"{'F =' if r['exact'] else 'F >='} {value}", value)
+            report(n, e, f"orbit ..{r['orbit_id'][-8:]}", value, r["exact"])
     print("summary of rows above the bound, (n, exact/open, rank-width): count")
     for k in sorted(summary):
         n, kind, rw = k
@@ -138,7 +142,7 @@ def main(path: str, certified_dir: str | None) -> None:
                           r"representative edges (\[.*?\])\)", text)
             if m:
                 fv, n, edges = int(m.group(1)), int(m.group(2)), eval(m.group(3))
-                report(n, edges, Path(f).stem, f"F = {fv} (certified)", fv)
+                report(n, edges, Path(f).stem + " (later construction)", fv, True)
 
 
 if __name__ == "__main__":

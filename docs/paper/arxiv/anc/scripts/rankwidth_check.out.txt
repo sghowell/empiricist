@@ -1,77 +1,77 @@
-n=5 orbit ..000000f0: F = 5; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 5 (tight)
-n=6 orbit ..00000038: F >= 9; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 6 (slack 3)
-n=6 orbit ..000000f0: F = 6; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 6 (tight)
-n=6 orbit ..00000078: F = 6; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 6 (tight)
-n=7 orbit ..000000bc: F >= 10; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 7 (slack 3)
-n=7 orbit ..000000ec: F >= 10; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (slack 3)
-n=7 orbit ..000000f0: F >= 10; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 7 (slack 3)
-n=7 orbit ..000000f8: F >= 10; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 7 (slack 3)
-n=7 orbit ..000000f4: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..000000bc: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..000000bc: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..000000f8: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..000000f8: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..00000078: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=7 orbit ..0000003c: F = 7; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (tight)
-n=8 orbit ..000000ee: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000009e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000ce: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fa: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000de: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f6: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000ce: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000ee: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f8: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f8: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000003e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000be: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..00000076: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000003e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000005e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000da: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f6: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000dc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000005e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000005e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000da: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f8: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f8: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000003e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..00000076: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000f2: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..00000072: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..00000076: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000005e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000de: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000009e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000006e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..00000076: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000006e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..000000fc: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000007c: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000005e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000004e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000001e: F >= 8; distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 orbit ..0000003e: F >= 8; distance-hereditary False; rank-width 3; linear rank-width 3; bound n+3rw-6 = 11 (slack -3)
+n=5 orbit ..000000f0: distance-hereditary False; rank-width 2; linear rank-width 2; F = 5; rank-width bound 5 (attained)
+n=6 orbit ..00000038: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 9; rank-width bound F >= 6; combined F >= 9
+n=6 orbit ..000000f0: distance-hereditary False; rank-width 2; linear rank-width 2; F = 6; rank-width bound 6 (attained)
+n=6 orbit ..00000078: distance-hereditary False; rank-width 2; linear rank-width 2; F = 6; rank-width bound 6 (attained)
+n=7 orbit ..000000bc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 10; rank-width bound F >= 7; combined F >= 10
+n=7 orbit ..000000ec: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 10; rank-width bound F >= 7; combined F >= 10
+n=7 orbit ..000000f0: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 10; rank-width bound F >= 7; combined F >= 10
+n=7 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 10; rank-width bound F >= 7; combined F >= 10
+n=7 orbit ..000000f4: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..000000bc: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..000000bc: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..00000078: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=7 orbit ..0000003c: distance-hereditary False; rank-width 2; linear rank-width 2; F = 7; rank-width bound 7 (attained)
+n=8 orbit ..000000ee: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000009e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000ce: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fa: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000de: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f6: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000ce: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000ee: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007e: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000003e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000be: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..00000076: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000003e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000005e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000da: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f6: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000dc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000005e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000005e: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000da: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f8: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000003e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..00000076: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000f2: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..00000072: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..00000076: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000005e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000de: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000009e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000006e: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..00000076: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000006e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..000000fc: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000007c: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000005e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000004e: distance-hereditary False; rank-width 2; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000001e: distance-hereditary False; rank-width 2; linear rank-width 2; open; search bound F >= 8; rank-width bound F >= 8; combined F >= 8
+n=8 orbit ..0000003e: distance-hereditary False; rank-width 3; linear rank-width 3; open; search bound F >= 8; rank-width bound F >= 11; combined F >= 11
 summary of rows above the bound, (n, exact/open, rank-width): count
   n=5 exact rank-width 2: 1 (rank-width bound F >= 5)
   n=6 exact rank-width 2: 2 (rank-width bound F >= 6)
@@ -82,13 +82,12 @@ summary of rows above the bound, (n, exact/open, rank-width): count
   n=8 open  rank-width 3: 1 (rank-width bound F >= 11)
   n=9 open  rank-width 2: 312 (rank-width bound F >= 9)
   n=9 open  rank-width 3: 24 (rank-width bound F >= 12)
-n=6 P5.n6_orbit_0000000000f8: F = 9 (certified); distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 6 (slack 3)
-n=7 P5.n7_orbit_00000000009c: F = 10 (certified); distance-hereditary False; rank-width 2; linear rank-width 3; bound n+3rw-6 = 7 (slack 3)
-n=7 P5.n7_orbit_0000000000e8: F = 10 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 7 (slack 3)
-n=8 P5.n8_orbit_0000000000b0: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 P5.n8_orbit_0000000000bc: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 P5.n8_orbit_0000000000d2: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 P5.n8_orbit_0000000000e8: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 P5.n8_orbit_0000000000f4: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-n=8 P5.n8_orbit_0000000000f4_2: F = 8 (certified); distance-hereditary False; rank-width 2; linear rank-width 2; bound n+3rw-6 = 8 (tight)
-python3 rankwidth_check.py ../data/tablebase.json ../data/certified_orbits  98.75s user 2.67s system 99% cpu 1:41.83 total
+n=6 P5.n6_orbit_0000000000f8 (later construction): distance-hereditary False; rank-width 2; linear rank-width 3; F = 9; rank-width bound 6 (missed by 3)
+n=7 P5.n7_orbit_00000000009c (later construction): distance-hereditary False; rank-width 2; linear rank-width 3; F = 10; rank-width bound 7 (missed by 3)
+n=7 P5.n7_orbit_0000000000e8 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 10; rank-width bound 7 (missed by 3)
+n=8 P5.n8_orbit_0000000000b0 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
+n=8 P5.n8_orbit_0000000000bc (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
+n=8 P5.n8_orbit_0000000000d2 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
+n=8 P5.n8_orbit_0000000000e8 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
+n=8 P5.n8_orbit_0000000000f4 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
+n=8 P5.n8_orbit_0000000000f4_2 (later construction): distance-hereditary False; rank-width 2; linear rank-width 2; F = 8; rank-width bound 8 (attained)
