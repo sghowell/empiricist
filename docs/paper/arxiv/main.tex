@@ -60,9 +60,9 @@ seven vertices.
 Fusion-based quantum computation (FBQC) builds fault-tolerant computation from a supply of small,
 identical entangled \emph{resource states} that are joined by \emph{fusions}: destructive joint
 measurements of two qubits~\cite{Bartolucci2023fusion}. The three-qubit
-Greenberger-Horne-Zeilinger (GHZ) state is the basic resource of photonic
-proposals~\cite{GimenoSegovia2015three,Bartolucci2023fusion}, and the number of fusions is a main
-physical cost, so for any target entangled state it is natural to ask how few fusions suffice to
+Greenberger-Horne-Zeilinger (GHZ) state is a basic resource in several photonic
+proposals~\cite{GimenoSegovia2015three,Zaidi2015near}, and the number of fusions is a main physical
+cost, so for any target entangled state it is natural to ask how few fusions suffice to
 make it. For graph states, the stabilizer states in one-to-one correspondence with simple
 graphs~\cite{Hein2004multiparty,Hein2006entanglement}, this is a combinatorial optimization over
 graphs that has been studied with heuristics and with dynamic programming in several resource
@@ -97,16 +97,19 @@ to a local-Clifford-invariant measure of the entanglement structure of $|G\rangl
 \paragraph{Relation to previous work.} Both theorems have close relatives. In the circuit model,
 Kumabe, Mori and Yoshimura~\cite{Kumabe2026complexity} prove that preparing a connected graph state
 needs at least $n+\rw(G)-2$ two-qubit Clifford gates, with exactly $n-1$ at rank-width one;
-Theorem~\ref{thm:rw} is the analogue for fusions of three-qubit resources. In a model with
-emitter-generated caterpillar resources, L\"obl \emph{et al.}~\cite{Lobl2025generating} tabulate exact
-minimum fusion counts for all graph states on up to eight qubits and bound the count below by the
-linear rank-width. The implication from $\F(G)=n-3$ to distance-hereditary in
+Theorem~\ref{thm:rw} is the analogue for fusions of three-qubit resources. Width-dependent fusion bounds were known before in a model
+with emitter-generated caterpillar resources: L\"obl \emph{et al.}~\cite{Lobl2025generating} tabulate
+exact minimum fusion counts for all graph states on up to eight qubits and show that the count is at
+least the linear rank-width minus one. The implication from $\F(G)=n-3$ to distance-hereditary in
 Theorem~\ref{thm:main} also follows from the equality of Schmidt-rank width and
-rank-width~\cite{VandenNest2007classical}, and the converse from the split-decomposition construction of distance-hereditary graph states by Connolly
-\emph{et al.}~\cite{Connolly2026efficient} together with the construction of star graph states from
-GHZ states by Lee and Jeong~\cite{Lee2023graph}. We have not found Theorem~\ref{thm:main}, the bound of
-Theorem~\ref{thm:rw}, or a classification of minimum fusion counts in this model stated in the
-literature (Section~\ref{sec:related}).
+rank-width~\cite{VandenNest2007classical} once the fusion network at the minimum is seen to be a tree,
+and the converse from the pendant-and-twin build of Bandelt and Mulder~\cite{Bandelt1986distance}
+with the graph rule for fusion~\cite{Zaidi2015near,Lee2023graph}, or from the split-decomposition
+construction of distance-hereditary graph states by Connolly \emph{et al.}~\cite{Connolly2026efficient}
+together with the construction of star graph states from GHZ states by Lee and
+Jeong~\cite{Lee2023graph}. We make the characterization explicit in this resource model and prove the
+more general bound; we have not found either statement, or a classification of minimum fusion counts
+in this model, in the literature (Section~\ref{sec:related}).
 
 \paragraph{What is proved, and how.} The paper contains three kinds of argument.
 \begin{itemize}
@@ -259,8 +262,8 @@ Proposition~\ref{prop:count} gives $\F(G)=f\ge n-3+3t\ge n-3+3(\rw(G)-1)$.
 
 The argument is the fusion analogue of bounding the Schmidt-rank width of a tensor network by its bond
 structure~\cite{VandenNest2006universal,VandenNest2007classical}, and is close in spirit to the
-linear-rank-width bound of Ref.~\cite{Lobl2025generating} and the gate bound of
-Ref.~\cite{Kumabe2026complexity}. Only the cycle rank of the fusion network enters, so the bound holds
+bound $\F\ge\mathrm{lrw}(G)-1$ in the linear rank-width of Ref.~\cite{Lobl2025generating} and the gate
+bound of Ref.~\cite{Kumabe2026complexity}. Only the cycle rank of the fusion network enters, so the bound holds
 for any destructive two-qubit measurement with pure outcomes, not only for Bell-type fusions.
 
 \begin{proof}[Proof of Theorem~\ref{thm:main}]
@@ -278,7 +281,7 @@ this schedule produces $G$ with $n-3$ fusions, and Proposition~\ref{prop:count} 
 At the minimum the proof of Theorem~\ref{thm:rw} shows more: $t=0$, so the fusion network is a tree on
 $n-2$ resources whose $n-3$ fusions each join two components. The constructive direction can also be
 read off from the split decomposition. Every node of the split decomposition of a distance-hereditary
-graph is a star or a complete graph~\cite{Bouchet1988transforming,Hammer1990completely}; Connolly
+graph is a star or a complete graph~\cite{Bouchet1988transforming,Hammer1990completely,Gioan2012split}; Connolly
 \emph{et al.}~\cite{Connolly2026efficient} assemble the graph state from the node graph states by
 type-II fusions along the split tree, and Lee and Jeong~\cite{Lee2023graph} build an $m$-vertex star
 from $m-2$ GHZ states with $m-3$ fusions. The totals are again $n-2$ resources and $n-3$ fusions.
@@ -455,8 +458,9 @@ states from GHZ states with graph-theoretical heuristics, construct stars with t
 fusions, and state the graph rule for fusion used here. L\"obl \emph{et al.}~\cite{Lobl2025generating}
 compute, by dynamic programming over local-complementation orbits, exact minimum fusion counts for all
 graph states on up to eight qubits when the inputs are caterpillar states from a single quantum emitter;
-their zero-fusion class is the local-complementation classes of caterpillars, and they bound the count
-below by the linear rank-width. Their model differs from ours in the resource, so the values and the
+their zero-fusion class is the local-complementation classes of caterpillars, which are the connected
+graphs of linear rank-width one~\cite{BuiXuan2013note}, and they show that the count is at least the
+linear rank-width minus one. Their model differs from ours in the resource, so the values and the
 extremal class differ; the term tablebase is theirs. Staudacher \emph{et al.}~\cite{Staudacher2026adaptive}
 and Cashman \emph{et al.}~\cite{Cashman2025finding} optimize fusion networks with linear-cluster
 resources, and Ji \emph{et al.}~\cite{Ji2026towards} decompose targets into ring, star and linear motifs
@@ -466,26 +470,33 @@ joined by type-I fusion.
 determine the number of two-qubit Clifford gates needed to prepare a graph state up to rank-width terms;
 their lower bound $n+\rw(G)-2$ and their exact value $n-1$ at rank-width one are the circuit analogues of
 Theorems~\ref{thm:rw} and~\ref{thm:main}. Davies and Jena~\cite{Davies2025preparing} bound the
-preparation cost of graph states forbidding a vertex-minor. Minimum-gate and minimum-edge
-representatives of local-complementation orbits were studied by Cabello
-\emph{et al.}~\cite{Cabello2011optimal} and by Sharma \emph{et al.}~\cite{Sharma2026minimising}.
+two-qubit gate cost of preparing graph states from classes closed under vertex-minors, unconditionally
+for circle graphs and for bounded rank-width and, assuming a structural conjecture of Geelen, by
+$O(n\log n)$ for every proper vertex-minor-closed class. Minimum-gate and minimum-edge representatives
+of local-complementation orbits were studied by Cabello \emph{et al.}~\cite{Cabello2011optimal} and by
+Sharma \emph{et al.}~\cite{Sharma2026minimising}, who apply edge minimization to reduce the GHZ
+resources and fusions needed for repeater graph states. Adcock \emph{et al.}~\cite{Adcock2018hard}
+bound which graph states can be produced from optical resources with postselected fusions.
 
 \paragraph{Distance-hereditary graph states.} Connolly \emph{et al.}~\cite{Connolly2026efficient}
 construct every distance-hereditary graph state by fusions along its split decomposition, and Connolly,
-Nishio and Nemoto~\cite{Connolly2026local} count the local-equivalence classes of families of
-distance-hereditary graphs. The orbits of graph states were classified by Hein
+Nishio and Nemoto~\cite{Connolly2026local} derive the sizes of the local-equivalence classes of
+several families of distance-hereditary graphs. The orbits of graph states were classified by Hein
 \emph{et al.}~\cite{Hein2004multiparty} for $n\le 7$ and by Danielsen and
 Parker~\cite{Danielsen2006classification} for $n\le 12$, and mapped by Adcock
-\emph{et al.}~\cite{Adcock2020mapping}. Dahlberg and Wehner~\cite{Dahlberg2018transforming} decide whether one graph state can be
-transformed into another by single-qubit Clifford operations, single-qubit Pauli measurements and
-classical communication in time cubic in the size of the source when its rank-width and the size of the
-target are bounded, and Dahlberg, Helsen and Wehner study the complexity of such problems, which are
-hard in general~\cite{Dahlberg2020how,Dahlberg2020transforming,Dahlberg2020counting}.
+\emph{et al.}~\cite{Adcock2020mapping}. Whether one graph state can be transformed into another by single-qubit Clifford operations,
+single-qubit Pauli measurements and classical communication is decidable in time cubic in the size of
+the source when its rank-width and the size of the target are bounded~\cite{Dahlberg2018transforming};
+in general the problem is NP-complete, already for Bell-pair targets, with more efficient algorithms for
+particular targets~\cite{Dahlberg2020how,Dahlberg2020transforming}, and counting the graph states in a
+local-complementation orbit is \#P-complete~\cite{Dahlberg2020counting}.
 
-\paragraph{Machine-assisted mathematics.} Language models have recently produced new constructions in
-combinatorics and analysis through program
-search~\cite{RomeraParedes2024mathematical,Novikov2025alphaevolve,Georgiev2025mathematical}, and formal
-proof has been combined with machine-generated mathematics~\cite{Trinh2024solving,Hubert2026olympiad}.
+\paragraph{Machine-assisted mathematics.} Machine learning has guided mathematicians to conjectures
+from data~\cite{Davies2021advancing}, language models have produced new constructions in combinatorics
+and analysis through program
+search~\cite{RomeraParedes2024mathematical,Novikov2025alphaevolve,Georgiev2025mathematical}, and
+machine-generated proofs have been checked by a symbolic deduction engine~\cite{Trinh2024solving} and by
+the Lean kernel~\cite{Hubert2026olympiad}.
 Here a model proposes a characterization from data and writes the Lean proofs, and a harness admits only
 what a verifier accepts.
 
