@@ -30,10 +30,10 @@
     "sos_certificate": {
       "binary_hash": "68a61a8d9e0e4586422d4ac12221e998ca9df1d8bd08fd1d88f645a9ea20e014",
       "declaration": null,
-      "golden_suite_hash": "fa1d8397d27a5a3c46c9d568b23a2ed2fcb4b1a75c4f1b09eec041bd908b32e9",
+      "golden_suite_hash": "b3428ce273da423a6932d87eb956939c0d6eecd4ae694aebd9db9f6e193c4575",
       "name": "sos_certificate",
-      "pack": null,
-      "stamped": "2026-09-07T17:11:22+00:00",
+      "pack": "ftfbqc",
+      "stamped": "2026-10-27T02:11:09+00:00",
       "version": "1.0"
     },
     "verify_agreed": {
