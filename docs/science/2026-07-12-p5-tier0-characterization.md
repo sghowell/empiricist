@@ -74,3 +74,14 @@ distance-hereditary test (rw=1) and a linear-rank-width subset-DP upper bound
 **conjecture with a proof sketch**, not a theorem — the natural next steps are to
 prove `DH ⟺ F=N−3` (and formalize it, generalizing the family theorems) and to find
 the finer invariant governing the higher tiers.
+
+## Correction (2026-10-26)
+
+The n = 6 beyond-frontier orbit (certified F = 9 = N + 3) has rank-width **2**, not 3: every graph
+on six vertices has rank-width at most two (a branch decomposition with a central node and three
+subtrees of two leaves each has width at most two), and the orbit is not distance-hereditary. The
+value 3 reported above is its *linear* rank-width. The orbit is therefore itself an exact
+counterexample to F = N - 3 + 3(rw - 1), as is the n = 7 orbit certified at F = 10 with linear
+rank-width 2 (hence rank-width 2). All sixteen orbits with exact F = N (ten from Tier-1 at n <= 7,
+six certified at n = 8) have linear rank-width 2 and are not distance-hereditary, so rank-width
+exactly 2. Re-derived by `docs/paper/arxiv/anc/scripts/rankwidth_check.py` (M27a).

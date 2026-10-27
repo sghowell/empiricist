@@ -1,0 +1,785 @@
+% refs.bib -- prior-art and bibliography pass for
+% "Distance-hereditary graphs characterize minimum-fusion synthesis of graph states"
+% Compiled 2026-10-26. Every entry below was checked against a primary record:
+% the arXiv abstract page or arXiv API (export.arxiv.org), and/or the publisher DOI
+% (Crossref metadata deposited by the publisher plus doi.org resolution to the
+% publisher landing page). One comment line per entry records where.
+% Sections: (A) fusion and fusion-based generation; (B) closest prior results;
+% (C) graph states, LC orbits, complexity; (D) distance-hereditary graphs,
+% rank-width, split decomposition; (E) tools; (F) machine-assisted discovery.
+
+% ---------------------------------------------------------------------------
+% (A) Fusion, fusion-based quantum computation, photonic graph-state generation
+% ---------------------------------------------------------------------------
+
+% verified: Crossref + doi.org -> nature.com/articles/s41467-023-36493-1; arXiv:2101.09310 via arXiv API (authors, title)
+@article{Bartolucci2023fusion,
+  author        = {Bartolucci, Sara and Birchall, Patrick and Bomb{\'\i}n, Hector and Cable, Hugo and Dawson, Chris and Gimeno-Segovia, Mercedes and Johnston, Eric and Kieling, Konrad and Nickerson, Naomi and Pant, Mihir and Pastawski, Fernando and Rudolph, Terry and Sparrow, Chris},
+  title         = {Fusion-based quantum computation},
+  journal       = {Nature Communications},
+  volume        = {14},
+  pages         = {912},
+  year          = {2023},
+  doi           = {10.1038/s41467-023-36493-1},
+  eprint        = {2101.09310},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page quant-ph/0405157 (journal ref PRL 95, 010501) + Crossref/doi.org -> link.aps.org; full text read (type-II fusion passage)
+@article{Browne2005resource,
+  author        = {Browne, Daniel E. and Rudolph, Terry},
+  title         = {Resource-efficient linear optical quantum computation},
+  journal       = {Physical Review Letters},
+  volume        = {95},
+  number        = {1},
+  pages         = {010501},
+  year          = {2005},
+  doi           = {10.1103/PhysRevLett.95.010501},
+  eprint        = {quant-ph/0405157},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv abstract page 1410.3753 + Crossref/doi.org -> link.aps.org (PRA 91, 042301); full text read (Fig. 1 and Appendix derive the neighbour-joining rule)
+@article{Zaidi2015near,
+  author        = {Zaidi, Hussain A. and Dawson, Chris and van Loock, Peter and Rudolph, Terry},
+  title         = {Near-deterministic creation of universal cluster states with probabilistic {Bell} measurements and three-qubit resource states},
+  journal       = {Physical Review A},
+  volume        = {91},
+  number        = {4},
+  pages         = {042301},
+  year          = {2015},
+  doi           = {10.1103/PhysRevA.91.042301},
+  eprint        = {1410.3753},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 1410.3720 (journal ref PRL 115, 020502) + Crossref/doi.org -> link.aps.org
+@article{GimenoSegovia2015three,
+  author        = {Gimeno-Segovia, Mercedes and Shadbolt, Pete and Browne, Dan E. and Rudolph, Terry},
+  title         = {From three-photon {Greenberger-Horne-Zeilinger} states to ballistic universal quantum computation},
+  journal       = {Physical Review Letters},
+  volume        = {115},
+  number        = {2},
+  pages         = {020502},
+  year          = {2015},
+  doi           = {10.1103/PhysRevLett.115.020502},
+  eprint        = {1410.3720},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page 2304.11988 (journal ref Quantum 7, 1212) + Crossref/doi.org -> quantum-journal.org; full text read (Sec. 1.2 fusion rule, Sec. 2.1-2.2)
+@article{Lee2023graph,
+  author        = {Lee, Seok-Hyung and Jeong, Hyunseok},
+  title         = {Graph-theoretical optimization of fusion-based graph state generation},
+  journal       = {Quantum},
+  volume        = {7},
+  pages         = {1212},
+  year          = {2023},
+  doi           = {10.22331/q-2023-12-20-1212},
+  eprint        = {2304.11988},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page 2405.02414 (journal ref Quantum 9, 1795) + Crossref/doi.org -> quantum-journal.org; full text read (Sec. 3.1 Eqs. 8-11)
+@article{Lobl2025transforming,
+  author        = {L{\"o}bl, Matthias C. and Pettersson, Love A. and Paesani, Stefano and S{\o}rensen, Anders S.},
+  title         = {Transforming graph states via {Bell} state measurements},
+  journal       = {Quantum},
+  volume        = {9},
+  pages         = {1795},
+  year          = {2025},
+  doi           = {10.22331/q-2025-07-14-1795},
+  eprint        = {2405.02414},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page 2412.04587 (v3) + Crossref/doi.org -> link.aps.org (PRA 111, 052604; six authors incl. Jena, Dellantonio)
+@article{Lobl2025generating,
+  author        = {L{\"o}bl, Matthias C. and Pettersson, Love A. and Jena, Andrew and Dellantonio, Luca and Paesani, Stefano and S{\o}rensen, Anders S.},
+  title         = {Generating graph states with a single quantum emitter and the minimum number of fusions},
+  journal       = {Physical Review A},
+  volume        = {111},
+  number        = {5},
+  pages         = {052604},
+  year          = {2025},
+  doi           = {10.1103/PhysRevA.111.052604},
+  eprint        = {2412.04587},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 2205.09750 (journal ref Quantum 7, 992) + Crossref/doi.org -> quantum-journal.org
+@article{Hilaire2023near,
+  author        = {Hilaire, Paul and Vidro, Leonid and Eisenberg, Hagai S. and Economou, Sophia E.},
+  title         = {Near-deterministic hybrid generation of arbitrary photonic graph states using a single quantum emitter and linear optics},
+  journal       = {Quantum},
+  volume        = {7},
+  pages         = {992},
+  year          = {2023},
+  doi           = {10.22331/q-2023-04-27-992},
+  eprint        = {2205.09750},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: Crossref/doi.org -> link.aps.org (published title); arXiv API 0810.2587 (arXiv title "A photonic cluster state machine gun")
+@article{Lindner2009proposal,
+  author        = {Lindner, Netanel H. and Rudolph, Terry},
+  title         = {Proposal for pulsed on-demand sources of photonic cluster state strings},
+  journal       = {Physical Review Letters},
+  volume        = {103},
+  number        = {11},
+  pages         = {113602},
+  year          = {2009},
+  doi           = {10.1103/PhysRevLett.103.113602},
+  eprint        = {0810.2587},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: Crossref/doi.org -> nature.com/articles/s41534-022-00522-6 (npj QI 8, article 11); arXiv API 2108.12466
+@article{Li2022photonic,
+  author        = {Li, Bikun and Economou, Sophia E. and Barnes, Edwin},
+  title         = {Photonic resource state generation from a minimal number of quantum emitters},
+  journal       = {npj Quantum Information},
+  volume        = {8},
+  pages         = {11},
+  year          = {2022},
+  doi           = {10.1038/s41534-022-00522-6},
+  eprint        = {2108.12466},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page 2606.02880 (v1, 1 Jun 2026; no journal ref)
+@misc{Ji2026towards,
+  author        = {Ji, Tingxiang and Weerasena, Hansika and Farfurnik, Demitry and Liu, Jianqing},
+  title         = {Towards efficient synthesis of quantum graph states by fusing graph motifs},
+  year          = {2026},
+  eprint        = {2606.02880},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  doi           = {10.48550/arXiv.2606.02880}
+}
+
+% verified: Crossref/doi.org -> link.aps.org (PRA 114, 032614, 2026); arXiv API 2601.02087 (v2) lists this DOI
+@article{Staudacher2026adaptive,
+  author        = {Staudacher, Korbinian and Jeevanesan, Bhilahari and Guggemos, Tobias},
+  title         = {Adaptive framework for failure-aware protocols in fusion-based graph-state generation},
+  journal       = {Physical Review A},
+  volume        = {114},
+  number        = {3},
+  pages         = {032614},
+  year          = {2026},
+  doi           = {10.1103/2z98-6bsp},
+  eprint        = {2601.02087},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page/API 2508.18375 (v1, 25 Aug 2025; no journal ref)
+@misc{Cashman2025finding,
+  author        = {Cashman, William and de Felice, Giovanni and Kissinger, Aleks},
+  title         = {Finding trail covers: near-optimal decompositions of graph states as linear fusion networks},
+  year          = {2025},
+  eprint        = {2508.18375},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  doi           = {10.48550/arXiv.2508.18375}
+}
+
+% verified: Crossref/doi.org -> ieeexplore.ieee.org/document/11346080 (published title differs from arXiv title); arXiv API 2312.02377 lists this DOI
+@article{Patil2026graphical,
+  author        = {Patil, Ashlesha and Guha, Saikat},
+  title         = {A graphical rule book for {Clifford} manipulations of stabilizer states},
+  journal       = {IEEE Transactions on Quantum Engineering},
+  volume        = {7},
+  pages         = {1--33},
+  year          = {2026},
+  doi           = {10.1109/TQE.2026.3653200},
+  eprint        = {2312.02377},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: Crossref/doi.org -> link.aps.org (PRA 114, 042439, 2026); arXiv abstract page 2601.13381 (v4)
+@article{Rimock2026type,
+  author        = {Rimock, Noam and Oz, Yaron},
+  title         = {Type-{I} and type-{II} fusion protocols for weighted graph states},
+  journal       = {Physical Review A},
+  volume        = {114},
+  number        = {4},
+  pages         = {042439},
+  year          = {2026},
+  doi           = {10.1103/bf7h-2mk9},
+  eprint        = {2601.13381},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 2106.13825 (v1, 25 Jun 2021; no journal ref)
+@misc{Bartolucci2021creation,
+  author        = {Bartolucci, Sara and Birchall, Patrick M. and Gimeno-Segovia, Mercedes and Johnston, Eric and Kieling, Konrad and Pant, Mihir and Rudolph, Terry and Smith, Jake and Sparrow, Chris and Vidrighin, Mihai D.},
+  title         = {Creation of entangled photonic states using linear optics},
+  year          = {2021},
+  eprint        = {2106.13825},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  doi           = {10.48550/arXiv.2106.13825}
+}
+
+% ---------------------------------------------------------------------------
+% (B) Closest prior results (circuit-model analogue; DH split-fuse construction)
+% ---------------------------------------------------------------------------
+
+% verified: arXiv abstract page 2402.05874 (v4, journal ref Quantum 10, 2165) + Crossref/doi.org -> quantum-journal.org; full text v4 read (Cor. 5, Thm. 7)
+@article{Kumabe2026complexity,
+  author        = {Kumabe, Soh and Mori, Ryuhei and Yoshimura, Yusei},
+  title         = {Complexity of graph-state preparation by {Clifford} circuits},
+  journal       = {Quantum},
+  volume        = {10},
+  pages         = {2165},
+  year          = {2026},
+  doi           = {10.22331/q-2026-07-18-2165},
+  eprint        = {2402.05874},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page/API 2603.23892 (v2, 31 Mar 2026; no journal ref); full text read (Prop. 1, Sec. 4)
+@misc{Connolly2026efficient,
+  author        = {Connolly, Nicholas and Nishio, Shin and Browne, Dan E. and Munro, William John and Nemoto, Kae},
+  title         = {Efficient preparation of graph states using the quotient-augmented strong split tree},
+  year          = {2026},
+  eprint        = {2603.23892},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  doi           = {10.48550/arXiv.2603.23892}
+}
+
+% verified: arXiv abstract page/API 2602.23825 (v1, 27 Feb 2026; no journal ref); full text read (Thm. VI.6, DH citations)
+% updated in review: Crossref API 10.1088/1751-8121/aea45d (J. Phys. A 59(39), 395310, 2026); arXiv primary math.CO
+@article{Connolly2026local,
+  author        = {Connolly, Nicholas and Nishio, Shin and Nemoto, Kae},
+  title         = {Local equivalence classes of distance-hereditary graphs using split decompositions},
+  journal       = {Journal of Physics A: Mathematical and Theoretical},
+  volume        = {59},
+  number        = {39},
+  pages         = {395310},
+  year          = {2026},
+  doi           = {10.1088/1751-8121/aea45d},
+  eprint        = {2602.23825},
+  archivePrefix = {arXiv},
+  primaryClass  = {math.CO}
+}
+
+% verified: arXiv API 1011.5464 (journal ref PRA 83, 042314) + Crossref/doi.org -> link.aps.org
+@article{Cabello2011optimal,
+  author        = {Cabello, Ad{\'a}n and Danielsen, Lars Eirik and L{\'o}pez-Tarrida, Antonio J. and Portillo, Jos{\'e} R.},
+  title         = {Optimal preparation of graph states},
+  journal       = {Physical Review A},
+  volume        = {83},
+  number        = {4},
+  pages         = {042314},
+  year          = {2011},
+  doi           = {10.1103/PhysRevA.83.042314},
+  eprint        = {1011.5464},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv abstract page 2506.00292 (v2, journal ref Quantum 10, 2001) + Crossref/doi.org -> quantum-journal.org
+@article{Sharma2026minimising,
+  author        = {Sharma, Hemant and Goodenough, Kenneth and Borregaard, Johannes and Rozp{\k{e}}dek, Filip and Helsen, Jonas},
+  title         = {Minimising the number of edges in {LC}-equivalent graph states},
+  journal       = {Quantum},
+  volume        = {10},
+  pages         = {2001},
+  year          = {2026},
+  doi           = {10.22331/q-2026-02-09-2001},
+  eprint        = {2506.00292},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 2504.00291 (v2, 27 Jul 2025; no journal ref); full text grepped
+@misc{Davies2025preparing,
+  author        = {Davies, James and Jena, Andrew},
+  title         = {Preparing graph states forbidding a vertex-minor},
+  year          = {2025},
+  eprint        = {2504.00291},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  doi           = {10.48550/arXiv.2504.00291}
+}
+
+% ---------------------------------------------------------------------------
+% (C) Graph states, local complementation, LC orbits, complexity
+% ---------------------------------------------------------------------------
+
+% verified: arXiv API quant-ph/0307130 (journal ref PRA 69, 062311) + Crossref/doi.org -> link.aps.org; full text read (Prop. 3, Eq. 43)
+@article{Hein2004multiparty,
+  author        = {Hein, M. and Eisert, J. and Briegel, H. J.},
+  title         = {Multiparty entanglement in graph states},
+  journal       = {Physical Review A},
+  volume        = {69},
+  number        = {6},
+  pages         = {062311},
+  year          = {2004},
+  doi           = {10.1103/PhysRevA.69.062311},
+  eprint        = {quant-ph/0307130},
+  archivePrefix = {arXiv}
+}
+
+% updated in recheck: IOS Press chapter page (ebooks.iospress.nl, Quantum Computers, Algorithms and Chaos, vol. 162, pp. 115-218, 2006, DOI 10.3254/978-1-61499-018-5-115) + arXiv quant-ph/0602096
+@incollection{Hein2006entanglement,
+  author        = {Hein, M. and D{\"u}r, W. and Eisert, J. and Raussendorf, R. and Van den Nest, M. and Briegel, H.-J.},
+  title         = {Entanglement in graph states and its applications},
+  booktitle     = {Quantum Computers, Algorithms and Chaos},
+  series        = {Proceedings of the International School of Physics ``Enrico Fermi''},
+  volume        = {162},
+  pages         = {115--218},
+  publisher     = {IOS Press},
+  year          = {2006},
+  doi           = {10.3254/978-1-61499-018-5-115},
+  eprint        = {quant-ph/0602096},
+  archivePrefix = {arXiv}
+}
+}
+
+% verified: arXiv API quant-ph/0308151 (journal ref PRA 69, 022316) + Crossref/doi.org -> link.aps.org
+@article{VandenNest2004graphical,
+  author        = {Van den Nest, Maarten and Dehaene, Jeroen and De Moor, Bart},
+  title         = {Graphical description of the action of local {Clifford} transformations on graph states},
+  journal       = {Physical Review A},
+  volume        = {69},
+  number        = {2},
+  pages         = {022316},
+  year          = {2004},
+  doi           = {10.1103/PhysRevA.69.022316},
+  eprint        = {quant-ph/0308151},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv API quant-ph/0604010 (journal ref PRL 97, 150504) + Crossref/doi.org -> link.aps.org
+@article{VandenNest2006universal,
+  author        = {Van den Nest, Maarten and Miyake, Akimasa and D{\"u}r, Wolfgang and Briegel, Hans J.},
+  title         = {Universal resources for measurement-based quantum computation},
+  journal       = {Physical Review Letters},
+  volume        = {97},
+  number        = {15},
+  pages         = {150504},
+  year          = {2006},
+  doi           = {10.1103/PhysRevLett.97.150504},
+  eprint        = {quant-ph/0604010},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv API quant-ph/0608060 (journal ref PRA 75, 012337) + Crossref/doi.org -> link.aps.org; full text read (Eqs. 7-8: Schmidt-rank width = rank width)
+@article{VandenNest2007classical,
+  author        = {Van den Nest, M. and D{\"u}r, W. and Vidal, G. and Briegel, H. J.},
+  title         = {Classical simulation versus universality in measurement-based quantum computation},
+  journal       = {Physical Review A},
+  volume        = {75},
+  number        = {1},
+  pages         = {012337},
+  year          = {2007},
+  doi           = {10.1103/PhysRevA.75.012337},
+  eprint        = {quant-ph/0608060},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv API math/0504522 (journal ref JCTA 113(7) 1351-1367) + Crossref/doi.org -> Elsevier; full text read (Table 1: i_n = 1,2,4,11,26,101,440 for n=3..9)
+@article{Danielsen2006classification,
+  author        = {Danielsen, Lars Eirik and Parker, Matthew G.},
+  title         = {On the classification of all self-dual additive codes over {GF(4)} of length up to 12},
+  journal       = {Journal of Combinatorial Theory, Series A},
+  volume        = {113},
+  number        = {7},
+  pages         = {1351--1367},
+  year          = {2006},
+  doi           = {10.1016/j.jcta.2005.12.004},
+  eprint        = {math/0504522},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv API 1910.03969 (journal ref Quantum 4, 305) + Crossref/doi.org -> quantum-journal.org
+@article{Adcock2020mapping,
+  author        = {Adcock, Jeremy C. and Morley-Short, Sam and Dahlberg, Axel and Silverstone, Joshua W.},
+  title         = {Mapping graph state orbits under local complementation},
+  journal       = {Quantum},
+  volume        = {4},
+  pages         = {305},
+  year          = {2020},
+  doi           = {10.22331/q-2020-08-07-305},
+  eprint        = {1910.03969},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 1805.05305 (journal ref Phil. Trans. R. Soc. A 376: 20170325) + Crossref/doi.org -> royalsocietypublishing.org
+@article{Dahlberg2018transforming,
+  author        = {Dahlberg, Axel and Wehner, Stephanie},
+  title         = {Transforming graph states using single-qubit operations},
+  journal       = {Philosophical Transactions of the Royal Society A},
+  volume        = {376},
+  number        = {2123},
+  pages         = {20170325},
+  year          = {2018},
+  doi           = {10.1098/rsta.2017.0325},
+  eprint        = {1805.05305},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: Crossref/doi.org -> iopscience.iop.org (QST 5, 045016); arXiv API 1805.05306; full text grepped (DH graph states, rank-width one)
+@article{Dahlberg2020how,
+  author        = {Dahlberg, Axel and Helsen, Jonas and Wehner, Stephanie},
+  title         = {How to transform graph states using single-qubit operations: computational complexity and algorithms},
+  journal       = {Quantum Science and Technology},
+  volume        = {5},
+  number        = {4},
+  pages         = {045016},
+  year          = {2020},
+  doi           = {10.1088/2058-9565/aba763},
+  eprint        = {1805.05306},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 1907.08019 (journal ref Quantum 4, 348) + Crossref/doi.org -> quantum-journal.org
+@article{Dahlberg2020transforming,
+  author        = {Dahlberg, Axel and Helsen, Jonas and Wehner, Stephanie},
+  title         = {Transforming graph states to {Bell}-pairs is {NP}-complete},
+  journal       = {Quantum},
+  volume        = {4},
+  pages         = {348},
+  year          = {2020},
+  doi           = {10.22331/q-2020-10-22-348},
+  eprint        = {1907.08019},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: arXiv API 1907.08024 (journal ref J. Math. Phys. 61, 022202) + Crossref/doi.org -> pubs.aip.org
+@article{Dahlberg2020counting,
+  author        = {Dahlberg, Axel and Helsen, Jonas and Wehner, Stephanie},
+  title         = {Counting single-qubit {Clifford} equivalent graph states is {\#P}-complete},
+  journal       = {Journal of Mathematical Physics},
+  volume        = {61},
+  number        = {2},
+  pages         = {022202},
+  year          = {2020},
+  doi           = {10.1063/1.5120591},
+  eprint        = {1907.08024},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% ---------------------------------------------------------------------------
+% (D) Distance-hereditary graphs, rank-width, vertex-minors, split decomposition
+% ---------------------------------------------------------------------------
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (JCTB 41(2) 182-208, 1986)
+@article{Bandelt1986distance,
+  author        = {Bandelt, Hans-J{\"u}rgen and Mulder, Henry Martyn},
+  title         = {Distance-hereditary graphs},
+  journal       = {Journal of Combinatorial Theory, Series B},
+  volume        = {41},
+  number        = {2},
+  pages         = {182--208},
+  year          = {1986},
+  doi           = {10.1016/0095-8956(86)90043-2}
+}
+
+% verified: Crossref/doi.org -> academic.oup.com (Q. J. Math. 28(4) 417-420, 1977)
+@article{Howorka1977characterization,
+  author        = {Howorka, Edward},
+  title         = {A characterization of distance-hereditary graphs},
+  journal       = {The Quarterly Journal of Mathematics},
+  volume        = {28},
+  number        = {4},
+  pages         = {417--420},
+  year          = {1977},
+  doi           = {10.1093/qmath/28.4.417}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (JCTB 95(1) 79-100, 2005); content (rank-width <= 1 iff DH) confirmed via Oum2017rank survey text
+@article{Oum2005rank,
+  author        = {Oum, Sang-il},
+  title         = {Rank-width and vertex-minors},
+  journal       = {Journal of Combinatorial Theory, Series B},
+  volume        = {95},
+  number        = {1},
+  pages         = {79--100},
+  year          = {2005},
+  doi           = {10.1016/j.jctb.2005.03.003}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (JCTB 96(4) 514-528, 2006)
+@article{Oum2006approximating,
+  author        = {Oum, Sang-il and Seymour, Paul},
+  title         = {Approximating clique-width and branch-width},
+  journal       = {Journal of Combinatorial Theory, Series B},
+  volume        = {96},
+  number        = {4},
+  pages         = {514--528},
+  year          = {2006},
+  doi           = {10.1016/j.jctb.2005.10.006}
+}
+
+% verified: arXiv API 1601.03800 (journal ref DAM 231, 15-24) + Crossref/doi.org -> Elsevier; full text read (attributions of rw<=1 iff DH and C5 vertex-minor)
+@article{Oum2017rank,
+  author        = {Oum, Sang-il},
+  title         = {Rank-width: Algorithmic and structural results},
+  journal       = {Discrete Applied Mathematics},
+  volume        = {231},
+  pages         = {15--24},
+  year          = {2017},
+  doi           = {10.1016/j.dam.2016.08.006},
+  eprint        = {1601.03800},
+  archivePrefix = {arXiv},
+  primaryClass  = {math.CO}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (Eur. J. Combin. 8(3) 231-244, 1987)
+@article{Bouchet1987isotropic,
+  author        = {Bouchet, Andr{\'e}},
+  title         = {Isotropic systems},
+  journal       = {European Journal of Combinatorics},
+  volume        = {8},
+  number        = {3},
+  pages         = {231--244},
+  year          = {1987},
+  doi           = {10.1016/S0195-6698(87)80027-6}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (JCTB 45(1) 58-76, 1988)
+@article{Bouchet1988graphic,
+  author        = {Bouchet, Andr{\'e}},
+  title         = {Graphic presentations of isotropic systems},
+  journal       = {Journal of Combinatorial Theory, Series B},
+  volume        = {45},
+  number        = {1},
+  pages         = {58--76},
+  year          = {1988},
+  doi           = {10.1016/0095-8956(88)90055-X}
+}
+
+% verified: Crossref/doi.org -> onlinelibrary.wiley.com (J. Graph Theory 12(2) 195-207, 1988); Wiley page itself returned 403
+@article{Bouchet1988transforming,
+  author        = {Bouchet, Andr{\'e}},
+  title         = {Transforming trees by successive local complementations},
+  journal       = {Journal of Graph Theory},
+  volume        = {12},
+  number        = {2},
+  pages         = {195--207},
+  year          = {1988},
+  doi           = {10.1002/jgt.3190120210}
+}
+
+% verified: Crossref/doi.org -> epubs.siam.org (SIAM J. Algebraic Discrete Methods 3(2) 214-228, 1982)
+@article{Cunningham1982decomposition,
+  author        = {Cunningham, William H.},
+  title         = {Decomposition of directed graphs},
+  journal       = {SIAM Journal on Algebraic Discrete Methods},
+  volume        = {3},
+  number        = {2},
+  pages         = {214--228},
+  year          = {1982},
+  doi           = {10.1137/0603021}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (DAM 27(1-2) 85-99, 1990); ScienceDirect abstract page returned 403
+@article{Hammer1990completely,
+  author        = {Hammer, Peter L. and Maffray, Fr{\'e}d{\'e}ric},
+  title         = {Completely separable graphs},
+  journal       = {Discrete Applied Mathematics},
+  volume        = {27},
+  number        = {1--2},
+  pages         = {85--99},
+  year          = {1990},
+  doi           = {10.1016/0166-218X(90)90131-U}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (DAM 160(6) 708-733, 2012)
+@article{Gioan2012split,
+  author        = {Gioan, Emeric and Paul, Christophe},
+  title         = {Split decomposition and graph-labelled trees: Characterizations and fully dynamic algorithms for totally decomposable graphs},
+  journal       = {Discrete Applied Mathematics},
+  volume        = {160},
+  number        = {6},
+  pages         = {708--733},
+  year          = {2012},
+  doi           = {10.1016/j.dam.2011.05.007}
+}
+
+% ---------------------------------------------------------------------------
+% (E) Tools already cited by the paper (re-verified)
+% ---------------------------------------------------------------------------
+
+% verified: Crossref/doi.org -> link.springer.com (LNCS, Automated Deduction - CADE 28, pp. 625-635, 2021); LNCS volume number not in Crossref, omitted
+@inproceedings{deMoura2021lean,
+  author        = {de Moura, Leonardo and Ullrich, Sebastian},
+  title         = {The {Lean 4} theorem prover and programming language},
+  booktitle     = {Automated Deduction -- {CADE} 28},
+  series        = {Lecture Notes in Computer Science},
+  volume        = {12699},
+  publisher     = {Springer},
+  pages         = {625--635},
+  year          = {2021},
+  doi           = {10.1007/978-3-030-79876-5_37}
+}
+
+% verified: Crossref/doi.org -> dl.acm.org (CPP 2020, pp. 367-381); arXiv API 1910.09336 lists this DOI
+@inproceedings{Mathlib2020lean,
+  author        = {{The mathlib Community}},
+  title         = {The {Lean} mathematical library},
+  booktitle     = {Proceedings of the 9th {ACM} {SIGPLAN} International Conference on Certified Programs and Proofs ({CPP} 2020)},
+  pages         = {367--381},
+  year          = {2020},
+  doi           = {10.1145/3372885.3373824},
+  eprint        = {1910.09336},
+  archivePrefix = {arXiv}
+}
+
+% verified: arXiv API 2103.02202 (journal ref Quantum 5, 497) + Crossref/doi.org -> quantum-journal.org
+@article{Gidney2021stim,
+  author        = {Gidney, Craig},
+  title         = {Stim: a fast stabilizer circuit simulator},
+  journal       = {Quantum},
+  volume        = {5},
+  pages         = {497},
+  year          = {2021},
+  doi           = {10.22331/q-2021-07-06-497},
+  eprint        = {2103.02202},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph}
+}
+
+% verified: Crossref/doi.org -> linkinghub.elsevier.com (J. Symb. Comput. 60, 94-112, 2014); arXiv API 1301.1493
+@article{McKay2014practical,
+  author        = {McKay, Brendan D. and Piperno, Adolfo},
+  title         = {Practical graph isomorphism, {II}},
+  journal       = {Journal of Symbolic Computation},
+  volume        = {60},
+  pages         = {94--112},
+  year          = {2014},
+  doi           = {10.1016/j.jsc.2013.09.003},
+  eprint        = {1301.1493},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.DM}
+}
+
+% ---------------------------------------------------------------------------
+% (F) Machine-assisted discovery and formal verification (context for Sec. 3)
+% ---------------------------------------------------------------------------
+
+% verified: Crossref/doi.org -> nature.com/articles/s41586-023-06924-6 (Nature 625, 468-475, 2024)
+@article{RomeraParedes2024mathematical,
+  author        = {Romera-Paredes, Bernardino and Barekatain, Mohammadamin and Novikov, Alexander and Balog, Matej and Kumar, M. Pawan and Dupont, Emilien and Ruiz, Francisco J. R. and Ellenberg, Jordan S. and Wang, Pengming and Fawzi, Omar and Kohli, Pushmeet and Fawzi, Alhussein},
+  title         = {Mathematical discoveries from program search with large language models},
+  journal       = {Nature},
+  volume        = {625},
+  number        = {7995},
+  pages         = {468--475},
+  year          = {2024},
+  doi           = {10.1038/s41586-023-06924-6}
+}
+
+% verified: arXiv API 2506.13131 (v1, 16 Jun 2025; no journal ref)
+@misc{Novikov2025alphaevolve,
+  author        = {Novikov, Alexander and V{\~u}, Ng{\^a}n and Eisenberger, Marvin and Dupont, Emilien and Huang, Po-Sen and Wagner, Adam Zsolt and Shirobokov, Sergey and Kozlovskii, Borislav and Ruiz, Francisco J. R. and Mehrabian, Abbas and Kumar, M. Pawan and See, Abigail and Chaudhuri, Swarat and Holland, George and Davies, Alex and Nowozin, Sebastian and Kohli, Pushmeet and Balog, Matej},
+  title         = {{AlphaEvolve}: A coding agent for scientific and algorithmic discovery},
+  year          = {2025},
+  eprint        = {2506.13131},
+  archivePrefix = {arXiv},
+  doi           = {10.48550/arXiv.2506.13131}
+}
+
+% verified: arXiv API 2511.02864 (v3, 22 Dec 2025; no journal ref)
+@misc{Georgiev2025mathematical,
+  author        = {Georgiev, Bogdan and G{\'o}mez-Serrano, Javier and Tao, Terence and Wagner, Adam Zsolt},
+  title         = {Mathematical exploration and discovery at scale},
+  year          = {2025},
+  eprint        = {2511.02864},
+  archivePrefix = {arXiv},
+  doi           = {10.48550/arXiv.2511.02864}
+}
+
+% verified: Crossref/doi.org -> nature.com/articles/s41586-021-04086-x (Nature 600, 70-74, 2021)
+@article{Davies2021advancing,
+  author        = {Davies, Alex and Veli{\v{c}}kovi{\'c}, Petar and Buesing, Lars and Blackwell, Sam and Zheng, Daniel and Toma{\v{s}}ev, Nenad and Tanburn, Richard and Battaglia, Peter and Blundell, Charles and Juh{\'a}sz, Andr{\'a}s and Lackenby, Marc and Williamson, Geordie and Hassabis, Demis and Kohli, Pushmeet},
+  title         = {Advancing mathematics by guiding human intuition with {AI}},
+  journal       = {Nature},
+  volume        = {600},
+  number        = {7887},
+  pages         = {70--74},
+  year          = {2021},
+  doi           = {10.1038/s41586-021-04086-x}
+}
+
+% verified: arXiv API 2104.14516 (v1, 29 Apr 2021; no journal ref)
+@misc{Wagner2021constructions,
+  author        = {Wagner, Adam Zsolt},
+  title         = {Constructions in combinatorics via neural networks},
+  year          = {2021},
+  eprint        = {2104.14516},
+  archivePrefix = {arXiv},
+  doi           = {10.48550/arXiv.2104.14516}
+}
+
+% verified: Crossref/doi.org -> nature.com/articles/s41586-025-09833-y (Nature 651, 607-613, print issue 2026)
+@article{Hubert2026olympiad,
+  author        = {Hubert, Thomas and Mehta, Rishi and Sartran, Laurent and Horv{\'a}th, Mikl{\'o}s Z. and {\v{Z}}u{\v{z}}i{\'c}, Goran and Wieser, Eric and Huang, Aja and Schrittwieser, Julian and Schroecker, Yannick and Masoom, Hussain and Bertolli, Ottavia and Zahavy, Tom and Mandhane, Amol and Yung, Jessica and Beloshapka, Iuliya and Ibarz, Borja and Veeriah, Vivek and Yu, Lei and Nash, Oliver and Lezeau, Paul and Mercuri, Salvatore and S{\"o}nne, Calle and Mehta, Bhavik and Davies, Alex and Zheng, Daniel and Pedregosa, Fabian and Li, Yin and von Glehn, Ingrid and Rowland, Mark and Albanie, Samuel and Velingker, Ameya and Schmitt, Simon and Lockhart, Edward and Hughes, Edward and Michalewski, Henryk and Sonnerat, Nicolas and Hassabis, Demis and Kohli, Pushmeet and Silver, David},
+  title         = {Olympiad-level formal mathematical reasoning with reinforcement learning},
+  journal       = {Nature},
+  volume        = {651},
+  number        = {8106},
+  pages         = {607--613},
+  year          = {2026},
+  doi           = {10.1038/s41586-025-09833-y}
+}
+
+% verified: Crossref/doi.org -> nature.com/articles/s41586-023-06747-5 (Nature 625, 476-482, 2024)
+@article{Trinh2024solving,
+  author        = {Trinh, Trieu H. and Wu, Yuhuai and Le, Quoc V. and He, He and Luong, Thang},
+  title         = {Solving olympiad geometry without human demonstrations},
+  journal       = {Nature},
+  volume        = {625},
+  number        = {7995},
+  pages         = {476--482},
+  year          = {2024},
+  doi           = {10.1038/s41586-023-06747-5}
+}
+
+% added in review: arXiv abs 1306.1345 ("Not to be published"); abstract: "a connected graph has linear
+% rank-width 1 if and only if it is locally equivalent to a caterpillar"
+@misc{BuiXuan2013note,
+  author        = {Bui-Xuan, Binh-Minh and Kant{\'e}, Mamadou Moustapha and Limouzy, Vincent},
+  title         = {A note on graphs of linear rank-width 1},
+  year          = {2013},
+  eprint        = {1306.1345},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.DM},
+  doi           = {10.48550/arXiv.1306.1345}
+}
+
+% added in review: arXiv abs 1806.03263 + Crossref API 10.1088/2058-9565/aae950 (QST 4(1), 015010; issue 2019, online 2018-11-28)
+@article{Adcock2019hard,
+  author        = {Adcock, Jeremy C. and Morley-Short, Sam and Silverstone, Joshua W. and Thompson, Mark G.},
+  title         = {Hard limits on the postselectability of optical graph states},
+  journal       = {Quantum Science and Technology},
+  volume        = {4},
+  number        = {1},
+  pages         = {015010},
+  year          = {2019},
+  doi           = {10.1088/2058-9565/aae950},
+  eprint        = {1806.03263},
+  archivePrefix = {arXiv}
+}

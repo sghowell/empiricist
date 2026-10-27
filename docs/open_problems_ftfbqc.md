@@ -359,11 +359,11 @@ The pace of the field is the main threat to C1, so we record problems that would
 
 [39] M. Varnava, D. E. Browne, T. Rudolph, "Loss tolerance in one-way quantum computation via counterfactual error correction," Phys. Rev. Lett. 97, 120501 (2006).
 
-[40] M. C. Löbl, S. X. Chen, S. Paesani, A. S. Sørensen, "Generating graph states with a single quantum emitter and the minimum number of fusions," Phys. Rev. A 111, 052604 (2025). arXiv:2412.04587.
+[40] M. C. Löbl, L. A. Pettersson, A. Jena, L. Dellantonio, S. Paesani, A. S. Sørensen, "Generating graph states with a single quantum emitter and the minimum number of fusions," Phys. Rev. A 111, 052604 (2025). arXiv:2412.04587.
 
-[41] A. Dahlberg, J. Helsen, S. Wehner, "How to transform graph states using single-qubit operations: computational complexity and algorithms," Quantum Sci. Technol. / Quantum 4, 348 (2020) and companion works.
+[41] A. Dahlberg, J. Helsen, S. Wehner, "How to transform graph states using single-qubit operations: computational complexity and algorithms," Quantum Sci. Technol. 5, 045016 (2020); "Transforming graph states to Bell-pairs is NP-Complete," Quantum 4, 348 (2020); "Counting single-qubit Clifford equivalent graph states is #P-complete," J. Math. Phys. 61, 022202 (2020).
 
-[42] B. Li, S. E. Economou, E. Barnes, "Photonic resource state generation from a minimal number of quantum emitters," npj Quantum Information 8, 93 (2022).
+[42] B. Li, S. E. Economou, E. Barnes, "Photonic resource state generation from a minimal number of quantum emitters," npj Quantum Information 8, 11 (2022).
 
 [43] N. de Beaudrap, A. Kissinger, J. van de Wetering, "Circuit extraction for ZX-diagrams can be #P-hard," ICALP 2022. arXiv:2202.09194.
 

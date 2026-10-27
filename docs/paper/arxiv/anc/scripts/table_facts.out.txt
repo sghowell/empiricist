@@ -1,0 +1,11 @@
+ N orbits  F=N-3   DH DH=extremal  exact values above the floor
+ 3      1      1    1        True  exact above floor {}; open rows by lower bound {}
+ 4      2      2    2        True  exact above floor {}; open rows by lower bound {}
+ 5      4      3    3        True  exact above floor {5: 1}; open rows by lower bound {}
+ 6     11      8    8        True  exact above floor {6: 2}; open rows by lower bound {9: 1}
+ 7     26     15   15        True  exact above floor {7: 7}; open rows by lower bound {10: 4}
+ 8    101     42   42        True  exact above floor {}; open rows by lower bound {8: 59}
+ 9    440    104  104        True  exact above floor {}; open rows by lower bound {9: 336}
+total orbits 585, extremal 175, distance-hereditary 175
+per_n_totals in file: {'3': 1, '4': 2, '5': 4, '6': 11, '7': 26, '8': 101, '9': 440}
+schema_version 1 n_max 9 tier1_n_max 7

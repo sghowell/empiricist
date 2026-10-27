@@ -1,0 +1,5 @@
+n=3: orbits 1; tier0 1; tier1 standard new 0; reached only by a rotated intra fusion: 0 (36 frame classes, 36s)
+n=4: orbits 2; tier0 2; tier1 standard new 0; reached only by a rotated intra fusion: 0 (36 frame classes, 37s)
+n=5: orbits 4; tier0 3; tier1 standard new 1; reached only by a rotated intra fusion: 0 (36 frame classes, 43s)
+n=6: orbits 11; tier0 8; tier1 standard new 2; reached only by a rotated intra fusion: 0 (6 frame classes, 51s)
+n=7: orbits 26; tier0 15; tier1 standard new 7; reached only by a rotated intra fusion: 0 (6 frame classes, 108s)
