@@ -57,6 +57,13 @@ def test_identities_hold_at_k0_m4_and_m5():
 
 
 @pytest.mark.slow
+def test_identities_hold_at_k1_m6():
+    res = moment_identities(1, 6)
+    assert res.ok, res.detail
+    assert res.n_identities == 6 * 16
+
+
+@pytest.mark.slow
 def test_identities_hold_at_k1_m5(k1m5):
     assert k1m5.ok, k1m5.detail
     assert k1m5.n_identities == 5 * 16

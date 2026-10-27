@@ -135,7 +135,9 @@ class P3MomentBoundAdapter(BytesFileVerifier):
         return [
             case("moment-k0-m4-half", 0, 4, "1/2", lemma, Verdict.PASS),
             case("moment-k1-m5-two-thirds", 1, 5, "2/3", lemma, Verdict.PASS),
+            case("moment-k1-m6-two-thirds", 1, 6, "2/3", lemma, Verdict.PASS),
             case("moment-k1-m5-bound-too-low", 1, 5, "13/20", lemma, Verdict.FAIL),
+            case("moment-k1-m6-bound-too-low", 1, 6, "13/20", lemma, Verdict.FAIL),
             case("moment-k0-m4-corrupt-lemma", 0, 4, "1/2", corrupt, Verdict.FAIL),
             case("moment-k1-m5-foreign-lemma", 1, 5, "2/3", tiny, Verdict.FAIL),
             case("moment-k2-m8-unsupported", 2, 8, "3/4", lemma, Verdict.FAIL),

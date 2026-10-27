@@ -17,8 +17,8 @@ from empiricist.verifiers.registry import AGREED_VERSION, agreed_binary_hash
 
 NAMES = ("sos_certificate", "p3_exact_witness", "stab_fusion", "enum_fusion", "verify_agreed",
          "p3_moment_bound")
-# p3_moment_bound's PASS golden at (k, m) = (1, 5) is a ~30 s exact expansion: certified in
-# its own slow test below, not in the fast loop.
+# p3_moment_bound's PASS goldens at (k, m) = (1, 5) and (1, 6) are exact expansions of ~30 s
+# and ~50 s: certified in its own slow test below, not in the fast loop.
 FAST_NAMES = tuple(n for n in NAMES if n != "p3_moment_bound")
 
 
@@ -61,7 +61,7 @@ def test_the_moment_bound_verifier_certifies_and_judges_its_goldens(tmp_path):
 def test_the_moment_bound_verifier_fails_fast_on_cheap_gates(tmp_path):
     v = resolve_pack_verifier(tmp_path, "p3_moment_bound")
     by_label = {c.label: c for c in v.golden_suite()}
-    for label in ("moment-k0-m4-half", "moment-k1-m5-bound-too-low",
+    for label in ("moment-k0-m4-half", "moment-k1-m5-bound-too-low", "moment-k1-m6-bound-too-low",
                   "moment-k0-m4-corrupt-lemma", "moment-k1-m5-foreign-lemma",
                   "moment-k2-m8-unsupported"):
         c = by_label[label]
