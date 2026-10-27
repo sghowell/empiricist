@@ -1,0 +1,25 @@
+coverage: null
+depends_on:
+- P3.one_body_usd_lemma
+evidence: []
+formulation_version: p3-moment-bound-v1
+id: P3.k1_m5_p_avg_upper_bound
+kind: statement
+legacy_level: null
+level: HEURISTIC
+n: null
+notes: M27b target B; best known k=1 average is 1/2 (conjecture), so the bound is
+  not tight; verifier p3_moment_bound
+problem: P3
+receipts: []
+source: null
+standing: CURRENT
+statement: 'For every passive interferometer U in U(5) acting on the dual-rail Bell
+  pair (modes 1-4) and one ancilla photon in mode 5, with photon-number-resolving
+  detection, and for every unambiguous assignment of the three-photon detection patterns,
+  the average success (1/4) sum_B p_B is at most 2/3; hence the problem''s p = min_B
+  p_B is at most 2/3 as well (photon-number moment bound: the one-body USD lemma plus
+  the moment identity checked exactly at m = 5).'
+substatus: null
+supersedes: []
+updated: '2026-10-27'
