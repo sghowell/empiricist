@@ -12,7 +12,7 @@ the paper's tagged commit is named in the arXiv comments field. `SHA256SUMS` lis
 | The over-approximating schedule model (`floor_schedule_iff_dh`, the remark after the proof of the main theorem) | `lean/Paper/FloorBridge.lean` | `lean/check_axioms.sh` |
 | Table I, the 585 orbits, distance-hereditary = extremal on every orbit | `data/tablebase.json` | `python3 scripts/table_facts.py data/tablebase.json` (standard library only); output in `scripts/table_facts.out.txt` |
 | The nineteen exact values above the bound | `data/tablebase.json` (sixteen rows from Tier 1 and the bound), `data/certified_orbits/*` (the nine later constructions and their ledger records) | `scripts/replay_constructions.py` (needs the repository); output in `scripts/replay_constructions.out.txt` |
-| Rank-width does not determine F above the bound | `data/tablebase.json` | `cd scripts && python3 rankwidth_check.py ../data/tablebase.json`; output in `scripts/rankwidth_check.out.txt` |
+| Exact rank-widths of every orbit above the minimum; the rank-width bound is attained by the sixteen orbits with F = n, missed by the three with F = n + 3, and raises 25 open orbits of rank-width three to F >= n + 3 | `data/tablebase.json`, `data/certified_orbits/` | `cd scripts && python3 rankwidth_check.py ../data/tablebase.json ../data/certified_orbits` (standard library, about two minutes); output in `scripts/rankwidth_check.out.txt` |
 | Tier 1 is unchanged by single-qubit Cliffords on the fused qubits | `scripts/rotated_tier1.py` | needs the repository; output in `scripts/rotated_tier1.out.txt` |
 
 ## Lean
