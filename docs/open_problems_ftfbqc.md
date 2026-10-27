@@ -116,6 +116,8 @@ $$p^*(k) = \sup \{ p : \text{unambiguous schemes with } k \text{ ancilla photons
 
 **Status: open.** (All parts; (ii) is the headline.)
 
+> **Note (2026-10-26, added by the Empiricist harness; the problem statement above is unchanged).** Several results quoted under *Known results* are average-success values, $\frac14\sum_B p_B$, presented as if they concerned this problem's minimum metric $p=\min_B p_B$: $p^*(0)=1/2$ [32], Grice's $3/4$ and $1-2^{-N}$ [31], Ewert–van Loock's $3/4$ [35], and the "$1-p^*(k)\le 1/(k+2)$" of (iii). Their citations support the average only; Grice's $k=2$ scheme, for instance, has minimum $1/2$. Also, "no perfect scheme exists" does not by itself bound a supremum over unboundedly many modes away from 1. For the average metric the harness now has $\frac14\sum_B p_B\le (k+1)/(k+2)$ for every $k$, every passive $U$ in any number of modes, every $k$-photon ancilla and every unambiguous assignment (paper proof; the lemma and the instances $k=0,m=4$ and $k=1,m=5,6$ machine-certified): see `docs/science/2026-10-26-p3-moment-bounds.md`. It gives $p^*(k)\le(k+1)/(k+2)<1$ and $1-p^*(k)\ge 1/(k+2)$ under both metrics, and settles (ii) for the average. The same bound, stronger for odd $k$ ($1/(k+1)$ failure), was proved for polarization-preserving interferometers by Olivo and Grosshans [36], whose odd-$k$ result supports $p^*(1)=1/2$ within that class. Under the minimum metric, $k=0$ with auxiliary vacuum modes already reaches $1/4$ (an exact eight-mode witness).
+
 ---
 
 ### Problem 4. The loss-tolerance frontier of ballistic FBQC
