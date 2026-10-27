@@ -9,6 +9,20 @@ evidence:
   verdict: PASS
   verifier: p3_wave1_grounding
   version: '1.0'
+- binary_hash: 17d7281cd7ae913f048dea1bbc0102a0017f5c027ab3b7abad368e28214dd6de
+  golden_suite_hash: 6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84
+  note: 'pack verifier details {"detail": "every Bell state has positive exact success:
+    min_B p_B > 0 at k = 0 (a counterexample to ''k = 0 forces min_B p_B = 0'')",
+    "k": 0, "n_identifying_patterns": 8, "n_modes": 8, "p_min": [[1, "1/4", "0"]],
+    "success": {"phi+": [[1, "1/4", "0"]], "phi-": [[1, "1/4", "0"]], "psi+": [[1,
+    "1/4", "0"]], "psi-": [[1, "1/4", "0"]]}} reason="every Bell state has positive
+    exact success: min_B p_B > 0 at k = 0 (a counterexample to ''k = 0 forces min_B
+    p_B = 0'')"'
+  path: claims/evidence/p3_k0_m8/two_branch_witness.json
+  stamped: '2026-10-27T05:05:33+00:00'
+  verdict: FAIL
+  verifier: p3_k0_min_zero
+  version: '1.0'
 formulation_version: legacy
 id: P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0
 kind: statement

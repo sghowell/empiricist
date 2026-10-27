@@ -1,11 +1,23 @@
 coverage: null
 depends_on: []
-evidence: []
+evidence:
+- binary_hash: 13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589
+  golden_suite_hash: 6ca0395047b4d38b58d07e4978c5e439ee7a4dc4cf7a8c02b0ee52858ca45fcc
+  note: 'pack verifier details {"all_identified": true, "detail": "exact success vector
+    matches the claim", "k": 0, "n_identifying_patterns": 8, "n_in": 4, "n_modes":
+    8, "p_avg": [[1, "1/4", "0"]], "p_min": [[1, "1/4", "0"]], "require_all_identified":
+    true, "success": {"phi+": [[1, "1/4", "0"]], "phi-": [[1, "1/4", "0"]], "psi+":
+    [[1, "1/4", "0"]], "psi-": [[1, "1/4", "0"]]}}'
+  path: claims/evidence/p3_k0_m8/two_branch_witness.json
+  stamped: '2026-10-27T05:05:32+00:00'
+  verdict: PASS
+  verifier: p3_exact_witness
+  version: '1.0'
 formulation_version: p3-exact-witness-v1
 id: P3.k0_m8_exact_witness
 kind: statement
 legacy_level: null
-level: HEURISTIC
+level: CONJECTURED
 n: null
 notes: M27b follow-up; the referee's two-branch witness V = (1/sqrt2)[H; H X_A] (docs/science/reviews/2026-10-26-p3-moment-bound/REVIEW.md);
   evidence claims/evidence/p3_k0_m8/two_branch_witness.json, which also refutes P3.Conjecture_Fable_search_sketch_k_0_forces_min_B_p_B_0

@@ -720,6 +720,21 @@
         }
       }
     },
+    "claims/evidence/p3_k0_m8/two_branch_witness.json": {
+      "sha256": "c267e36470e6e4bce9d84bba4ae1d4f5e6253080733fdb6d2e749805a85ca928",
+      "verifiers": {
+        "p3_exact_witness": {
+          "binary_hash": "13dc8a14c7710cdc167d355c58482a2346e1b930c79683a0b7bed4ca7fddc589",
+          "golden_suite_hash": "6ca0395047b4d38b58d07e4978c5e439ee7a4dc4cf7a8c02b0ee52858ca45fcc",
+          "version": "1.0"
+        },
+        "p3_k0_min_zero": {
+          "binary_hash": "17d7281cd7ae913f048dea1bbc0102a0017f5c027ab3b7abad368e28214dd6de",
+          "golden_suite_hash": "6dccf493a2b3693855816d3838d036d13f621878c6c1329195270fa4de4b9d84",
+          "version": "1.0"
+        }
+      }
+    },
     "claims/evidence/p3_moment/k0_m4_p_avg_bound.json": {
       "sha256": "dd3b6ce9a76bcd9dc45a5ccb0b3261aed621a8bc17eb8faf3eb61449e13f9e1e",
       "verifiers": {
