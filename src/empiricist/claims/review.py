@@ -248,6 +248,10 @@ def _verifier_declarations(repo: Path, claim: ClaimFile) -> list[str]:
         v = declared.get(name)
         s = stamps.get(name)
         if v is None:
+            pack_lines = _pack_verifier_lines(repo, name, s)
+            if pack_lines:
+                out += pack_lines
+                continue
             out.append(f"- {name}: not a command verifier declared in this repository"
                        + (f"; registry stamp v{s.version} binary_hash {s.binary_hash}" if s
                           else "; no registry stamp"))
@@ -264,6 +268,48 @@ def _verifier_declarations(repo: Path, claim: ClaimFile) -> list[str]:
         else:
             out.append("  no current registry stamp")
     return out or ["(none)"]
+
+
+def _pack_verifier_lines(repo: Path, name: str, s: Any) -> list[str]:
+    """What a PACK verifier is (charter section 5): the installed pack that ships it, the
+    golden suite it is certified against (labels and expected verdicts, with its hash), and
+    whether the registry stamp -- this repository's certification record -- matches the live
+    verifier and suite. Empty when no installed pack declares `name`."""
+    from empiricist.packs import PackError, golden_suite_hash, pack_of, resolve_pack_verifier
+
+    try:
+        pack = pack_of(name)
+        v = resolve_pack_verifier(repo, name) if pack else None
+    except PackError:
+        return []
+    if v is None:
+        return []
+    try:
+        cases = v.golden_suite()
+        live_binary = v.binary_hash
+    except Exception as exc:  # noqa: BLE001 - describe, never crash a review bundle
+        return [f"- {name}: shipped by the installed `{pack}` pack; its identity could not "
+                f"be computed here ({type(exc).__name__})"]
+    live_suite = golden_suite_hash(cases)
+    out = [
+        f"- {name} v{v.version}: a verifier shipped by the installed `{pack}` pack "
+        f"(empiricist.packs.{pack}); live binary_hash {live_binary}",
+        f"  golden suite ({len(cases)} cases, golden_suite_hash {live_suite}): "
+        + ", ".join(f"{c.label} -> {c.expected.value}" for c in cases),
+    ]
+    if s is None:
+        out.append("  no registry stamp: not certified in this repository")
+        return out
+    matches = (s.version == v.version and s.binary_hash == live_binary
+               and s.golden_suite_hash == live_suite)
+    out.append(
+        f"  certification record (claims/verifiers.json): v{s.version} binary_hash "
+        f"{s.binary_hash} golden_suite_hash {s.golden_suite_hash} pack {s.pack} stamped "
+        f"{s.stamped} -- {'matches' if matches else 'DOES NOT match'} the live verifier and "
+        "suite; `certify-verifier` stamps only when every golden case yields its expected "
+        "verdict"
+    )
+    return out
 
 
 def _receipt_from_sample(
