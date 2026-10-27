@@ -16,7 +16,7 @@ from empiricist.verifiers.builtin import identity_for
 from empiricist.verifiers.registry import AGREED_VERSION, agreed_binary_hash
 
 NAMES = ("sos_certificate", "p3_exact_witness", "stab_fusion", "enum_fusion", "verify_agreed",
-         "p3_moment_bound")
+         "p3_moment_bound", "p3_k0_min_zero")
 # p3_moment_bound's PASS goldens at (k, m) = (1, 5) and (1, 6) are exact expansions of ~30 s
 # and ~50 s: certified in its own slow test below, not in the fast loop.
 FAST_NAMES = tuple(n for n in NAMES if n != "p3_moment_bound")
@@ -43,6 +43,9 @@ def test_every_ftfbqc_verifier_certifies_and_judges_its_goldens(tmp_path):
         assert problems == [] and stamp is not None and stamp.pack == "ftfbqc", name
     sos = resolve_pack_verifier(tmp_path, "sos_certificate")
     assert sos.verify_bytes(b"{").verdict is Verdict.FAIL
+    # a predicate verifier that can REFUTE never turns a malformed file into a FAIL
+    mz = resolve_pack_verifier(tmp_path, "p3_k0_min_zero")
+    assert mz.verify_bytes(b"{").verdict is Verdict.ERROR
 
 
 @pytest.mark.slow

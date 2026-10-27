@@ -144,6 +144,66 @@ class P3MomentBoundAdapter(BytesFileVerifier):
         ]
 
 
+_MIN_ZERO_HASHED = (
+    Path(__file__).resolve().parents[2] / "verifiers" / "p3_min_zero.py",
+    _P3_DIR / "exact.py",
+    _P3_DIR / "fock.py",
+    _P3_DIR / "interferometer.py",
+    _P3_DIR / "scheme.py",
+)
+
+
+class P3K0MinZeroAdapter(BytesFileVerifier):
+    """Payload: `{"witness": <exact witness JSON>, ...}` (other keys ignored, so a
+    `p3_exact_witness` evidence file serves too). The predicate of the conjecture "k = 0 forces
+    min_B p_B = 0" on one exact witness (`verifiers/p3_min_zero.py`): PASS if a valid k = 0
+    witness has a Bell state with exact success 0, FAIL if all four are positive (a
+    counterexample), ERROR for malformed, off-field or k != 0 witnesses -- never FAIL."""
+
+    name = "p3_k0_min_zero"
+    version = "1.0"
+
+    @property
+    def binary_hash(self) -> str:
+        import hashlib
+
+        h = hashlib.sha256()
+        for f in _MIN_ZERO_HASHED:
+            h.update(f.name.encode("utf-8") + b"\0")
+            h.update(f.read_bytes())
+        return h.hexdigest()
+
+    def verify_bytes(self, payload: bytes) -> VerifierResult:
+        from empiricist.verifiers.p3_min_zero import check_k0_min_zero
+
+        try:
+            data = json.loads(payload)
+        except ValueError as exc:
+            return VerifierResult(verdict=Verdict.ERROR, details={"error": f"malformed: {exc}"})
+        return check_k0_min_zero(data)
+
+    def golden_suite(self) -> list[GoldenCase]:
+        from fractions import Fraction
+
+        from empiricist.domain.p3.exact import Alg, ExactWitness, witness_to_json
+        from empiricist.domain.p3.known_schemes import standard_bsm
+        from empiricist.verifiers.p3_min_zero import two_branch_witness
+
+        identity = ExactWitness(
+            4, 0, tuple(tuple(Alg.rational(int(i == j)) for j in range(4)) for i in range(4)), {}
+        )
+
+        def case(label: str, w: ExactWitness, expected: Verdict) -> GoldenCase:
+            return GoldenCase(label, _canonical({"witness": witness_to_json(w)}), expected)
+
+        return [
+            case("minzero-standard-bsm-m4", ExactWitness.from_mesh(standard_bsm()), Verdict.PASS),
+            case("minzero-identity-m4", identity, Verdict.PASS),
+            case("minzero-two-branch-m8", two_branch_witness(), Verdict.FAIL),
+            case("minzero-unequal-branch-m8", two_branch_witness(Fraction(1, 4)), Verdict.FAIL),
+        ]
+
+
 class ExactWitnessAdapter(BytesFileVerifier):
     """Payload: `{"witness", "claimed_success": {bell: alg json}, "require_all_identified"}`
     -- the stored form of a P3 exact-witness artifact."""
