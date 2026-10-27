@@ -1,0 +1,21 @@
+name = "EmpiricistLean"
+version = "0.1.0"
+defaultTargets = ["EmpiricistLean"]
+
+[leanOptions]
+pp.unicode.fun = true
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+weak.linter.style.header = false
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.31.0"
+
+# The modules behind the paper's Lean declarations, copied unchanged from
+# lean/EmpiricistLean/EmpiricistLean/ of https://github.com/sghowell/empiricist.
+[[lean_lib]]
+name = "EmpiricistLean"
+globs = ["EmpiricistLean.Basic", "EmpiricistLean.Foundation", "EmpiricistLean.LocalComp", "EmpiricistLean.FusionRule", "EmpiricistLean.TreeThm", "EmpiricistLean.DoubleStar", "EmpiricistLean.CenterMerge", "EmpiricistLean.TrueTwin", "EmpiricistLean.ProducibleExt", "EmpiricistLean.DHCharacterization"]

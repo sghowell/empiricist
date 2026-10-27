@@ -1,0 +1,42 @@
+coverage: null
+depends_on: []
+evidence:
+- binary_hash: 2ed0b8b822b52f58a775d89ce2709e95206ab66c43287106de855ef37bff35e5
+  golden_suite_hash: null
+  note: ''
+  path: claims/evidence/960c7fec66c8d3a7.json
+  stamped: '2026-07-10T02:40:26.257633+00:00'
+  verdict: PASS
+  verifier: verify_agreed
+  version: '1.0'
+- binary_hash: d0bcae5c76dd4e6aebef6bd7963fb027baee454d03c93bc58b17a8ba552d650c
+  golden_suite_hash: 75adcef2c892ede54764db44bc4d53cc5c8b1919f5d117464637dca11aeaf7ef
+  note: claim 315d8e7f0c76
+  path: claims/evidence/960c7fec66c8d3a7.json
+  stamped: '2026-09-07T17:44:19.227979+00:00'
+  verdict: PASS
+  verifier: verify_agreed
+  version: '1.0'
+formulation_version: legacy
+id: P5.n7_orbit_0000000000e8
+kind: construction
+legacy_level: null
+level: CERTIFIED
+n: null
+notes: 'artifact 960c7fec66c8d3a7ddf2808582d9d3a004881132fcf20b0f994400a358daead3;
+  title: SEARCH exact upgrade: orbit 000000000000 F=10'
+problem: P5
+receipts: []
+source:
+  kind: ledger
+  ref: 960c7fec66c8d3a7ddf2808582d9d3a004881132fcf20b0f994400a358daead3
+standing: CURRENT
+statement: 'F(G) = 10 for the LC-orbit 00000000000000060000000000000012000000000000000a00000000000000440000000000000026000000000000009800000000000000e8
+  of connected 7-qubit graph states (representative edges [(0,3), (0,5), (0,6), (1,4),
+  (1,5), (2,5), (2,6), (3,6), (4,6)]): a construction with 10 fusions reaches the
+  orbit (both certified fusion engines agree) and the exact tablebase''s lower bound
+  for the orbit is 10 (the deterministic tiers exclude every smaller rung of the mod-3
+  ladder).'
+substatus: null
+supersedes: []
+updated: '2026-07-10'
