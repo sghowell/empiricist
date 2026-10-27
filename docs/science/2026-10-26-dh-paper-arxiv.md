@@ -51,3 +51,16 @@ Supplement: a self-contained Lake project whose `check_axioms.sh` builds and pri
 twelve declarations (about a minute with prebuilt mathlib), the tablebase and constructions, and
 scripts whose outputs are committed. Reviews: Codex (mathematics; novelty and citations) under
 `docs/paper/arxiv/reviews/`. Decisions left to Sean: `docs/paper/arxiv/ARXIV_SUBMISSION.md`.
+
+## The reviews
+
+A prior-art and bibliography pass (a subagent; `docs/paper/arxiv/reviews/prior-art/PRIOR_ART.md`) set the
+framing above. Codex (gpt-6-astra, maximum reasoning) then reviewed the paper twice, independently: the
+mathematics (no blocking or major error; it reproduced every Table I cell and replayed all 194 witnesses
+through both engines; six minor findings and two nits, about scope (n >= 3), the description of what the
+two engines share, the reporting of a script, a stale checksum, the Dahlberg-Wehner algorithm's
+parameters, a global phase and the naming of the implications), and the relation to previous work with
+live web search (no earlier statement of either theorem found; "the general bound appears to be the more
+substantial new statement"; one major attribution fix and several minor ones). A recheck confirmed the
+fixes, cross-checked the rank-widths with its own dynamic program, and found three remaining small items,
+also fixed. Every finding and its fix is in the `FIXES_APPLIED.md` files under `docs/paper/arxiv/reviews/`.

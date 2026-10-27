@@ -475,7 +475,7 @@ for circle graphs and for bounded rank-width and, assuming a structural conjectu
 $O(n\log n)$ for every proper vertex-minor-closed class. Minimum-gate and minimum-edge representatives
 of local-complementation orbits were studied by Cabello \emph{et al.}~\cite{Cabello2011optimal} and by
 Sharma \emph{et al.}~\cite{Sharma2026minimising}, who apply edge minimization to reduce the GHZ
-resources and fusions needed for repeater graph states. Adcock \emph{et al.}~\cite{Adcock2018hard}
+resources and fusions needed for repeater graph states. Adcock \emph{et al.}~\cite{Adcock2019hard}
 bound which graph states can be produced from optical resources with postselected fusions.
 
 \paragraph{Distance-hereditary graph states.} Connolly \emph{et al.}~\cite{Connolly2026efficient}
@@ -487,9 +487,11 @@ Parker~\cite{Danielsen2006classification} for $n\le 12$, and mapped by Adcock
 \emph{et al.}~\cite{Adcock2020mapping}. Whether one graph state can be transformed into another by single-qubit Clifford operations,
 single-qubit Pauli measurements and classical communication is decidable in time cubic in the size of
 the source when its rank-width and the size of the target are bounded~\cite{Dahlberg2018transforming};
-in general the problem is NP-complete, already for Bell-pair targets, with more efficient algorithms for
-particular targets~\cite{Dahlberg2020how,Dahlberg2020transforming}, and counting the graph states in a
-local-complementation orbit is \#P-complete~\cite{Dahlberg2020counting}.
+in general the problem is NP-complete, even when the target is a tensor product of Bell pairs on
+specified pairs of qubits, with more efficient algorithms for particular
+targets~\cite{Dahlberg2020how,Dahlberg2020transforming}. Separately, counting the labelled graph states
+in an orbit under local complementation alone, without identifying isomorphic graphs, is
+\#P-complete~\cite{Dahlberg2020counting}.
 
 \paragraph{Machine-assisted mathematics.} Machine learning has guided mathematicians to conjectures
 from data~\cite{Davies2021advancing}, language models have produced new constructions in combinatorics
