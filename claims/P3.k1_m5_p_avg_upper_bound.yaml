@@ -32,7 +32,7 @@ notes: 'M27b target B; photon-number moment bound: the one-body USD lemma plus t
 problem: P3
 receipts: []
 source: null
-standing: CHALLENGED
+standing: CURRENT
 statement: For every passive interferometer U in U(5) acting on the dual-rail Bell
   pair (qubit A on modes 1-2, qubit B on modes 3-4) and one ancilla photon in mode
   5, with photon-number-resolving detection of all five output modes, and for every
